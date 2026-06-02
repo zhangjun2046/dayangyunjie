@@ -1,0 +1,24 @@
+{
+  "name": "dayangyunjie-code",
+  "version": "0.1.0",
+  "private": true,
+  "description": "大洋云洁 · 智享社区综合服务平台 monorepo（编码专用）",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/server",
+    "dev:miniapp-customer": "npm run dev:h5 --workspace=@dayangyunjie/miniapp-customer",
+    "dev:miniapp-worker": "npm run dev:h5 --workspace=@dayangyunjie/miniapp-worker",
+    "dev:admin": "npm run dev --workspace=@dayangyunjie/admin",
+    "build": "npm run build --workspace=@dayangyunjie/shared && npm run build --workspace=@dayangyunjie/miniapp-customer && npm run build --workspace=@dayangyunjie/miniapp-worker && npm run build --workspace=@dayangyunjie/admin && npm run build --workspace=@dayangyunjie/server",
+    "lint": "echo 'TODO: eslint setup'",
+    "format": "prettier --write \"**/*.{ts,json,md}\""
+  },
+  "devDependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.34.9",
+    "prettier": "^3.5.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,50 @@
+# 大洋云洁 · 编码仓库 (dayangyunjie-code)
+
+本目录为**专用代码 monorepo**，与资料目录 `D:\coding\dayangyunjie`（商务/调研文档）平级分离。
+
+## 目录说明
+
+| 路径                    | 说明                                                           |
+| ----------------------- | -------------------------------------------------------------- |
+| `apps/server`           | NestJS 后端 API                                                |
+| `apps/miniapp-customer` | 居民端小程序（P1.4 完善；含 shared 验收桩）                    |
+| `apps/miniapp-worker`   | 员工端小程序（P1.4 完善；含 shared 验收桩）                    |
+| `apps/admin`            | 管理后台（P1.5 完善；含 shared 验收桩）                        |
+| `packages/shared`       | 共享枚举、DTO、`ApiResponse`（`@dayangyunjie/shared`）         |
+| `docs/`                 | CodingPlan、tech、Schema 等技术文档                            |
+| `requirement.md`        | 需求文档（主稿；原型图仍在资料区 `dayangyunjie\requirement\`） |
+| `docs/`                 | CodingPlan、tech、Schema（开发指引唯一主稿）                   |
+
+## 常用命令
+
+在**本目录根**执行：
+
+```bash
+npm install          # 安装依赖（仅根目录执行一次）
+npm run build        # 编译 shared + 双端 miniapp(H5) + admin + 后端
+npm run dev          # 启动后端开发模式
+npm run dev:miniapp-customer  # 启动居民端 uni-app H5
+npm run dev:miniapp-worker    # 启动员工端 uni-app H5
+```
+
+后端 Prisma（在 `apps/server` 下）：
+
+```bash
+cd apps/server
+npx prisma generate
+npx prisma migrate dev
+```
+
+## 环境
+
+- Node.js 22+
+- MySQL 8（开发库连接见 `.env`，勿提交 Git）
+- npm 缓存建议：`D:\npm-cache`（见根目录 `.npmrc`）
+
+## Cursor Agent
+
+请将工作区根目录设为：**`D:\coding\dayangyunjie-code`**
+
+- 开发计划与口令见 `docs/CodingPlan.md`（Cursor Agent 版）
+- npm 缓存：`D:\npm-cache`（根目录 `.npmrc`）
+- AI/工具日志：`D:\coding\dayangyunjie-code\.cursor-logs\`（定期清理，见 CodingPlan §2.1）

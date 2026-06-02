@@ -1,0 +1,38 @@
+{
+  "name": "@dayangyunjie/miniapp-customer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "居民端小程序（uni-app Vue3 + Vite）",
+  "scripts": {
+    "dev:h5": "uni",
+    "dev:mp-weixin": "uni -p mp-weixin",
+    "build": "uni build",
+    "build:h5": "uni build",
+    "build:mp-weixin": "uni build -p mp-weixin",
+    "type-check": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@dayangyunjie/shared": "*",
+    "@dcloudio/uni-app": "3.0.0-4080420251103001",
+    "@dcloudio/uni-components": "3.0.0-4080420251103001",
+    "@dcloudio/uni-h5": "3.0.0-4080420251103001",
+    "@dcloudio/uni-mp-weixin": "3.0.0-4080420251103001",
+    "@dcloudio/uni-ui": "1.5.6",
+    "pinia": "^2.2.6",
+    "vue": "^3.4.21"
+  },
+  "devDependencies": {
+    "@dcloudio/types": "^3.4.14",
+    "@dcloudio/uni-automator": "3.0.0-4080420251103001",
+    "@dcloudio/uni-cli-shared": "3.0.0-4080420251103001",
+    "@dcloudio/vite-plugin-uni": "3.0.0-4080420251103001",
+    "@vue/runtime-core": "^3.4.21",
+    "sass": "^1.100.0",
+    "typescript": "^5.7.0",
+    "vite": "5.2.8",
+    "vue-tsc": "^2.2.0"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.61.0"
+  }
+}

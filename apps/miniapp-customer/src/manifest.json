@@ -1,0 +1,27 @@
+{
+  "name": "大洋云洁-居民端",
+  "appid": "__UNI__DAYANG_CUSTOMER",
+  "description": "大洋云洁智享社区 · 居民端小程序",
+  "versionName": "0.1.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "wx0000000000000000",
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "minified": true
+    },
+    "usingComponents": true
+  },
+  "h5": {
+    "title": "大洋云洁 · 居民端",
+    "router": {
+      "mode": "hash"
+    },
+    "devServer": {
+      "port": 5174
+    }
+  },
+  "vueVersion": "3"
+}

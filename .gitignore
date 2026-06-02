@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.next/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+apps/server/.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Prisma (migrations 是否入库由团队决定，默认忽略)
+apps/server/prisma/migrations/
+
+# Uploads (local dev)
+uploads/
+
+# WorkBuddy / Cursor local
+.workbuddy/
+.cursor-logs/
+
+# Coverage
+coverage/
+
+# Temporary
+tmp/
+temp/
+*.tmp
