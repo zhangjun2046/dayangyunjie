@@ -48,3 +48,7 @@ npx prisma migrate dev
 - 开发计划与口令见 `docs/CodingPlan.md`（Cursor Agent 版）
 - npm 缓存：`D:\npm-cache`（根目录 `.npmrc`）
 - AI/工具日志：`D:\coding\dayangyunjie-code\.cursor-logs\`（定期清理，见 CodingPlan §2.1）
+
+## 开发进度
+
+- P2.2 单元开发完成
