@@ -22,8 +22,9 @@
 | P2.4 服务目录查询模块                    | ✅ 已通过 | 2026-06-07 | ServiceCatalog 2 接口（列表 + 详情）；按 `bizType` 筛选；默认 `isActive=true`；种子数据 CLEANING×3 / RECYCLING×2 / CONSULT×5；已生成 `OrderModule-API-Contract.md`；人工验收通过 |
 | P2.5a CleaningOrder CRUD + 创建订单      | ✅ 已通过 | 2026-06-07 | 已实现 create/list/getOne/update；订单号 `CLN+yyyyMMdd+6位序号`；`referenceAmount=serviceDuration×priceMin`；创建接口请求体显式必填 `residentId`；Swagger 验收通过 |
 | P2.5b CleaningOrder 状态机核心           | ✅ 已通过 | 2026-06-07 | `OrderStatusLog` 审计日志表（db push 同步）；`OrderStateMachineService`（CLEANING/RECYCLING 双套规则）；`PATCH /cleaning-orders/:id/status` 接口；Jest 35 项测试全部通过；取消专项规则验证 |
+| P2.5c 派单/GPS签到/完成/取消操作接口     | ✅ 已通过 | 2026-06-07 | 新增 5 个语义化操作接口（assign/accept/gps-checkin/complete/cancel）；Haversine 200m 超距标记；WorkPhoto 批量写入；Jest 25 项测试全部通过（含距离精度验证）；修复 jest.config.js 模块路径映射 bug |
 
-> 下一单元：**P2.5c** — 派单 + GPS签到 + 完成操作接口。
+> 下一单元：**P2.6a** — RecyclingOrder CRUD + 继承状态机。
 
 ---
 

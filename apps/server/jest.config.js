@@ -10,7 +10,7 @@ module.exports = {
     }],
   },
   moduleNameMapper: {
-    '^@dayangyunjie/shared$': '<rootDir>/../../packages/shared/src/index.ts',
+    '^@dayangyunjie/shared$': '<rootDir>/../../../packages/shared/src/index.ts',
   },
   moduleFileExtensions: ['js', 'json', 'ts'],
   collectCoverageFrom: ['**/*.ts', '!**/*.spec.ts', '!**/main.ts'],

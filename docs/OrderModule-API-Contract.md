@@ -330,3 +330,213 @@
 | `addressId` | number | ✅ | 地址 ID |
 | `contactName` | string | ✅ | 联系人 |
 | `contactPhone` | string | ✅ | 联系电话 |
+
+---
+
+## 8. P2.5b 状态机契约（CleaningOrder 状态机核心，2026-06-07 确认）
+
+> 本节为 P2.5b 编码的前置契约，AI Agent 实现时须严格遵守。
+
+### 8.1 保洁订单状态枚举
+
+```typescript
+enum CleaningOrderStatus {
+  PENDING_ASSIGN  = 'PENDING_ASSIGN',   // 待派单
+  ASSIGNED        = 'ASSIGNED',          // 已派单
+  ACCEPTED        = 'ACCEPTED',          // 已接单
+  IN_SERVICE      = 'IN_SERVICE',        // 服务中
+  PENDING_REVIEW  = 'PENDING_REVIEW',    // 待评价
+  REVIEWED        = 'REVIEWED',          // 已评价（终态）
+  CANCELLED       = 'CANCELLED',         // 已取消（终态）
+}
+```
+
+### 8.2 合法状态转移规则
+
+| 当前状态 | 允许转入 | 触发动作 | 操作方 |
+|---|---|---|---|
+| `PENDING_ASSIGN` | `ASSIGNED` | 运营分配员工 | Admin |
+| `PENDING_ASSIGN` | `CANCELLED` | 居民主动取消 | Resident |
+| `ASSIGNED` | `ACCEPTED` | 员工接单 | Worker |
+| `ACCEPTED` | `IN_SERVICE` | 员工开始服务（含 GPS） | Worker |
+| `IN_SERVICE` | `PENDING_REVIEW` | 员工完成服务 | Worker |
+| `PENDING_REVIEW` | `REVIEWED` | 居民提交评价 | Resident |
+
+> **取消规则**：`CANCELLED` 仅允许从 `PENDING_ASSIGN` 转入。其余状态转入 `CANCELLED` 均应抛出异常（HTTP 400，`message: "当前订单状态不允许取消，请联系客服"`）。  
+> **非法转移**：上表以外的所有转移均为非法，抛出 HTTP 400 并说明当前状态与目标状态。
+
+### 8.3 三端状态显示名映射
+
+> 前端按此表进行枚举值 → 显示文字的映射，**不在后端处理显示名**。
+
+| 枚举值 | 居民端 | 员工端 | 后台 |
+|---|---|---|---|
+| `PENDING_ASSIGN` | 待派单 | —（不可见） | 待派单 |
+| `ASSIGNED` | 已派单 | **待接单** | 已派单 |
+| `ACCEPTED` | 已接单 | 已接单 | 已接单 |
+| `IN_SERVICE` | 服务中 | 服务中 | 服务中 |
+| `PENDING_REVIEW` | 待评价 | 待评价 | 待评价 |
+| `REVIEWED` | 已评价 | 已评价 | 已评价 |
+| `CANCELLED` | 已取消 | 已取消 | 已取消 |
+
+### 8.4 废品订单额外状态
+
+废品订单（`RecyclingOrder`）在 `IN_SERVICE` 之后插入 `PENDING_ACCEPTANCE`（待验收）：
+
+```typescript
+enum RecyclingOrderStatus {
+  // 继承保洁订单所有状态，额外增加：
+  PENDING_ACCEPTANCE = 'PENDING_ACCEPTANCE',  // 待验收
+}
+```
+
+转移：`IN_SERVICE` → `PENDING_ACCEPTANCE`（员工上传照片后）→ `PENDING_REVIEW`（居民验收通过后）
+
+### 8.5 不实现项（一期排除）
+
+| 项目 | 说明 |
+|---|---|
+| `paymentStatus` 字段 | 线下收款留痕不做，数据模型中不含此字段 |
+| "已收款"按钮 | 员工端不实现 |
+| `payment_status_log` | 不实现 |
+| 居民取消（非待派单） | 系统层面直接拒绝，不提供接口入口 |
+
+### 8.6 order_status_log 审计日志
+
+每次状态变更必须写入 `order_status_log` 表，字段：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `orderId` | number | 关联订单 ID |
+| `orderType` | string | `CLEANING` / `RECYCLING` |
+| `fromStatus` | string | 变更前状态 |
+| `toStatus` | string | 变更后状态 |
+| `operatorId` | number | 操作人 ID |
+| `operatorType` | string | `RESIDENT` / `WORKER` / `ADMIN` |
+| `remark` | string \| null | 备注（如取消原因、GPS 超距说明） |
+| `createdAt` | DateTime | 操作时间戳 |
+
+---
+
+## 9. P2.5c 操作接口（CleaningOrder 语义化操作，2026-06-07）
+
+> 基于 P2.5b 状态机，为保洁订单新增 5 个语义化操作端点。各端点内部调用 `OrderStateMachineService.transition()`，状态机校验非法转移并抛出 HTTP 400。
+
+**Base path**：`/cleaning-orders/:id`
+
+**鉴权**：公开（管理端/员工端鉴权留后续阶段）
+
+---
+
+### 9.1 POST `/cleaning-orders/:id/assign` — 派单
+
+管理员分配员工，将订单从 `PENDING_ASSIGN` 变更为 `ASSIGNED`，同时写入 `workerId`。
+
+**Request Body**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `workerId` | number | ✅ | 分配的员工 ID（不存在返回 404） |
+| `operatorId` | number | ✅ | 操作管理员 ID |
+
+**Response `data`**：`CleaningOrderDto`（`workerId` 和 `status: ASSIGNED` 已更新）
+
+**错误**：
+
+| 状态码 | 场景 |
+|---|---|
+| 400 | 订单当前状态非 `PENDING_ASSIGN`（状态机拒绝） |
+| 404 | 订单不存在 / `workerId` 对应员工不存在 |
+
+---
+
+### 9.2 POST `/cleaning-orders/:id/accept` — 接单
+
+员工确认接受派单，状态 `ASSIGNED → ACCEPTED`。
+
+**Request Body**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `operatorId` | number | ✅ | 操作员工 ID |
+
+**Response `data`**：`CleaningOrderDto`（`status: ACCEPTED`）
+
+**错误**：400（当前状态非 `ASSIGNED`）、404（订单不存在）
+
+---
+
+### 9.3 POST `/cleaning-orders/:id/gps-checkin` — GPS 签到
+
+员工到达现场上传位置，系统用 Haversine 公式计算与订单地址坐标的距离。状态 `ACCEPTED → IN_SERVICE`。
+
+**Request Body**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `lat` | number | ✅ | 签到纬度（-90 ~ 90） |
+| `lng` | number | ✅ | 签到经度（-180 ~ 180） |
+| `operatorId` | number | ✅ | 操作员工 ID |
+
+**GPS 超距规则**
+
+| 条件 | 行为 |
+|---|---|
+| 订单地址含坐标且距离 ≤ 200m | 正常签到，`gpsRemark: null` |
+| 订单地址含坐标且距离 > 200m | 签到成功但标记 `gpsRemark: "超距签到，距离Xm"` |
+| 订单地址无坐标 | 签到成功，`gpsRemark: "地址无坐标，跳过距离校验"` |
+
+**Response `data`**：`CleaningOrderDto`（含 `gpsLat`、`gpsLng`、`gpsCheckinAt`、`gpsDistance`、`gpsRemark`）
+
+**错误**：400（当前状态非 `ACCEPTED`）、404（订单不存在）
+
+---
+
+### 9.4 POST `/cleaning-orders/:id/complete` — 完成服务
+
+员工上传完工照片，系统写入 `work_photos` 表，状态 `IN_SERVICE → PENDING_REVIEW`。
+
+**Request Body**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `photoUrls` | string[] | ✅ | 完工照片 URL 列表（至少 1 张） |
+| `operatorId` | number | ✅ | 操作员工 ID |
+
+**写入 `work_photos`**：每个 URL 生成一条记录，`photoType: AFTER`，`orderType: CLEANING`，`uploadedBy: operatorId`。
+
+**Response `data`**：`CleaningOrderDto`（`status: PENDING_REVIEW`）
+
+**错误**：400（当前状态非 `IN_SERVICE` / `photoUrls` 为空）、404（订单不存在）
+
+---
+
+### 9.5 POST `/cleaning-orders/:id/cancel` — 取消订单
+
+仅允许在 `PENDING_ASSIGN` 状态下取消，其余状态返回 HTTP 400（`"当前订单状态不允许取消，请联系客服"`）。
+
+**Request Body**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `operatorId` | number | ✅ | 操作人 ID |
+| `operatorType` | enum | ✅ | `RESIDENT` / `ADMIN` |
+| `remark` | string | | 取消原因（最长 512 字符） |
+
+**Response `data`**：`CleaningOrderDto`（`status: CANCELLED`）
+
+**错误**：400（当前状态非 `PENDING_ASSIGN`）、404（订单不存在）
+
+---
+
+### 9.6 全链路端到端验收流程
+
+```
+POST /cleaning-orders          → 创建订单（status: PENDING_ASSIGN）
+POST /cleaning-orders/:id/assign   → 派单（status: ASSIGNED，workerId 填充）
+POST /cleaning-orders/:id/accept   → 接单（status: ACCEPTED）
+POST /cleaning-orders/:id/gps-checkin → GPS签到（status: IN_SERVICE）
+POST /cleaning-orders/:id/complete → 完成（status: PENDING_REVIEW）
+```
+
+**超距签到验收**：传入距离订单地址 > 200m 的坐标，`gpsRemark` 应包含 `"超距签到"` 字样，订单状态仍正常变更为 `IN_SERVICE`。

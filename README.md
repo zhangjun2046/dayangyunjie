@@ -53,3 +53,4 @@ npx prisma migrate dev
 
 - P2.4 服务目录查询模块验收通过（使用 Auto LLM 完成）
 - 使用Codex 5.3 LLM完成P2.5a,实现 CleaningOrder CRUD 和创建订单
+- 使用Sonnet4.6 LLM完成P2.5c实现派单/GPS签到/完成/取消操作接口
