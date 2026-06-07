@@ -51,4 +51,4 @@ npx prisma migrate dev
 
 ## 开发进度
 
-- P2.2 单元开发完成
+- P2.4 服务目录查询模块验收通过（使用 Auto LLM 完成）

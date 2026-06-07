@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { Admin, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
-import { PrismaService } from '@server/common/prisma/prisma.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { QueryAdminDto } from './dto/query-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';

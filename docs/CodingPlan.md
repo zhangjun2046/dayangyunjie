@@ -18,8 +18,10 @@
 | P1.5 Vue 3 管理后台脚手架                | ✅ 已通过 | 2026-06-02 | `apps/admin` 完成 Vue3+Vite+Element Plus 最小骨架；登录页与主布局页可访问；根目录 `npm run build` 通过                                             |
 | P2.1 Auth 模块（JWT + 微信登录）         | ✅ 已通过 | 2026-06-02 | 已实现 Resident 微信 mock 登录、JWT access/refresh、`JwtStrategy`/Guard、`/auth/profile` 受保护接口、`/auth/refresh`、Swagger 可测；验收通过         |
 | P2.2 用户 CRUD 模块                      | ✅ 已通过 | 2026-06-02 | 三类用户 CRUD 已落地（Resident/Worker/Admin）；Resident 新增最小必填 `openid`；Worker/Admin 明文 `password` 由服务端 `bcrypt` 入库到 `passwordHash` |
+| P2.3 地址管理模块                        | ✅ 已通过 | 2026-06-07 | Address 6 接口（CRUD + 设默认）；默认地址互斥（同 resident 仅 1 条 `isDefault=true`）；绑定 `residentId`；Swagger 验收：新增 3 地址→设默认→查仅 1 默认→删非默认 |
+| P2.4 服务目录查询模块                    | ✅ 已通过 | 2026-06-07 | ServiceCatalog 2 接口（列表 + 详情）；按 `bizType` 筛选；默认 `isActive=true`；种子数据 CLEANING×3 / RECYCLING×2 / CONSULT×5；已生成 `OrderModule-API-Contract.md`；人工验收通过 |
 
-> 下一单元：**P2.3** — 地址管理模块。
+> 下一单元：**P2.5a** — CleaningOrder CRUD + 创建订单（建议切换强模型）。
 
 ---
 
@@ -630,11 +632,7 @@ Cursor Agent 可切换不同 AI 模型来完成不同类型的开发工作（在
 > **验收状态**：✅ **已通过**（2026-06-02）  
 > **需求确认（口径冻结）**：`Resident` 新增最小必填为 `openid`（其余字段可选）；`Worker/Admin` 接口接收明文 `password`，服务端 `bcrypt` 写入 `passwordHash`（查询不返回哈希）。  
 > 验收依据：① Swagger 可见 `residents/workers/admins` CRUD 接口并可调用；② 三类用户均完成新增→查询→修改→删除闭环；③ `Worker/Admin` 密码为服务端加密存储（数据库非明文）。  
-> 下一单元：[P2.3](#p23-地址管理模块2h)（待启动）
-
-**干什么**
-
-实现对三类用户的增删改查操作：
+> 下一单元：[P2.3](#p23-地址管理模块2h)（✅ 已通过）
 
 - **Resident（居民）**：小区住户的信息管理
 - **Worker（清洁员工）**：服务人员的信息管理
@@ -664,6 +662,10 @@ Cursor Agent 可切换不同 AI 模型来完成不同类型的开发工作（在
 ---
 
 #### P2.3 地址管理模块（2h）
+
+> **验收状态**：✅ **已通过**（2026-06-07）  
+> **验收依据**：① Swagger `http://localhost:3000/api/docs` 可见 `addresses` 6 个接口（POST/GET 列表/GET 详情/PUT/PUT default/DELETE）；② 为 `residentId=1` 新增 3 个地址；③ `PUT /api/v1/addresses/:id/default` 设默认后，列表查询仅 1 条 `isDefault=true`；④ 删除 1 条非默认地址成功。  
+> 下一单元：[P2.4](#p24-服务目录模块2h)（✅ 已通过）
 
 **干什么**
 
@@ -698,6 +700,10 @@ Cursor Agent 可切换不同 AI 模型来完成不同类型的开发工作（在
 ---
 
 #### P2.4 服务目录模块（2h）
+
+> **验收状态**：✅ **已通过**（2026-06-07，人工验收确认）  
+> **验收依据**：① Swagger `http://localhost:3000/api/docs` 可见 `service-catalogs` 2 个接口（GET 列表/GET 详情）；② `?bizType=CLEANING/RECYCLING/CONSULT` 分别返回 3/2/5 条含参考价；③ 无 bizType 时返回 10 条 active 种子数据；④ 无效 bizType 返回 400；⑤ 已生成 [`OrderModule-API-Contract.md`](OrderModule-API-Contract.md)。  
+> 下一单元：[P2.5a](#p25a-cleaningorder-crud--创建订单2h此处切换到强模型)（待启动）
 
 **干什么**
 

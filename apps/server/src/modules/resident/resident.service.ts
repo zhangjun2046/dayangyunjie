@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { PrismaService } from '@server/common/prisma/prisma.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateResidentDto } from './dto/create-resident.dto';
 import { QueryResidentDto } from './dto/query-resident.dto';
 import { UpdateResidentDto } from './dto/update-resident.dto';

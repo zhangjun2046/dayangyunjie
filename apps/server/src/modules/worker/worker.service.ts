@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, Worker } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
-import { PrismaService } from '@server/common/prisma/prisma.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateWorkerDto } from './dto/create-worker.dto';
 import { QueryWorkerDto } from './dto/query-worker.dto';
 import { UpdateWorkerDto } from './dto/update-worker.dto';
