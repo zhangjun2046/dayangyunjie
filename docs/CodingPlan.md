@@ -21,8 +21,9 @@
 | P2.3 地址管理模块                        | ✅ 已通过 | 2026-06-07 | Address 6 接口（CRUD + 设默认）；默认地址互斥（同 resident 仅 1 条 `isDefault=true`）；绑定 `residentId`；Swagger 验收：新增 3 地址→设默认→查仅 1 默认→删非默认 |
 | P2.4 服务目录查询模块                    | ✅ 已通过 | 2026-06-07 | ServiceCatalog 2 接口（列表 + 详情）；按 `bizType` 筛选；默认 `isActive=true`；种子数据 CLEANING×3 / RECYCLING×2 / CONSULT×5；已生成 `OrderModule-API-Contract.md`；人工验收通过 |
 | P2.5a CleaningOrder CRUD + 创建订单      | ✅ 已通过 | 2026-06-07 | 已实现 create/list/getOne/update；订单号 `CLN+yyyyMMdd+6位序号`；`referenceAmount=serviceDuration×priceMin`；创建接口请求体显式必填 `residentId`；Swagger 验收通过 |
+| P2.5b CleaningOrder 状态机核心           | ✅ 已通过 | 2026-06-07 | `OrderStatusLog` 审计日志表（db push 同步）；`OrderStateMachineService`（CLEANING/RECYCLING 双套规则）；`PATCH /cleaning-orders/:id/status` 接口；Jest 35 项测试全部通过；取消专项规则验证 |
 
-> 下一单元：**P2.5b** — CleaningOrder 状态机核心。
+> 下一单元：**P2.5c** — 派单 + GPS签到 + 完成操作接口。
 
 ---
 
@@ -781,19 +782,27 @@ Cursor Agent 可切换不同 AI 模型来完成不同类型的开发工作（在
 
 这是**整个系统最核心、最复杂的业务逻辑**。定义保洁订单的状态流转规则——订单从"下单"到"最终完成"中间要经历哪些步骤，哪些转换是合法的，哪些是不允许的。
 
-保洁订单的 6 个状态：
+**保洁订单枚举定义（P2.5b 已确认，2026-06-07）**：
+
+| 枚举值 | 系统状态名 | 触发动作 |
+|---|---|---|
+| `PENDING_ASSIGN` | 待派单 | 居民下单 |
+| `ASSIGNED` | 已派单 | 运营后台分配员工（员工端显示"待接单"） |
+| `ACCEPTED` | 已接单 | 员工点击「立即接单」 |
+| `IN_SERVICE` | 服务中 | 员工「开始服务」含 GPS 签到 |
+| `PENDING_REVIEW` | 待评价 | 员工完成服务 |
+| `REVIEWED` | 已评价 | 居民提交评价（终态） |
+| `CANCELLED` | 已取消 | **仅从 `PENDING_ASSIGN` 触发**（终态） |
 
 ```
-待派单(PENDING_ASSIGN) → 已派单(ASSIGNED) → 已接受(ACCEPTED)
-                                                  ↓
-                              服务中(IN_SERVICE) ← 接单后GPS签到
-                                                  ↓
-                              待评价(PENDING_REVIEW) ← 员工完成服务
-                                                  ↓
-                              已评价(REVIEWED) ← 居民打分评价
-                                                  ↓
-                              已取消(CANCELLED) ← 任意非终态均可取消
+PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → REVIEWED
+     ↓（仅此处允许）
+  CANCELLED
 ```
+
+> **取消规则**：居民**仅可在 `PENDING_ASSIGN`（待派单）状态取消**。一旦进入 `ASSIGNED` 及后续状态，系统拒绝取消，提示用户联系客服。  
+> **三端显示名**：除 `ASSIGNED` 在员工端显示"待接单"外，其余状态三端名称完全一致。  
+> **不实现 paymentStatus**：线下收款留痕一期不做，数据模型中不含 `paymentStatus` 字段。
 
 **Cursor Agent 干什么**
 
@@ -860,19 +869,26 @@ Cursor Agent 可切换不同 AI 模型来完成不同类型的开发工作（在
 
 **干什么**
 
-废品回收订单的基础 CRUD。废品订单比保洁订单多了两个特殊状态（待验收、已验收），其余逻辑类似。
+废品回收订单的基础 CRUD。废品订单比保洁订单多了一个特殊状态（`PENDING_ACCEPTANCE` 待验收），其余逻辑类似。
+
+废品订单完整状态链：
+```
+PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_ACCEPTANCE → PENDING_REVIEW → REVIEWED
+     ↓（仅此处）
+  CANCELLED
+```
 
 **Cursor Agent 干什么**
 
 - 复用 P2.5b 的状态机模式
 - 创建 RecyclingOrder Controller + Service
-- 增加 PENDING_ACCEPTANCE / ACCEPTED 两个状态节点
+- 在 `IN_SERVICE` 之后插入 `PENDING_ACCEPTANCE`（待验收）节点
 - 订单号前缀改为 RCY
 
 **人工干什么**
 
 - ✅ 与 P2.5a 类似的 CRUD 测试流程
-- ✅ 确认废品订单多了"待验收"相关字段
+- ✅ 确认废品订单状态链含 `PENDING_ACCEPTANCE`（待验收）节点
 
 **使用模型**: **强模型**
 
@@ -881,7 +897,7 @@ Cursor Agent 可切换不同 AI 模型来完成不同类型的开发工作（在
 **测试标准 — 通过后方可进入 P2.6b**:
 
 1. POST 创建订单返回 RCY 前缀订单号
-2. 废品订单状态机比保洁订单多出"待验收"和"已验收"节点
+2. 废品订单状态机比保洁订单多出 `PENDING_ACCEPTANCE`（待验收）节点，状态链正确
 
 ---
 
@@ -894,19 +910,18 @@ Cursor Agent 可切换不同 AI 模型来完成不同类型的开发工作（在
 - **录入实际重量**：员工上门后称重，录入实际重量（可能与预估不同）
 - **核定金额计算**：实际重量 × 单价 = 最终收款金额
 - **居民验收**：居民确认重量和金额无误
-- **收款确认**：线下收款后员工标记"已收款"
+
+> ~~收款确认~~ **不实现**：`paymentStatus` 字段和"已收款"按钮一期不做（P2.5b 已确认，2026-06-07）。
 
 **Cursor Agent 干什么**
 
 - 实际重量录入接口（员工调用）
 - 核定金额自动计算
-- 居民验收接口（居民调用）
-- 收款状态变更（paymentStatus: UNPAID → PAID）
-- payment_status_log 日志记录
+- 居民验收接口（居民调用）：验收通过 → `PENDING_ACCEPTANCE` → `PENDING_REVIEW`
 
 **人工干什么**
 
-- ✅ e2e 测试：创建废品订单 → 派单 → 接单 → 录入重量(10kg) → 确认核定金额正确 → 模拟居民验收 → 模拟收款 → 全链路通过
+- ✅ e2e 测试：创建废品订单 → 派单 → 接单 → 录入重量(10kg) → 确认核定金额正确 → 模拟居民验收 → 全链路通过
 
 **使用模型**: **强模型**
 
@@ -916,7 +931,7 @@ Cursor Agent 可切换不同 AI 模型来完成不同类型的开发工作（在
 
 1. e2e 全链路跑通，额外包含「录入重量 → 居民验收」环节
 2. 核定金额 = 实际重量 × 单价，计算正确
-3. 验收后 paymentStatus 正确变更
+3. 居民验收后订单状态正确流转至 `PENDING_REVIEW`
 
 ---
 

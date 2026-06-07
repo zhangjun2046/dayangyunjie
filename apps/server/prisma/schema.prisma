@@ -322,6 +322,23 @@ model ComplaintFollowUp {
   @@map("complaint_follow_ups")
 }
 
+// ─── 审计日志（1）────────────────────────────────────────
+
+model OrderStatusLog {
+  id           Int      @id @default(autoincrement())
+  orderId      Int      @map("order_id")
+  orderType    String   @map("order_type") @db.VarChar(16)
+  fromStatus   String   @map("from_status") @db.VarChar(32)
+  toStatus     String   @map("to_status") @db.VarChar(32)
+  operatorId   Int      @map("operator_id")
+  operatorType String   @map("operator_type") @db.VarChar(16)
+  remark       String?  @db.VarChar(512)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([orderId, orderType])
+  @@map("order_status_logs")
+}
+
 // ─── 配置（1）────────────────────────────────────────────
 
 model ServiceCatalog {

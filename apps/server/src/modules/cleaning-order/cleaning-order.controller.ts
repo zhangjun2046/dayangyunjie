@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Put,
   Query,
@@ -13,6 +14,7 @@ import { ApiResponseDto } from '../auth/dto/auth-response.dto';
 import { CleaningOrderService } from './cleaning-order.service';
 import { CreateCleaningOrderDto } from './dto/create-cleaning-order.dto';
 import { QueryCleaningOrderDto } from './dto/query-cleaning-order.dto';
+import { TransitionOrderDto } from './dto/transition-order.dto';
 import { UpdateCleaningOrderDto } from './dto/update-cleaning-order.dto';
 
 @ApiTags('CleaningOrders')
@@ -58,6 +60,22 @@ export class CleaningOrderController {
     @Body() updateCleaningOrderDto: UpdateCleaningOrderDto,
   ): Promise<ApiResponseDto<Awaited<ReturnType<CleaningOrderService['update']>>>> {
     const data = await this.cleaningOrderService.update(id, updateCleaningOrderDto);
+    return { code: 0, message: 'ok', data };
+  }
+
+  @Patch(':id/status')
+  @ApiOperation({
+    summary: '保洁订单状态机转移（P2.5b 验收入口）',
+    description:
+      '按 §8.2 合法状态转移规则变更订单状态，并自动写入 order_status_logs 审计记录。' +
+      '非法转移（含取消规则）返回 HTTP 400。',
+  })
+  @ApiOkResponse({ description: '状态变更成功，返回最新订单数据' })
+  async transitionStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() transitionOrderDto: TransitionOrderDto,
+  ): Promise<ApiResponseDto<Awaited<ReturnType<CleaningOrderService['transitionStatus']>>>> {
+    const data = await this.cleaningOrderService.transitionStatus(id, transitionOrderDto);
     return { code: 0, message: 'ok', data };
   }
 }

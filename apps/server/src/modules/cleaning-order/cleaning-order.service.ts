@@ -7,8 +7,10 @@ import {
 import { AddressSnapshot, CleaningOrderDto, OrderSource } from '@dayangyunjie/shared';
 import { CleaningOrder, OrderSource as PrismaOrderSource, OrderStatus as PrismaOrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { OrderStateMachineService } from '../../common/order-state-machine/order-state-machine.service';
 import { CreateCleaningOrderDto } from './dto/create-cleaning-order.dto';
 import { QueryCleaningOrderDto } from './dto/query-cleaning-order.dto';
+import { TransitionOrderDto } from './dto/transition-order.dto';
 import { UpdateCleaningOrderDto } from './dto/update-cleaning-order.dto';
 
 const ORDER_NO_PREFIX = 'CLN';
@@ -17,7 +19,10 @@ const ORDER_NO_RETRY_TIMES = 3;
 
 @Injectable()
 export class CleaningOrderService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly stateMachine: OrderStateMachineService,
+  ) {}
 
   async create(createCleaningOrderDto: CreateCleaningOrderDto): Promise<CleaningOrderDto> {
     this.validateProxyFields(createCleaningOrderDto);
@@ -169,6 +174,28 @@ export class CleaningOrderService {
       data,
     });
     return this.toDto(row);
+  }
+
+  /**
+   * 执行保洁订单状态机转移。
+   * 在 Prisma 事务中完成状态更新 + order_status_log 写入。
+   */
+  async transitionStatus(id: number, dto: TransitionOrderDto): Promise<CleaningOrderDto> {
+    const order = await this.findOneOrThrow(id);
+
+    await this.prismaService.$transaction(async (tx) => {
+      await this.stateMachine.transition(tx, {
+        orderId: id,
+        orderType: 'CLEANING',
+        fromStatus: order.status,
+        toStatus: dto.toStatus,
+        operatorId: dto.operatorId,
+        operatorType: dto.operatorType,
+        remark: dto.remark,
+      });
+    });
+
+    return this.toDto(await this.findOneOrThrow(id));
   }
 
   private async findOneOrThrow(id: number): Promise<CleaningOrder> {
