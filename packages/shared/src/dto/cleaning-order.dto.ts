@@ -2,6 +2,7 @@ import type { OrderSource } from '../enums';
 
 /** 居民端创建保洁订单 */
 export interface CreateCleaningOrderDto {
+  residentId: number;
   serviceItem: string;
   serviceDuration?: number;
   appointDate: string;
@@ -18,7 +19,6 @@ export interface CreateCleaningOrderDto {
 
 /** 管理后台代下单 / 电话预约 */
 export interface AdminCreateCleaningOrderDto extends CreateCleaningOrderDto {
-  residentId?: number;
   source: OrderSource;
 }
 

@@ -13,6 +13,8 @@
 > **P2.1 需求确认（实现范围）**：认证模块首阶段仅覆盖 **Resident** 登录；采用 **微信纯 mock 模式**（`code -> 固定 openid`）联调，后续阶段再切换真实微信 `code2session` 并扩展 Worker/Admin 登录。
 >
 > **P2.2 需求确认（用户 CRUD 口径）**：`Resident` 新增接口最小必填为 `openid`（其余字段可选）；`Worker/Admin` 接口接收明文 `password`，服务端统一 `bcrypt` 后写入 `passwordHash`（不允许客户端直传 `passwordHash`）。
+>
+> **P2.5a 需求确认（保洁订单创建口径）**：创建 `CleaningOrder` 使用 6 位序号订单号（`CLN + yyyyMMdd + 6位序号`）；`referenceAmount = serviceDuration × priceMin`；创建接口请求体显式必填 `residentId`（便于当前公开接口阶段联调）。
 
 ### 0.1 编制目的
 

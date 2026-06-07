@@ -20,8 +20,9 @@
 | P2.2 用户 CRUD 模块                      | ✅ 已通过 | 2026-06-02 | 三类用户 CRUD 已落地（Resident/Worker/Admin）；Resident 新增最小必填 `openid`；Worker/Admin 明文 `password` 由服务端 `bcrypt` 入库到 `passwordHash` |
 | P2.3 地址管理模块                        | ✅ 已通过 | 2026-06-07 | Address 6 接口（CRUD + 设默认）；默认地址互斥（同 resident 仅 1 条 `isDefault=true`）；绑定 `residentId`；Swagger 验收：新增 3 地址→设默认→查仅 1 默认→删非默认 |
 | P2.4 服务目录查询模块                    | ✅ 已通过 | 2026-06-07 | ServiceCatalog 2 接口（列表 + 详情）；按 `bizType` 筛选；默认 `isActive=true`；种子数据 CLEANING×3 / RECYCLING×2 / CONSULT×5；已生成 `OrderModule-API-Contract.md`；人工验收通过 |
+| P2.5a CleaningOrder CRUD + 创建订单      | ✅ 已通过 | 2026-06-07 | 已实现 create/list/getOne/update；订单号 `CLN+yyyyMMdd+6位序号`；`referenceAmount=serviceDuration×priceMin`；创建接口请求体显式必填 `residentId`；Swagger 验收通过 |
 
-> 下一单元：**P2.5a** — CleaningOrder CRUD + 创建订单（建议切换强模型）。
+> 下一单元：**P2.5b** — CleaningOrder 状态机核心。
 
 ---
 
@@ -751,12 +752,15 @@ Cursor Agent 可切换不同 AI 模型来完成不同类型的开发工作（在
 - 创建 CleaningOrder Controller + Service
 - 实现 create/list/getOne/update 方法
 - 订单号生成规则：CLN + yyyyMMdd + 6位序号
-- 计算 referenceAmount（预估金额 = 服务时长 × 参考单价）
+- 计算 referenceAmount（预估金额 = `serviceDuration × priceMin`）
+- 创建订单请求体显式必填 `residentId`（公开接口联调阶段）
 
 **人工干什么**
 
 - ✅ 用 Swagger POST 创建一个保洁订单 → 返回订单号以 CLN 开头
 - ✅ 用 GET 查到刚创建的订单 → 信息一致
+
+**当前状态**：✅ **P2.5a 测试通过（2026-06-07）**
 
 **使用模型**: **强模型** ⬅️ **从这里开始切换**
 
@@ -767,6 +771,7 @@ Cursor Agent 可切换不同 AI 模型来完成不同类型的开发工作（在
 1. POST 创建订单返回 CLN 前缀订单号
 2. GET 列表/详情能正确返回数据
 3. referenceAmount 计算正确
+4. POST 创建请求体显式必填 `residentId`
 
 ---
 

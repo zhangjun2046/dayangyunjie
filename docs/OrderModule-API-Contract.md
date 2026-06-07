@@ -1,4 +1,4 @@
-# OrderModule API Contract（P2.1–P2.4 交接文档）
+# OrderModule API Contract（P2.1–P2.5a 交接文档）
 
 > **生成节点**：P2.4 完成后 → 进入 P2.5a 前  
 > **用途**：供后续订单模块（CleaningOrder 等）开发读取，避免上下文丢失  
@@ -311,9 +311,22 @@
 
 ---
 
-## 7. 下一单元（P2.5a）提示
+## 7. P2.5a 口径更新（CleaningOrder 创建）
 
 - 读取本文档 + `packages/shared` 订单 DTO
-- 创建 `CleaningOrder` CRUD，订单号前缀 `CLN`
-- 创建订单时需引用 `ServiceCatalog` 参考价计算 `referenceAmount`
-- P2.5a 起建议切换**强模型**
+- 创建 `CleaningOrder` CRUD，订单号规则为 `CLN + yyyyMMdd + 6位序号`
+- 创建订单时 `referenceAmount = serviceDuration × priceMin`
+- 创建接口请求体中显式必填 `residentId`（公开接口联调阶段）
+
+**创建接口关键字段（确认版）**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `residentId` | number | ✅ | 创建请求体显式传入 |
+| `serviceItem` | string | ✅ | 保洁服务项名称 |
+| `serviceDuration` | number | ✅ | 服务时长（小时） |
+| `appointDate` | string | ✅ | 预约日期 |
+| `appointTimeSlot` | string | ✅ | 预约时段 |
+| `addressId` | number | ✅ | 地址 ID |
+| `contactName` | string | ✅ | 联系人 |
+| `contactPhone` | string | ✅ | 联系电话 |

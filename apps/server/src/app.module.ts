@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ServiceCatalogModule } from './modules/service-catalog/service-catalog.module';
 import { ResidentModule } from './modules/resident/resident.module';
 import { WorkerModule } from './modules/worker/worker.module';
+import { CleaningOrderModule } from './modules/cleaning-order/cleaning-order.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { WorkerModule } from './modules/worker/worker.module';
     AdminModule,
     AddressModule,
     ServiceCatalogModule,
+    CleaningOrderModule,
   ],
   controllers: [AppController],
   providers: [AppService],
