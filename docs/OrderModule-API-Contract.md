@@ -970,3 +970,148 @@ GET   /complaints/:id                     → 详情含 followUps 列表
 | 4 | PATCH status {COMPLETED} | ✅ status=COMPLETED |
 | 5 | PATCH status {PROCESSING}（终态保护） | ✅ HTTP 400，"投诉已处于终态（COMPLETED），不可再变更状态" |
 | 6 | GET /complaints/:id | ✅ status=COMPLETED，followUps 数组含 1 条记录 |
+
+---
+
+## 16. P2.11 Dashboard 数据看板聚合 API（2026-06-08 确认）
+
+> **功能说明**：为管理后台数据看板提供 6 个聚合统计接口，返回格式直接适配 ECharts 各图表组件入参。支持 `startDate`/`endDate` 时间范围筛选。
+
+**Base path**：`/dashboard`
+
+**鉴权**：公开（管理端鉴权留 P5 阶段实现）
+
+### 16.1 公共查询参数（所有接口适用）
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `startDate` | string（ISO 日期） | | 统计起始日期，如 `2026-06-01`，缺省见各接口默认范围 |
+| `endDate` | string（ISO 日期） | | 统计结束日期，如 `2026-06-08`，缺省见各接口默认范围 |
+
+---
+
+### 16.2 GET `/dashboard/summary` — 统计卡
+
+**鉴权**：公开（不受 startDate/endDate 控制，始终反映固定时段实时值）
+
+**Response `data`**
+```typescript
+{
+  todayOrders: number;      // 今日三类订单合计
+  weekOrders: number;       // 本周三类订单合计
+  activeWorkers: number;    // status=IDLE|BUSY 的员工数
+  avgRating: number;        // 全量评价平均星级（保留 1 位小数）
+}
+```
+
+**验收结果（2026-06-08）**：`{ todayOrders: 8, weekOrders: 8, activeWorkers: 3, avgRating: 5 }` ✅
+
+---
+
+### 16.3 GET `/dashboard/order-trend` — 订单趋势（ECharts 折线图）
+
+**默认范围**：近 7 天
+
+**Response `data`**
+```typescript
+{
+  dates: string[];      // ["2026-06-02", ..., "2026-06-08"]（xAxis.data）
+  cleaning: number[];   // 每天保洁订单数（series[0].data，与 dates 等长）
+  recycling: number[];  // 每天废品订单数（series[1].data，与 dates 等长）
+  consult: number[];    // 每天咨询订单数（series[2].data，与 dates 等长）
+}
+```
+
+**ECharts 对接**：`xAxis.data = dates`，`series[N].data = cleaning/recycling/consult` ✅
+
+---
+
+### 16.4 GET `/dashboard/service-type-distribution` — 服务类型分布（ECharts 环形图）
+
+**默认范围**：近 30 天
+
+**Response `data`**
+```typescript
+{
+  data: [
+    { name: "保洁",     value: number },
+    { name: "废品回收", value: number },
+    { name: "家政咨询", value: number },
+  ]  // 直接赋给 series.data，符合 ECharts 饼图标准格式
+}
+```
+
+**验收结果（2026-06-08）**：`[保洁:8, 废品回收:2, 家政咨询:3]`，合计=13 ✅
+
+---
+
+### 16.5 GET `/dashboard/rating-distribution` — 满意度分布（ECharts 环形图）
+
+**默认范围**：近 30 天
+
+**Response `data`**
+```typescript
+{
+  data: [
+    { name: "5星", value: number },
+    { name: "4星", value: number },
+    { name: "3星", value: number },
+    { name: "2星", value: number },
+    { name: "1星", value: number },
+  ]  // 5→1 倒序；零值项保留（避免 ECharts 空数据报错）
+}
+```
+
+---
+
+### 16.6 GET `/dashboard/hourly-distribution` — 时段分布（ECharts 柱状图）
+
+**默认范围**：近 30 天
+
+**Response `data`**
+```typescript
+{
+  hours: string[];   // ["00:00", "01:00", ..., "23:00"]（固定 24 项，xAxis.data）
+  counts: number[];  // 每小时订单数三类合计（固定 24 项，与 hours 等长，series.data）
+}
+```
+
+> 保洁/废品按 `appointTimeSlot` 解析首个小时（支持 "09:00-11:00" 数字格式及"上午/下午/晚上"中文格式）；咨询单按 `createdAt` 小时统计。
+
+---
+
+### 16.7 GET `/dashboard/worker-performance` — 员工绩效排名
+
+**默认范围**：近 30 天
+
+**Response `data`**
+```typescript
+{
+  items: Array<{
+    workerId: number;
+    name: string;
+    employeeNo: string;
+    totalOrders: number;       // 累计完成单数（Worker.totalOrders 字段）
+    completedInRange: number;  // 时间段内 REVIEWED 状态单数（清洁+废品合计）
+    rating: number;            // 平均评分（保留 1 位小数）
+    status: string;            // IDLE / BUSY
+  }>
+  // 按 completedInRange 倒序排列，同值再按 totalOrders 倒序
+}
+```
+
+---
+
+### 16.8 全链路验收结果（2026-06-08）
+
+| # | 接口 | 验收项 | 结果 |
+|---|------|--------|------|
+| 1 | `/summary` | 今日订单=8，本周=8，员工=3，评分=5.0 | ✅ 数字与测试数据一致 |
+| 2 | `/order-trend` | 7个日期，三组数组等长，数据集中在6/7和6/8 | ✅ ECharts折线图格式校验通过 |
+| 3 | `/service-type-distribution` | `{name,value}[]` 结构，合计=13 | ✅ ECharts饼图格式校验通过 |
+| 4 | `/rating-distribution` | 5项固定（5→1星），含零值占位 | ✅ ECharts饼图格式校验通过 |
+| 5 | `/hourly-distribution` | 24项固定，hours/counts等长，09:00和14:00有峰值 | ✅ ECharts柱状图格式校验通过 |
+| 6 | `/worker-performance` | 3名员工，按completedInRange倒序排列 | ✅ el-table格式校验通过 |
+| 7 | 时间范围筛选 | `?startDate=2026-06-01&endDate=2026-06-05` 返回5天数据 | ✅ 范围计算正确 |
+| 8 | Jest 单元测试 | 新增20项（全套回归182项） | ✅ 全部通过 |
+| 9 | `npm run build` | 全链路编译 | ✅ 无报错 |

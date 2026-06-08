@@ -28,8 +28,9 @@
 | P2.8 GPS 签到校验服务                   | ✅ 已通过 | 2026-06-08 | 新建 `common/geo/GeoService`（`haversineMeters` + `validateCheckin`）；将保洁/废品模块内嵌的重复 Haversine 逻辑抽取为可复用公共服务；`GeoModule` 导出；Jest 18 项全部通过；全套回归 123 项通过；`npm run build` 通过；使用 Sonnet 4.6 LLM 完成 |
 | P2.9 COS 文件上传 + 水印               | ✅ 已通过 | 2026-06-08 | Strategy 模式抽象存储层（`StorageModule`）；`LocalStorageStrategy`（开发期 `/uploads`）+ `CosStorageStrategy`（占位 stub，`STORAGE_PROVIDER` 一行切换）；sharp SVG composite 水印（订单号 + 时间戳）；`POST /api/v1/upload/image`；5 场景全链路验收通过（含文件类型/缺参防御）；`npm run build` 通过；使用 Sonnet 4.6 LLM 完成 |
 | P2.10 评价与投诉模块                    | ✅ 已通过 | 2026-06-08 | ReviewModule（3接口）+ ComplaintModule（5接口）；评价提交驱动 `PENDING_REVIEW → REVIEWED` 并写审计日志；投诉三态流转（PENDING→PROCESSING→COMPLETED）+ 跟进记录；Prisma 无需迁移（schema 已有模型）；Jest 39 项新增（全套回归 162 项）通过；评价/投诉全链路 e2e 验收通过；`npm run build` 通过；使用 Sonnet 4.6 LLM 完成 |
+| P2.11 数据看板聚合 API                  | ✅ 已通过 | 2026-06-08 | DashboardModule（6 聚合接口）；统计卡/订单趋势/服务类型分布/满意度分布/时段分布/员工绩效排名；返回格式适配 ECharts 折线图/环形图/柱状图；支持 `startDate`/`endDate` 时间范围筛选；Jest 20 项新增（全套回归 182 项）通过；全接口 e2e 验收通过（数字合理性 + ECharts 格式校验）；已生成 `Backend-API-Summary.md` 交接文档；`npm run build` 通过；使用 Sonnet 4.6 LLM 完成 |
 
-> 下一单元：**P2.11** — 数据看板聚合 API。
+> **P2 后端核心 API 全部完成。** 下一单元：**P3.1** — 居民端应用骨架和登录授权。
 
 ---
 
