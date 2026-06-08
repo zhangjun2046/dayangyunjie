@@ -12,6 +12,8 @@ import { CleaningOrderModule } from './modules/cleaning-order/cleaning-order.mod
 import { RecyclingOrderModule } from './modules/recycling-order/recycling-order.module';
 import { ConsultOrderModule } from './modules/consult-order/consult-order.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { ReviewModule } from './modules/review/review.module';
+import { ComplaintModule } from './modules/complaint/complaint.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { UploadModule } from './modules/upload/upload.module';
     RecyclingOrderModule,
     ConsultOrderModule,
     UploadModule,
+    ReviewModule,
+    ComplaintModule,
   ],
   controllers: [AppController],
   providers: [AppService],

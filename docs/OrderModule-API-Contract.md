@@ -825,3 +825,148 @@ COS_REGION=ap-guangzhou
 | 3 | 上传图片，不传 `orderNo` | ✅ 返回 IMG 前缀 URL，水印仅含时间 |
 | 4 | 上传 `.txt` 文本文件 | ✅ 返回 400，"不支持的文件类型" |
 | 5 | 请求缺少 `file` 字段 | ✅ 返回 400，"未接收到文件" |
+
+---
+
+## 14. P2.10 Review 评价模块（2026-06-08 确认）
+
+> **功能说明**：居民对已完成服务（`PENDING_REVIEW` 状态）提交星级/标签/文字/图片评价。评价提交成功后，订单状态自动流转至 `REVIEWED`（写入审计日志）。
+
+**Base path**：`/reviews`
+
+**鉴权**：公开（管理端/居民端鉴权留后续阶段）
+
+### 14.1 POST `/reviews` — 提交评价
+
+**Request Body**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `orderType` | `CLEANING` \| `RECYCLING` | ✅ | 订单类型 |
+| `orderId` | number | ✅ | 订单 ID |
+| `residentId` | number | ✅ | 操作居民 ID（用于审计日志） |
+| `rating` | number | ✅ | 星级（1–5） |
+| `tags` | string[] | ✅ | 标签数组（如 `["准时","干净"]`） |
+| `content` | string | | 文字评语（最长 1000 字符） |
+| `images` | string[] | | 评价图片 URL 列表 |
+
+**业务规则**：订单状态必须为 PENDING_REVIEW；同一订单不可重复评价；评价成功后订单流转至 REVIEWED 并写入 order_status_logs。
+
+**Response `data`**：`ReviewDto`（400 = 非 PENDING_REVIEW 或重复评价；404 = 订单不存在）
+
+---
+
+### 14.2 GET `/reviews` — 分页查询评价列表
+
+**Query**：`orderType?` / `orderId?` / `page`（默认 1）/ `pageSize`（默认 10）
+
+**Response `data`**：`{ items: ReviewDto[], total, page, pageSize }`
+
+---
+
+### 14.3 GET `/reviews/:id` — 评价详情
+
+**Response `data`**：`ReviewDto`（404 = 不存在）
+
+---
+
+### 14.4 ReviewDto 字段
+
+| 字段 | 类型 |
+|------|------|
+| `id` | number |
+| `cleaningOrderId` | number \| null |
+| `recyclingOrderId` | number \| null |
+| `orderType` | `CLEANING` \| `RECYCLING` |
+| `rating` | number（1–5） |
+| `tags` | string[] |
+| `content` | string \| null |
+| `images` | string[] \| null |
+| `createdAt` | ISO 8601 string |
+
+---
+
+## 15. P2.10 Complaint 投诉模块（2026-06-08 确认）
+
+> **功能说明**：居民对保洁/废品/咨询三类订单提交投诉，管理员处理并添加跟进记录，最终结案。
+
+**Base path**：`/complaints`
+
+**鉴权**：公开（管理端/居民端鉴权留后续阶段）
+
+### 15.1 POST `/complaints` — 提交投诉
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `orderType` | `CLEANING` \| `RECYCLING` \| `CONSULT` | ✅ | 订单类型 |
+| `orderId` | number | ✅ | 订单 ID |
+| `reason` | ComplaintReason | ✅ | `POOR_ATTITUDE`/`NOT_CLEAN`/`NOT_ON_TIME`/`ITEM_DAMAGED`/`EXTRA_CHARGE`/`OTHER` |
+| `description` | string | ✅ | 投诉描述（最长 1000 字符） |
+| `evidenceImages` | string[] | | 凭证图片 URL 列表 |
+
+**Response `data`**：`ComplaintDto`（初始 `status: PENDING`；404 = 订单不存在）
+
+---
+
+### 15.2 GET `/complaints` — 分页查询投诉列表
+
+**Query**：`status?`（PENDING/PROCESSING/COMPLETED）/ `orderType?` / `page` / `pageSize`
+
+**Response `data`**：`{ items: ComplaintDto[], total, page, pageSize }`（不含 followUps）
+
+---
+
+### 15.3 GET `/complaints/:id` — 投诉详情（含跟进记录）
+
+**Response `data`**：`ComplaintDto & { followUps: ComplaintFollowUpDto[] }`（404 = 不存在）
+
+---
+
+### 15.4 PATCH `/complaints/:id/status` — 更新投诉状态
+
+**Body**：`status`（PROCESSING/COMPLETED）、`operatorName`、`remark?`
+
+**状态机**：`PENDING → PROCESSING → COMPLETED`（单向不可逆；终态 COMPLETED 不可再变更，返回 400）
+
+---
+
+### 15.5 POST `/complaints/:id/follow-ups` — 添加跟进记录
+
+**Body**：`handlerName`（最长 32 字符）、`content`（最长 2000 字符）
+
+**Response `data`**：`ComplaintFollowUpDto`（404 = 投诉不存在）
+
+---
+
+### 15.6 全链路验收流程
+
+```
+POST /complaints                          → 创建（status: PENDING）
+PATCH /complaints/:id/status {PROCESSING} → 处理中
+POST  /complaints/:id/follow-ups          → 添加跟进记录
+PATCH /complaints/:id/status {COMPLETED}  → 已结案
+PATCH /complaints/:id/status {PROCESSING} → HTTP 400（终态保护）
+GET   /complaints/:id                     → 详情含 followUps 列表
+```
+
+### 14.5 全链路验收结果（2026-06-08）
+
+| # | 场景 | 结果 |
+|---|------|------|
+| 1 | 保洁订单走完全链路至 PENDING_REVIEW，POST /reviews 提交 rating=5 + tags | ✅ reviewId=1，rating=5，tags=[准时,干净,专业] |
+| 2 | 评价提交后 GET cleaning-orders/:id | ✅ status = REVIEWED |
+| 3 | 重复评价同一订单 | ✅ HTTP 400，消息含「重复」 |
+| 4 | 对非 PENDING_REVIEW 状态订单提交评价 | ✅ HTTP 400，消息含订单状态 |
+
+---
+
+### 15.7 全链路验收结果（2026-06-08）
+
+| # | 场景 | 结果 |
+|---|------|------|
+| 1 | POST /complaints，reason=NOT_CLEAN，含凭证图片 | ✅ status=PENDING，evidenceImages 正确保存 |
+| 2 | PATCH status {PROCESSING} | ✅ status=PROCESSING |
+| 3 | POST /follow-ups，handlerName + content | ✅ followUpId=1，字段正确 |
+| 4 | PATCH status {COMPLETED} | ✅ status=COMPLETED |
+| 5 | PATCH status {PROCESSING}（终态保护） | ✅ HTTP 400，"投诉已处于终态（COMPLETED），不可再变更状态" |
+| 6 | GET /complaints/:id | ✅ status=COMPLETED，followUps 数组含 1 条记录 |

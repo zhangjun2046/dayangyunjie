@@ -58,3 +58,4 @@ npx prisma migrate dev
 - 使用Sonnet4.6 LLM完成P2.7 实现 ConsultOrder 咨询单模块
 - 使用Sonnet4.6 LLM完成P2.8，实现 GPS 签到校验服务
 - 使用Sonnet4.6 LLM完成P2.9，实现 COS 文件上传和水印功能
+- 使用Sonnet4.6 LLM完成P2.10，实现评价与投诉模块
