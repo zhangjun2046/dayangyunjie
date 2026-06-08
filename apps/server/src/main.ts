@@ -1,11 +1,19 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // 静态资源：本地开发时 /uploads/* → apps/server/uploads/ 目录
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  app.useStaticAssets(uploadsDir, { prefix: '/uploads' });
 
   // CORS - 一期允许 localhost；生产环境收紧
   app.enableCors({

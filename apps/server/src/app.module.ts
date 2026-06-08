@@ -11,6 +11,7 @@ import { WorkerModule } from './modules/worker/worker.module';
 import { CleaningOrderModule } from './modules/cleaning-order/cleaning-order.module';
 import { RecyclingOrderModule } from './modules/recycling-order/recycling-order.module';
 import { ConsultOrderModule } from './modules/consult-order/consult-order.module';
+import { UploadModule } from './modules/upload/upload.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ConsultOrderModule } from './modules/consult-order/consult-order.module
     CleaningOrderModule,
     RecyclingOrderModule,
     ConsultOrderModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,0 +1,145 @@
+import {
+  BadRequestException,
+  Controller,
+  Inject,
+  Logger,
+  Post,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+import sharp from 'sharp';
+import { IStorageService, STORAGE_SERVICE } from '../../common/storage/storage.interface';
+import { UploadImageResponseDto } from './dto/upload-response.dto';
+
+/** 最大上传文件大小：10 MB */
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+/** 允许的 MIME 类型 */
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+/**
+ * 生成存储文件名
+ * 格式：{orderNo}_{timestamp}_{random6位}.jpg
+ * orderNo 缺省时以 IMG 占位，避免文件名冲突。
+ */
+function buildFilename(orderNo?: string): string {
+  const prefix = orderNo ? orderNo.replace(/[^A-Za-z0-9]/g, '') : 'IMG';
+  const ts = Date.now();
+  const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `${prefix}_${ts}_${rand}.jpg`;
+}
+
+/**
+ * 在图片右下角叠加水印文字（SVG composite，无需系统字体）
+ * 水印内容：{orderNo} {YYYY-MM-DD HH:mm:ss}（orderNo 缺省时只显示时间）
+ */
+async function addWatermark(input: Buffer, orderNo?: string): Promise<Buffer> {
+  const { width = 800, height = 600 } = await sharp(input).metadata();
+
+  const now = new Date();
+  const timeStr = now.toLocaleString('zh-CN', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  });
+  const watermarkText = orderNo ? `${orderNo} ${timeStr}` : timeStr;
+
+  // SVG 文本覆盖层，右下角居右对齐，带半透明黑色描边增强可读性
+  const fontSize = Math.max(16, Math.round(width * 0.025));
+  const padding = Math.round(fontSize * 0.8);
+  const svgWatermark = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+    <text
+      x="${width - padding}" y="${height - padding}"
+      text-anchor="end"
+      font-size="${fontSize}"
+      font-family="Arial, sans-serif"
+      fill="rgba(255,255,255,0.85)"
+      stroke="rgba(0,0,0,0.5)"
+      stroke-width="1"
+    >${watermarkText}</text>
+  </svg>`;
+
+  return sharp(input)
+    .composite([{ input: Buffer.from(svgWatermark), top: 0, left: 0 }])
+    .jpeg({ quality: 85 })
+    .toBuffer();
+}
+
+@ApiTags('upload')
+@Controller('upload')
+export class UploadController {
+  private readonly logger = new Logger(UploadController.name);
+
+  constructor(
+    @Inject(STORAGE_SERVICE)
+    private readonly storageService: IStorageService,
+  ) {}
+
+  /**
+   * 上传图片（自动叠加水印）
+   * 接受 multipart/form-data，字段：file（图片）+ orderNo（可选，写入水印）
+   * 返回可访问的图片 URL（本地开发模式为 http://localhost:3000/uploads/xxx.jpg）
+   */
+  @Post('image')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: MAX_FILE_SIZE },
+    }),
+  )
+  @ApiOperation({ summary: '上传图片（含水印）', description: '接受图片文件，叠加订单号和时间戳水印后存储，返回可访问 URL' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary', description: '图片文件（JPEG/PNG/WebP，≤10MB）' },
+        orderNo: { type: 'string', description: '订单号（可选），写入水印' },
+      },
+      required: ['file'],
+    },
+  })
+  @ApiQuery({ name: 'orderNo', required: false, description: '订单号（也可通过 query 传递）' })
+  async uploadImage(
+    @UploadedFile() file: Express.Multer.File,
+    @Query('orderNo') orderNoQuery?: string,
+  ): Promise<{ code: number; message: string; data: UploadImageResponseDto }> {
+    if (!file) {
+      throw new BadRequestException('未接收到文件，请确认请求包含 file 字段');
+    }
+    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      throw new BadRequestException(
+        `不支持的文件类型 ${file.mimetype}，仅允许 JPEG / PNG / WebP`,
+      );
+    }
+
+    const orderNo = orderNoQuery;
+
+    this.logger.log(
+      `Uploading image: originalName=${file.originalname}, size=${file.size}, orderNo=${orderNo ?? 'none'}`,
+    );
+
+    // 添加水印
+    const watermarkedBuffer = await addWatermark(file.buffer, orderNo);
+
+    // 生成唯一文件名并存储
+    const filename = buildFilename(orderNo);
+    const url = await this.storageService.save(filename, watermarkedBuffer);
+
+    this.logger.log(`Image uploaded successfully: ${url}`);
+
+    return {
+      code: 0,
+      message: 'ok',
+      data: { url, filename },
+    };
+  }
+}

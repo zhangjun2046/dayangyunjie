@@ -57,3 +57,4 @@ npx prisma migrate dev
 - 使用Sonnet4.6 LLM完成P2.6a，实现 RecyclingOrder CRUD、状态机及操作接口（流程与保洁一致，含 estimatedWeight 字段）
 - 使用Sonnet4.6 LLM完成P2.7 实现 ConsultOrder 咨询单模块
 - 使用Sonnet4.6 LLM完成P2.8，实现 GPS 签到校验服务
+- 使用Sonnet4.6 LLM完成P2.9，实现 COS 文件上传和水印功能

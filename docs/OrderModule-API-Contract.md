@@ -745,3 +745,83 @@ const { distance: gpsDistance, remark: gpsRemark } = this.geoService.validateChe
   dto.lng,         // 员工签到经度
 );
 ```
+
+## 13. P2.9 文件上传 + 水印（2026-06-08 确认）
+
+> **功能说明**：员工拍摄的服务照片上传接口，使用 sharp SVG composite 在图片右下角叠加水印（订单号 + 时间戳）。存储层采用 Strategy 模式，开发期使用本地 `/uploads` 目录，部署前通过 `STORAGE_PROVIDER` 环境变量一键切换至腾讯云 COS。
+
+**文件路径**：`apps/server/src/modules/upload/upload.controller.ts`  
+**存储模块**：`apps/server/src/common/storage/`
+
+### 13.1 POST `/upload/image` — 上传图片
+
+**鉴权**：公开（管理端/员工端鉴权留后续阶段）
+
+**Content-Type**：`multipart/form-data`
+
+**请求字段**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `file` | binary | ✅ | 图片文件（JPEG / PNG / WebP，≤10MB） |
+| `orderNo` | string（Query） | | 订单号（可选），写入水印；缺省时水印仅含时间戳，文件名前缀降级为 `IMG` |
+
+**水印规则**
+
+| 场景 | 水印内容 | 文件名前缀 |
+|------|----------|-----------|
+| 传入 `orderNo` | `{orderNo} YYYY/MM/DD HH:mm:ss` | `{orderNo}_` |
+| 未传 `orderNo` | `YYYY/MM/DD HH:mm:ss` | `IMG_` |
+
+**文件命名**：`{prefix}_{timestamp}_{random6位}.jpg`
+
+**Response `data`**
+
+```typescript
+{
+  url: string;       // 图片访问 URL（本地：http://localhost:3000/uploads/xxx.jpg）
+  filename: string;  // 存储文件名
+}
+```
+
+**错误**
+
+| 状态码 | 场景 |
+|--------|------|
+| 400 | 未传 `file` 字段 |
+| 400 | 文件类型不支持（非 JPEG/PNG/WebP） |
+
+### 13.2 存储策略切换
+
+**配置文件**：`apps/server/.env`
+
+```dotenv
+# 切换方式：改为 cos 并填写下方密钥即可，无需修改代码
+STORAGE_PROVIDER=local
+
+COS_SECRET_ID=
+COS_SECRET_KEY=
+COS_BUCKET=
+COS_REGION=ap-guangzhou
+```
+
+**策略说明**
+
+| `STORAGE_PROVIDER` | 实现类 | 返回 URL 格式 |
+|--------------------|--------|--------------|
+| `local`（默认） | `LocalStorageStrategy` | `http://localhost:3000/uploads/{filename}` |
+| `cos` | `CosStorageStrategy` | COS 临时签名 URL（部署前实现） |
+
+### 13.3 静态资源服务
+
+`main.ts` 已配置 `useStaticAssets`，本地开发时 `/uploads/*` 路由直接映射至 `apps/server/uploads/` 目录，无需额外 Nginx 配置。
+
+### 13.4 全链路验收结果（2026-06-08）
+
+| # | 场景 | 结果 |
+|---|------|------|
+| 1 | 上传图片 + `orderNo=CLN20260608000001` | ✅ 返回 CLN 前缀 URL，水印含订单号+时间 |
+| 2 | 上传图片 + `orderNo=RCY20260608000002` | ✅ 返回 RCY 前缀 URL，水印含订单号+时间 |
+| 3 | 上传图片，不传 `orderNo` | ✅ 返回 IMG 前缀 URL，水印仅含时间 |
+| 4 | 上传 `.txt` 文本文件 | ✅ 返回 400，"不支持的文件类型" |
+| 5 | 请求缺少 `file` 字段 | ✅ 返回 400，"未接收到文件" |
