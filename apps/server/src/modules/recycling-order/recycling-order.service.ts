@@ -8,6 +8,7 @@ import { AddressSnapshot, RecyclingOrderDto, OrderSource } from '@dayangyunjie/s
 import { RecyclingOrder, OrderSource as PrismaOrderSource, OrderStatus as PrismaOrderStatus, PhotoType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { OrderStateMachineService } from '../../common/order-state-machine/order-state-machine.service';
+import { GeoService } from '../../common/geo/geo.service';
 import { AcceptOrderDto } from './dto/accept-order.dto';
 import { AssignOrderDto } from './dto/assign-order.dto';
 import { CancelOrderDto } from './dto/cancel-order.dto';
@@ -27,6 +28,7 @@ export class RecyclingOrderService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly stateMachine: OrderStateMachineService,
+    private readonly geoService: GeoService,
   ) {}
 
   async create(createRecyclingOrderDto: CreateRecyclingOrderDto): Promise<RecyclingOrderDto> {
@@ -248,27 +250,21 @@ export class RecyclingOrderService {
   }
 
   /**
-   * GPS 签到：员工上传经纬度，系统用 Haversine 校验是否在 200m 内。
+   * GPS 签到：员工上传经纬度，委托 GeoService 校验是否在 200m 内。
    * 超距时标记 gpsRemark 但不阻断流程，状态 ACCEPTED → IN_SERVICE。
    */
   async gpsCheckin(id: number, dto: GpsCheckinDto): Promise<RecyclingOrderDto> {
     const order = await this.findOneOrThrow(id);
     const snapshot = order.addressSnapshot as unknown as AddressSnapshot;
 
-    let gpsDistance: number | null = null;
-    let gpsRemark: string | null = null;
+    const { distance: gpsDistance, remark: gpsRemark } = this.geoService.validateCheckin(
+      snapshot?.lat,
+      snapshot?.lng,
+      dto.lat,
+      dto.lng,
+    );
 
-    if (typeof snapshot?.lat === 'number' && typeof snapshot?.lng === 'number') {
-      const distanceM = this.haversineMeters(snapshot.lat, snapshot.lng, dto.lat, dto.lng);
-      gpsDistance = Math.round(distanceM * 10) / 10;
-      if (distanceM > 200) {
-        gpsRemark = `超距签到，距离${Math.round(distanceM)}m`;
-        console.info(`[GPS-CHECKIN] recycling order=${id} out-of-range distance=${Math.round(distanceM)}m`);
-      }
-    } else {
-      gpsRemark = '地址无坐标，跳过距离校验';
-      console.info(`[GPS-CHECKIN] recycling order=${id} address has no coordinates, distance check skipped`);
-    }
+    console.info(`[GPS-CHECKIN] recycling order=${id} distance=${gpsDistance}m remark=${gpsRemark}`);
 
     await this.prismaService.$transaction(async (tx) => {
       await tx.recyclingOrder.update({
@@ -444,20 +440,6 @@ export class RecyclingOrderService {
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };
-  }
-
-  /**
-   * Haversine 公式：计算两点间球面距离（米）。
-   */
-  private haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
-    const R = 6371000;
-    const toRad = (d: number) => (d * Math.PI) / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLng = toRad(lng2 - lng1);
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
   private isOrderNoConflict(error: unknown): boolean {

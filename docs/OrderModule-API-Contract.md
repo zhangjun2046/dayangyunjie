@@ -691,3 +691,57 @@ PATCH /consult-orders/:id/status {FOLLOWING_UP} → HTTP 400（终态保护）
 ```
 
 **非法转移验收**：`PENDING → COMPLETED`（跳步）应返回 HTTP 400，`message` 含 "非法状态转移"。
+
+---
+
+## 12. P2.8 GeoService GPS 签到校验（2026-06-08 确认）
+
+> **背景**：P2.5c / P2.6a 中保洁和废品两个订单模块各自内嵌了相同的 Haversine 距离计算逻辑。P2.8 将其抽取为独立的 `GeoService`，供所有订单模块复用。
+
+**文件路径**：`apps/server/src/common/geo/geo.service.ts`
+
+### 12.1 GpsCheckinResult 接口
+
+```typescript
+export interface GpsCheckinResult {
+  distance: number | null;   // 签到点与服务地址距离（米，保留1位小数）；地址无坐标时为 null
+  remark: string | null;     // 异常说明（超距或无坐标时有值，正常范围内为 null）
+  outOfRange: boolean;       // 是否超出允许距离阈值
+}
+```
+
+### 12.2 GeoService 方法
+
+| 方法 | 签名 | 说明 |
+|------|------|------|
+| `haversineMeters` | `(lat1, lng1, lat2, lng2): number` | Haversine 球面距离计算，返回米 |
+| `validateCheckin` | `(addressLat, addressLng, workerLat, workerLng, thresholdM=200): GpsCheckinResult` | 综合校验，返回结构化结果 |
+
+### 12.3 三种校验结果
+
+| 情况 | distance | remark | outOfRange |
+|------|----------|--------|------------|
+| 在阈值内（≤200m） | 实际距离值 | `null` | `false` |
+| 超距（>200m） | 实际距离值 | `"超距签到，距离XXXm"` | `true` |
+| 地址无坐标 | `null` | `"地址无坐标，跳过距离校验"` | `false` |
+
+> **超距不阻断**：签到仍成功，`gpsRemark` 字段留存记录供管理员查看。
+
+### 12.4 模块依赖关系
+
+```
+GeoModule (exports GeoService)
+  ├── CleaningOrderModule (imports GeoModule)
+  └── RecyclingOrderModule (imports GeoModule)
+```
+
+### 12.5 使用方式（订单 Service 内）
+
+```typescript
+const { distance: gpsDistance, remark: gpsRemark } = this.geoService.validateCheckin(
+  snapshot?.lat,   // 服务地址纬度
+  snapshot?.lng,   // 服务地址经度
+  dto.lat,         // 员工签到纬度
+  dto.lng,         // 员工签到经度
+);
+```

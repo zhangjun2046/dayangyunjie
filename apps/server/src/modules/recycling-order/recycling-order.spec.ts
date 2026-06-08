@@ -12,6 +12,7 @@
 
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { PhotoType } from '@prisma/client';
+import { GeoService } from '../../common/geo/geo.service';
 import { RecyclingOrderService } from './recycling-order.service';
 
 // ─── Mock 工厂 ──────────────────────────────────────────────────────────────
@@ -114,8 +115,9 @@ function makeService(
 ) {
   const prisma = makePrismaMock(prismaOverrides);
   const stateMachine = makeStateMachineMock(stateMachineError);
+  const geoService = new GeoService();
   // @ts-expect-error — 测试中直接注入 mock，不走 NestJS DI
-  const svc = new RecyclingOrderService(prisma, stateMachine);
+  const svc = new RecyclingOrderService(prisma, stateMachine, geoService);
   return { svc, prisma, stateMachine };
 }
 
@@ -226,7 +228,7 @@ describe('RecyclingOrderService — gpsCheckin（GPS签到）', () => {
     prisma.recyclingOrder.findUnique = jest.fn().mockResolvedValue(orderNoCoords);
     const stateMachine = makeStateMachineMock();
     // @ts-expect-error — 测试注入
-    const svc = new RecyclingOrderService(prisma, stateMachine);
+    const svc = new RecyclingOrderService(prisma, stateMachine, new GeoService());
 
     await svc.gpsCheckin(1, NEAR_DTO);
 
@@ -372,7 +374,7 @@ describe('haversineMeters — 距离计算精度（通过 gpsCheckin 间接覆�
     );
     const stateMachine = makeStateMachineMock();
     // @ts-expect-error — 测试注入
-    const svc = new RecyclingOrderService(prisma, stateMachine);
+    const svc = new RecyclingOrderService(prisma, stateMachine, new GeoService());
     await svc.gpsCheckin(1, { lat: checkinLat, lng: checkinLng, operatorId: 1 });
 
     const updateCall = (prisma._tx.recyclingOrder.update as jest.Mock).mock.calls[0][0];

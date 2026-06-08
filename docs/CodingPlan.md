@@ -25,8 +25,9 @@
 | P2.5c 派单/GPS签到/完成/取消操作接口     | ✅ 已通过 | 2026-06-07 | 新增 5 个语义化操作接口（assign/accept/gps-checkin/complete/cancel）；Haversine 200m 超距标记；WorkPhoto 批量写入；Jest 25 项测试全部通过（含距离精度验证）；修复 jest.config.js 模块路径映射 bug |
 | P2.6a RecyclingOrder CRUD + 状态机      | ✅ 已通过 | 2026-06-08 | 废品回收订单完整模块（10 接口）；订单号 `RCY+yyyyMMdd+6位序号`；`serviceItem`/`estimatedWeight` 必填；5 个操作接口与保洁完全对称；修复状态机 RECYCLING 规则（移除 PENDING_ACCEPTANCE）；Jest 84 项全部通过；CRUD + 全链路 e2e 验收通过 |
 | P2.7 ConsultOrder 咨询单模块            | ✅ 已通过 | 2026-06-08 | 咨询单完整模块（4 接口）；订单号 `CNS+yyyyMMdd+6位序号`；三态流转（PENDING→FOLLOWING_UP→COMPLETED）；无取消态，非法转移/终态保护均返回 400；`order_status_logs` 审计写入；Jest 21 项全部通过；全链路 e2e 11 项验收通过；使用 Sonnet 4.6 LLM 完成 |
+| P2.8 GPS 签到校验服务                   | ✅ 已通过 | 2026-06-08 | 新建 `common/geo/GeoService`（`haversineMeters` + `validateCheckin`）；将保洁/废品模块内嵌的重复 Haversine 逻辑抽取为可复用公共服务；`GeoModule` 导出；Jest 18 项全部通过；全套回归 123 项通过；`npm run build` 通过；使用 Sonnet 4.6 LLM 完成 |
 
-> 下一单元：**P2.8** — GPS 签到校验服务。
+> 下一单元：**P2.9** — COS 文件上传 + 水印。
 
 ---
 
