@@ -55,3 +55,4 @@ npx prisma migrate dev
 - 使用Codex 5.3 LLM完成P2.5a,实现 CleaningOrder CRUD 和创建订单
 - 使用Sonnet4.6 LLM完成P2.5c实现派单/GPS签到/完成/取消操作接口
 - 使用Sonnet4.6 LLM完成P2.6a，实现 RecyclingOrder CRUD、状态机及操作接口（流程与保洁一致，含 estimatedWeight 字段）
+- 使用Sonnet4.6 LLM完成P2.7 实现 ConsultOrder 咨询单模块

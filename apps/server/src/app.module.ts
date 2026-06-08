@@ -10,6 +10,7 @@ import { ResidentModule } from './modules/resident/resident.module';
 import { WorkerModule } from './modules/worker/worker.module';
 import { CleaningOrderModule } from './modules/cleaning-order/cleaning-order.module';
 import { RecyclingOrderModule } from './modules/recycling-order/recycling-order.module';
+import { ConsultOrderModule } from './modules/consult-order/consult-order.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { RecyclingOrderModule } from './modules/recycling-order/recycling-order.
     ServiceCatalogModule,
     CleaningOrderModule,
     RecyclingOrderModule,
+    ConsultOrderModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -583,3 +583,111 @@ POST /cleaning-orders/:id/complete → 完成（status: PENDING_REVIEW）
 | `remark` | string | | 备注 |
 
 **无以下字段**：`referenceAmount`（废品不展示价格）、`actualWeight`（不称重）、`finalAmount`（不核定）。
+
+---
+
+## 11. P2.7 ConsultOrder 咨询单（2026-06-08 确认）
+
+> **业务说明**：家政咨询单，无员工派单/GPS/拍照流程，仅三态流转（管理员操作）。
+> `residentId` 可选（支持匿名咨询），`order_status_logs` 记录所有状态变更。
+
+**Base path**：`/consult-orders`
+
+**鉴权**：公开（管理端鉴权留后续阶段）
+
+### 11.1 状态机规则
+
+```
+PENDING（待跟进）→ FOLLOWING_UP（跟进中）→ COMPLETED（已完成）
+```
+
+- 单向不可逆，无取消态
+- 非法转移（包括跳步）返回 HTTP 400
+- 每次变更写入 `order_status_logs`（`orderType: 'CONSULT'`, `operatorType: 'ADMIN'`）
+
+### 11.2 POST `/consult-orders` — 创建咨询单
+
+**Request Body**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `serviceType` | string | ✅ | 咨询类型（最长 32 字符） |
+| `name` | string | ✅ | 联系人姓名（最长 32 字符） |
+| `phone` | string | ✅ | 联系电话（最长 20 字符） |
+| `description` | string | ✅ | 需求描述（最长 1000 字符） |
+| `residentId` | number | | 居民 ID（可选，不传表示匿名咨询） |
+
+**Response `data`**：`ConsultOrderDto`（`orderNo` 格式：`CNS + yyyyMMdd + 6位序号`，默认 `status: PENDING`）
+
+---
+
+### 11.3 GET `/consult-orders` — 分页列表
+
+**Query**
+
+| 字段 | 类型 | 默认 | 说明 |
+|------|------|------|------|
+| `page` | number | 1 | 页码 |
+| `pageSize` | number | 10 | 每页数量 |
+| `status` | enum | | `PENDING` / `FOLLOWING_UP` / `COMPLETED` |
+| `serviceType` | string | | 模糊匹配服务类型 |
+| `keyword` | string | | 模糊匹配订单号 / 联系人姓名 / 手机号 |
+
+**Response `data`**：`{ items: ConsultOrderDto[], total, page, pageSize }`
+
+---
+
+### 11.4 GET `/consult-orders/:id` — 详情
+
+**Response `data`**：`ConsultOrderDto`（404 = 不存在）
+
+---
+
+### 11.5 PATCH `/consult-orders/:id/status` — 更新状态
+
+**Request Body**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `status` | enum | ✅ | 目标状态：`FOLLOWING_UP` 或 `COMPLETED` |
+| `operatorId` | number | ✅ | 操作管理员 ID |
+| `remark` | string | | 跟进备注（最长 512 字符） |
+
+**错误**：
+
+| 状态码 | 场景 |
+|--------|------|
+| 400 | 非法转移（含跳步、终态再变更） |
+| 404 | 咨询单不存在 |
+
+**Response `data`**：`ConsultOrderDto`（`status` 已更新）
+
+---
+
+### 11.6 ConsultOrderDto 字段定义
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | 主键 |
+| `orderNo` | string | `CNS + yyyyMMdd + 6位序号` |
+| `residentId` | number \| undefined | 关联居民（可选） |
+| `serviceType` | string | 咨询类型 |
+| `name` | string | 联系人姓名 |
+| `phone` | string | 联系电话 |
+| `description` | string | 需求描述 |
+| `status` | `PENDING` \| `FOLLOWING_UP` \| `COMPLETED` | 当前状态 |
+| `createdAt` | string | ISO 8601 |
+| `updatedAt` | string | ISO 8601 |
+
+---
+
+### 11.7 全链路验收流程
+
+```
+POST /consult-orders                           → 创建（status: PENDING，orderNo: CNS...）
+PATCH /consult-orders/:id/status {FOLLOWING_UP} → 跟进中（status: FOLLOWING_UP）
+PATCH /consult-orders/:id/status {COMPLETED}   → 已完成（status: COMPLETED）
+PATCH /consult-orders/:id/status {FOLLOWING_UP} → HTTP 400（终态保护）
+```
+
+**非法转移验收**：`PENDING → COMPLETED`（跳步）应返回 HTTP 400，`message` 含 "非法状态转移"。
