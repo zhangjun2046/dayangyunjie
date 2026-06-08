@@ -379,18 +379,13 @@ enum CleaningOrderStatus {
 | `REVIEWED` | 已评价 | 已评价 | 已评价 |
 | `CANCELLED` | 已取消 | 已取消 | 已取消 |
 
-### 8.4 废品订单额外状态
+### 8.4 废品订单状态（与保洁一致）
 
-废品订单（`RecyclingOrder`）在 `IN_SERVICE` 之后插入 `PENDING_ACCEPTANCE`（待验收）：
+废品订单（`RecyclingOrder`）状态枚举与保洁完全一致，直接复用 §8.1 枚举定义，**无额外状态**。
 
-```typescript
-enum RecyclingOrderStatus {
-  // 继承保洁订单所有状态，额外增加：
-  PENDING_ACCEPTANCE = 'PENDING_ACCEPTANCE',  // 待验收
-}
-```
+状态转移规则与 §8.2 保洁订单完全相同：`IN_SERVICE` → `PENDING_REVIEW`（员工完成服务并上传照片后直接流转）。
 
-转移：`IN_SERVICE` → `PENDING_ACCEPTANCE`（员工上传照片后）→ `PENDING_REVIEW`（居民验收通过后）
+> **调整说明（2026-06-08）**：废品回收预约仅填写预估重量供员工确认搬运工具，不涉及计价；废品流程无验收节点，`PENDING_ACCEPTANCE` 枚举**不实现**。
 
 ### 8.5 不实现项（一期排除）
 
@@ -400,6 +395,10 @@ enum RecyclingOrderStatus {
 | "已收款"按钮 | 员工端不实现 |
 | `payment_status_log` | 不实现 |
 | 居民取消（非待派单） | 系统层面直接拒绝，不提供接口入口 |
+| `PENDING_ACCEPTANCE` 枚举 | 废品无验收节点，不实现 |
+| `actual_weight` 字段 | 废品无实际称重，数据模型中不含此字段 |
+| `final_amount` 字段 | 废品不核定金额，数据模型中不含此字段 |
+| 废品 `reference_amount` | 废品不展示价格，废品创建接口无此字段 |
 
 ### 8.6 order_status_log 审计日志
 
@@ -540,3 +539,47 @@ POST /cleaning-orders/:id/complete → 完成（status: PENDING_REVIEW）
 ```
 
 **超距签到验收**：传入距离订单地址 > 200m 的坐标，`gpsRemark` 应包含 `"超距签到"` 字样，订单状态仍正常变更为 `IN_SERVICE`。
+
+---
+
+## 10. P2.6a 口径更新（RecyclingOrder，2026-06-08 确认）
+
+> **调整背景**：废品回收预约仅填写预估重量供员工确认搬运工具，流程与保洁完全一致，无验收节点与价格字段。
+
+### 10.1 废品订单操作接口（与保洁对称）
+
+**Base path**：`/recycling-orders/:id`
+
+操作接口与保洁订单完全对称，无额外接口：
+
+| 接口 | 说明 | 状态转移 |
+|---|---|---|
+| `POST /recycling-orders/:id/assign` | 派单 | `PENDING_ASSIGN → ASSIGNED` |
+| `POST /recycling-orders/:id/accept` | 接单 | `ASSIGNED → ACCEPTED` |
+| `POST /recycling-orders/:id/gps-checkin` | GPS 签到 | `ACCEPTED → IN_SERVICE` |
+| `POST /recycling-orders/:id/complete` | 完成服务 | `IN_SERVICE → PENDING_REVIEW` |
+| `POST /recycling-orders/:id/cancel` | 取消 | `PENDING_ASSIGN → CANCELLED` |
+
+**以下接口不实现**（原计划，现取消）：
+- ~~`POST /recycling-orders/:id/record-weight`~~（实际重量录入）
+- ~~`POST /recycling-orders/:id/accept-by-resident`~~（居民验收）
+
+---
+
+### 10.2 废品订单创建接口关键字段（确认版）
+
+**`POST /recycling-orders`**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `residentId` | number | ✅ | 创建请求体显式传入 |
+| `serviceItem` | string | ✅ | `大件类` / `小件类` |
+| `estimatedWeight` | number | ✅ | 预估重量（kg），供员工确认搬运工具 |
+| `appointDate` | string | ✅ | 预约日期 |
+| `appointTimeSlot` | string | ✅ | 预约时段 |
+| `addressId` | number | ✅ | 地址 ID |
+| `contactName` | string | ✅ | 联系人 |
+| `contactPhone` | string | ✅ | 联系电话 |
+| `remark` | string | | 备注 |
+
+**无以下字段**：`referenceAmount`（废品不展示价格）、`actualWeight`（不称重）、`finalAmount`（不核定）。

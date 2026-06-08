@@ -1,10 +1,12 @@
-import type { RecyclingItemType } from '../constants';
 import type { OrderSource } from '../enums';
 
-/** 居民端创建废品订单 */
+/** 居民端创建废品订单（P2.6a 确认版） */
 export interface CreateRecyclingOrderDto {
-  itemType: RecyclingItemType;
-  estimatedWeight?: number;
+  residentId: number;
+  /** 物品大类（大件类 / 小件类） */
+  serviceItem: string;
+  /** 预估重量（kg），供员工确认搬运工具 */
+  estimatedWeight: number;
   appointDate: string;
   appointTimeSlot: string;
   addressId: number;
@@ -15,18 +17,6 @@ export interface CreateRecyclingOrderDto {
   isProxyOrder?: boolean;
   proxyName?: string;
   proxyPhone?: string;
-}
-
-/** 管理后台创建废品订单 */
-export interface AdminCreateRecyclingOrderDto extends CreateRecyclingOrderDto {
-  residentId?: number;
-  source: OrderSource;
-}
-
-/** 录入实际重量 */
-export interface SetActualWeightDto {
-  actualWeight: number;
-  finalAmount?: string;
 }
 
 /** 废品订单列表筛选 */

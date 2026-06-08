@@ -1,12 +1,12 @@
 /**
- * P2.5b 状态机单元测试
+ * P2.5b 状态机单元测试（2026-06-08 更新：§8.4/§8.5 废品无验收节点）
  *
  * 测试矩阵：
  *  1. CLEANING 合法转移 ×6
- *  2. RECYCLING 合法转移 ×7（含 PENDING_ACCEPTANCE 节点）
+ *  2. RECYCLING 合法转移 ×6（与 CLEANING 完全一致，无 PENDING_ACCEPTANCE）
  *  3. 终态保护（REVIEWED / CANCELLED 不可再转移）
  *  4. 取消专项（仅 PENDING_ASSIGN 可取消，其余返回专用提示）
- *  5. 其他非法转移（如跳步、逆向）
+ *  5. 其他非法转移（如跳步、逆向；RECYCLING 中 PENDING_ACCEPTANCE 亦为非法）
  *  6. transition() 原子操作：数据库写入验证（mock Prisma tx）
  */
 
@@ -66,8 +66,7 @@ describe('OrderStateMachineService — RECYCLING 合法转移', () => {
     ['PENDING_ASSIGN', 'CANCELLED'],
     ['ASSIGNED', 'ACCEPTED'],
     ['ACCEPTED', 'IN_SERVICE'],
-    ['IN_SERVICE', 'PENDING_ACCEPTANCE'],
-    ['PENDING_ACCEPTANCE', 'PENDING_REVIEW'],
+    ['IN_SERVICE', 'PENDING_REVIEW'],
     ['PENDING_REVIEW', 'REVIEWED'],
   ];
 
@@ -145,9 +144,9 @@ describe('OrderStateMachineService — 其他非法转移', () => {
     ['ACCEPTED', 'ASSIGNED', 'CLEANING'],
     ['IN_SERVICE', 'ACCEPTED', 'CLEANING'],
     ['PENDING_REVIEW', 'IN_SERVICE', 'CLEANING'],
-    // RECYCLING 跳过 PENDING_ACCEPTANCE
-    ['IN_SERVICE', 'PENDING_REVIEW', 'RECYCLING'],
-    // CLEANING 中不存在 PENDING_ACCEPTANCE
+    // RECYCLING 中 PENDING_ACCEPTANCE 已取消（§8.5），直接跳过是非法的（应走 IN_SERVICE→PENDING_REVIEW）
+    ['IN_SERVICE', 'PENDING_ACCEPTANCE', 'RECYCLING'],
+    // CLEANING 中同样不存在 PENDING_ACCEPTANCE
     ['IN_SERVICE', 'PENDING_ACCEPTANCE', 'CLEANING'],
   ];
 
@@ -205,14 +204,14 @@ describe('OrderStateMachineService — transition() 原子操作', () => {
     });
   });
 
-  test('合法转移：RECYCLING 更新 recyclingOrder status 并写入日志', async () => {
+  test('合法转移：RECYCLING IN_SERVICE → PENDING_REVIEW（无 PENDING_ACCEPTANCE）', async () => {
     const tx = makeTxMock();
 
     await svc.transition(tx as any, {
       orderId: 2,
       orderType: 'RECYCLING',
       fromStatus: 'IN_SERVICE',
-      toStatus: 'PENDING_ACCEPTANCE',
+      toStatus: 'PENDING_REVIEW',
       operatorId: 5,
       operatorType: 'WORKER',
       remark: '上传照片完成',
@@ -220,7 +219,7 @@ describe('OrderStateMachineService — transition() 原子操作', () => {
 
     expect(tx.recyclingOrder.update).toHaveBeenCalledWith({
       where: { id: 2 },
-      data: { status: 'PENDING_ACCEPTANCE' },
+      data: { status: 'PENDING_REVIEW' },
     });
     expect(tx.orderStatusLog.create).toHaveBeenCalledWith({
       data: expect.objectContaining({

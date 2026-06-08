@@ -1,4 +1,4 @@
-# 大洋云洁 (dayangyunjie) — AI 自动开发计划
+﻿# 大洋云洁 (dayangyunjie) — AI 自动开发计划
 
 > **文档用途**: 本人是非技术人员，使用 **Cursor Agent** 进行 AI 辅助自动开发。
 > 本文档是开发的唯一操作手册，按开发单元逐个指导每个环节该做什么、怎么做、怎么验收。
@@ -23,8 +23,9 @@
 | P2.5a CleaningOrder CRUD + 创建订单      | ✅ 已通过 | 2026-06-07 | 已实现 create/list/getOne/update；订单号 `CLN+yyyyMMdd+6位序号`；`referenceAmount=serviceDuration×priceMin`；创建接口请求体显式必填 `residentId`；Swagger 验收通过 |
 | P2.5b CleaningOrder 状态机核心           | ✅ 已通过 | 2026-06-07 | `OrderStatusLog` 审计日志表（db push 同步）；`OrderStateMachineService`（CLEANING/RECYCLING 双套规则）；`PATCH /cleaning-orders/:id/status` 接口；Jest 35 项测试全部通过；取消专项规则验证 |
 | P2.5c 派单/GPS签到/完成/取消操作接口     | ✅ 已通过 | 2026-06-07 | 新增 5 个语义化操作接口（assign/accept/gps-checkin/complete/cancel）；Haversine 200m 超距标记；WorkPhoto 批量写入；Jest 25 项测试全部通过（含距离精度验证）；修复 jest.config.js 模块路径映射 bug |
+| P2.6a RecyclingOrder CRUD + 状态机      | ✅ 已通过 | 2026-06-08 | 废品回收订单完整模块（10 接口）；订单号 `RCY+yyyyMMdd+6位序号`；`serviceItem`/`estimatedWeight` 必填；5 个操作接口与保洁完全对称；修复状态机 RECYCLING 规则（移除 PENDING_ACCEPTANCE）；Jest 84 项全部通过；CRUD + 全链路 e2e 验收通过 |
 
-> 下一单元：**P2.6a** — RecyclingOrder CRUD + 继承状态机。
+> 下一单元：**P2.7** — ConsultOrder 咨询单模块。
 
 ---
 
@@ -866,73 +867,52 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 ---
 
-#### P2.6a RecyclingOrder CRUD + 继承状态机（2h）
+#### P2.6a RecyclingOrder CRUD + 状态机（3h）
 
 **干什么**
 
-废品回收订单的基础 CRUD。废品订单比保洁订单多了一个特殊状态（`PENDING_ACCEPTANCE` 待验收），其余逻辑类似。
+废品回收订单的完整 CRUD 及操作接口。废品流程与保洁完全一致，状态链相同，字段差异仅在于 `estimatedWeight`（预估重量）替代 `serviceDuration`（服务时长）。
 
-废品订单完整状态链：
+废品订单状态链（与保洁一致）：
 ```
-PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_ACCEPTANCE → PENDING_REVIEW → REVIEWED
+PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → REVIEWED
      ↓（仅此处）
   CANCELLED
 ```
 
 **Cursor Agent 干什么**
 
-- 复用 P2.5b 的状态机模式
+- 复用 P2.5b 的状态机模式（状态链与保洁完全一致，**无** `PENDING_ACCEPTANCE`）
 - 创建 RecyclingOrder Controller + Service
-- 在 `IN_SERVICE` 之后插入 `PENDING_ACCEPTANCE`（待验收）节点
+- 字段差异：`estimatedWeight`（预估重量 kg，供员工确认搬运工具）
 - 订单号前缀改为 RCY
+- 操作接口与保洁对称：`assign` / `accept` / `gps-checkin` / `complete` / `cancel`
 
 **人工干什么**
 
 - ✅ 与 P2.5a 类似的 CRUD 测试流程
-- ✅ 确认废品订单状态链含 `PENDING_ACCEPTANCE`（待验收）节点
+- ✅ 确认废品订单状态链无 `PENDING_ACCEPTANCE`，与保洁一致
+- ✅ e2e 全链路：创建 → 派单 → 接单 → GPS 签到 → 完成 → 状态变 `PENDING_REVIEW`
 
 **使用模型**: **强模型**
 
 **需要权限**: 同上
 
-**测试标准 — 通过后方可进入 P2.6b**:
+**测试标准 — 通过后方可进入 P2.7**:
 
-1. POST 创建订单返回 RCY 前缀订单号
-2. 废品订单状态机比保洁订单多出 `PENDING_ACCEPTANCE`（待验收）节点，状态链正确
+1. POST 创建订单返回 RCY 前缀订单号，含 `estimatedWeight` 字段
+2. 废品订单状态链与保洁一致（无 `PENDING_ACCEPTANCE`）
+3. 五个操作接口（assign/accept/gps-checkin/complete/cancel）全部可用
 
 ---
 
-#### P2.6b 废品特有流程（3h）
+#### P2.6b ~~废品特有流程~~（已并入 P2.6a）
 
-**干什么**
-
-废品回收独有的业务逻辑：
-
-- **录入实际重量**：员工上门后称重，录入实际重量（可能与预估不同）
-- **核定金额计算**：实际重量 × 单价 = 最终收款金额
-- **居民验收**：居民确认重量和金额无误
-
-> ~~收款确认~~ **不实现**：`paymentStatus` 字段和"已收款"按钮一期不做（P2.5b 已确认，2026-06-07）。
-
-**Cursor Agent 干什么**
-
-- 实际重量录入接口（员工调用）
-- 核定金额自动计算
-- 居民验收接口（居民调用）：验收通过 → `PENDING_ACCEPTANCE` → `PENDING_REVIEW`
-
-**人工干什么**
-
-- ✅ e2e 测试：创建废品订单 → 派单 → 接单 → 录入重量(10kg) → 确认核定金额正确 → 模拟居民验收 → 全链路通过
-
-**使用模型**: **强模型**
-
-**需要权限**: 同上
-
-**测试标准 — 通过后 P2.6（废品订单）全部完成**:
-
-1. e2e 全链路跑通，额外包含「录入重量 → 居民验收」环节
-2. 核定金额 = 实际重量 × 单价，计算正确
-3. 居民验收后订单状态正确流转至 `PENDING_REVIEW`
+> **已调整（2026-06-08）**：废品回收流程与保洁完全一致，无"验收/称重/收款"独立流程。废品操作接口在 P2.6a 一并实现，本单元取消。原计划的以下接口**均不实现**：
+> - ~~`POST /recycling-orders/:id/record-weight`~~（实际重量录入，废品不计价）
+> - ~~`POST /recycling-orders/:id/accept-by-resident`~~（居民验收，无验收节点）
+>
+> **节省工时约 3h。**
 
 ---
 
@@ -1550,38 +1530,11 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_ACCEPTANCE �
 
 ---
 
-#### P4.6 废品特殊流程 + 收款确认（3h）
+#### P4.6 ~~废品特殊流程~~（已并入 P4.5）
 
-**干什么**
-
-废品回收订单在"服务中"之后的额外步骤：
-
-- 员工录入实际重量
-- 系统显示核定金额
-- 等待居民在居民端小程序上验收
-- 居民验收后，员工点「已收款」
-
-**Cursor Agent 干什么**
-
-- 重量录入表单（数字键盘）
-- 核定金额展示（自动计算 = 重量 × 单价）
-- 验收状态轮询/推送（等待居民验收）
-- 「已收款」按钮（验收完成后才可用）
-
-**人工干什么**
-
-- ✅ 录入重量 15kg → 看到核定金额正确
-- ✅ （另一端模拟）居民验收后 → 员工端显示"可收款"
-- ✅ 点"已收款" → paymentStatus=PAID
-
-**使用模型**: **强模型**
-
-**需要权限**: 同上
-
-**测试标准 — 通过后方可进入 P4.7**:
-
-1. 录入重量后等待居民验收
-2. 收款后 paymentStatus=PAID
+> **已调整（2026-06-08）**：废品回收流程与保洁完全一致，员工端废品任务详情复用保洁任务详情逻辑（拍照 + 完成服务按钮），无"实际重量录入""居民验收""已收款"等独立步骤。P4.5 实现时，废品任务详情展示**预估重量**（居民预约时填写，供员工确认搬运工具），其余流程与保洁一致，本单元取消。
+>
+> **节省工时约 3h。**
 
 ---
 
@@ -1613,7 +1566,7 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_ACCEPTANCE �
 **测试标准 — 通过后 P4 阶段完成**:
 
 1. 所有信息展示正确
-2. 完整走通「接单 → GPS 签到 → 拍照 → （废品录入重量+验收）→ 已收款」闭环
+2. 完整走通「接单 → GPS 签到 → 拍照 → 完成服务 → 状态变待评价」闭环（保洁/废品流程一致）
 
 ---
 
@@ -1739,22 +1692,19 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_ACCEPTANCE �
 
 **干什么**
 
-与保洁订单管理结构基本一致，增加废品特有字段：
+与保洁订单管理结构完全一致（废品流程与保洁相同），废品特有字段仅：
 
-- 实际重量
-- 核定金额
-- 验收状态
-- 收款状态
+- **预估重量**（居民预约时填写，供员工确认搬运工具）
 
 **Cursor Agent 干什么**
 
 - 复用 P5.3 的表格/详情框架
-- 增加废品特有字段的展示和编辑
+- 增加废品特有字段的展示（预估重量）
 
 **人工干什么**
 
 - ✅ 废品订单列表和详情正常展示
-- ✅ 能看到验收和收款相关状态
+- ✅ 能看到预估重量字段
 
 **使用模型**: 默认/Fast
 
@@ -2163,8 +2113,8 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_ACCEPTANCE �
 | P2.5a | "开始 P2.5a，实现 CleaningOrder CRUD 和创建订单"                                                                |
 | P2.5b | "开始 P2.5b，实现保洁订单状态机核心逻辑"                                                                        |
 | P2.5c | "开始 P2.5c，实现派单/GPS签到/完成/取消操作接口"                                                                |
-| P2.6a | "开始 P2.6a，实现 RecyclingOrder CRUD 和继承状态机"                                                             |
-| P2.6b | "开始 P2.6b，实现废品特有流程（验收+重量+收款）"                                                                |
+| P2.6a | "开始 P2.6a，实现 RecyclingOrder CRUD、状态机及操作接口（流程与保洁一致，含 estimatedWeight 字段）"             |
+| P2.6b | ~~已取消，并入 P2.6a~~                                                                                          |
 | P2.7  | "开始 P2.7，实现 ConsultOrder 咨询单模块"                                                                       |
 | P2.8  | "开始 P2.8，实现 GPS 签到校验服务"                                                                              |
 | P2.9  | "开始 P2.9，实现 COS 文件上传和水印功能"                                                                        |
@@ -2182,8 +2132,8 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_ACCEPTANCE �
 | P4.2  | "开始 P4.2，实现员工端首页（统计+待服务列表）"                                                                  |
 | P4.3  | "开始 P4.3，实现员工端任务列表（双Tab+筛选）"                                                                   |
 | P4.4  | "开始 P4.4，实现任务详情—待服务态（含GPS签到）"                                                                 |
-| P4.5  | "开始 P4.5，实现任务详情—服务中态（拍照+SOP弹窗）"                                                              |
-| P4.6  | "开始 P4.6，实现废品特殊流程和收款确认"                                                                         |
+| P4.5  | "开始 P4.5，实现任务详情—服务中态（拍照+SOP弹窗；含废品任务详情，流程与保洁一致）"                             |
+| P4.6  | ~~已取消，并入 P4.5~~                                                                                            |
 | P4.7  | "开始 P4.7，实现员工端我的页"                                                                                   |
 | P5.1  | "开始 P5.1，实现管理后台登录和布局框架"                                                                         |
 | P5.2  | "开始 P5.2，实现数据看板（6个图表）"                                                                            |
@@ -2230,8 +2180,8 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_ACCEPTANCE �
 
 ---
 
-> **文档版本**: v1.2
+> **文档版本**: v1.3
 > **创建日期**: 2026-06-01
-> **修订日期**: 2026-06-02（v1.2：WorkBuddy → Cursor Agent；新增 §2.1 磁盘与日志约束；附录 A 增加磁盘约束后缀）
+> **修订日期**: 2026-06-08（v1.3：废品流程调整，P2.6b/P4.6 取消并入上一单元，附录 A 口令同步更新；v1.2：WorkBuddy → Cursor Agent；新增 §2.1 磁盘与日志约束；附录 A 增加磁盘约束后缀）
 > **适用范围**: 大洋云洁 (dayangyunjie-code) 社区服务平台一期 MVP
 > **使用方式**: 按 P1 → P2 → P3 → P4 → P5 → P6 顺序，逐单元执行。每单元完成后按"测试标准"验收，通过后进入下一单元。

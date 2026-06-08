@@ -38,10 +38,9 @@ export interface TransitionParams {
  *   PENDING_REVIEW → REVIEWED
  *   REVIEWED / CANCELLED = 终态，不可再转移
  *
- * RECYCLING 规则（§8.4）：
- *   继承 CLEANING 所有规则，额外在 IN_SERVICE 之后插入 PENDING_ACCEPTANCE
- *   IN_SERVICE         → PENDING_ACCEPTANCE（员工上传照片后）
- *   PENDING_ACCEPTANCE → PENDING_REVIEW（居民验收通过后）
+ * RECYCLING 规则（§8.4，2026-06-08 确认版）：
+ *   废品流程与保洁完全一致，无 PENDING_ACCEPTANCE 节点。
+ *   IN_SERVICE → PENDING_REVIEW（员工完成服务并上传照片后直接流转）
  */
 const TRANSITION_RULES: Record<OrderTypeKey, Record<string, string[]>> = {
   CLEANING: {
@@ -56,8 +55,7 @@ const TRANSITION_RULES: Record<OrderTypeKey, Record<string, string[]>> = {
     PENDING_ASSIGN: ['ASSIGNED', 'CANCELLED'],
     ASSIGNED: ['ACCEPTED'],
     ACCEPTED: ['IN_SERVICE'],
-    IN_SERVICE: ['PENDING_ACCEPTANCE'],
-    PENDING_ACCEPTANCE: ['PENDING_REVIEW'],
+    IN_SERVICE: ['PENDING_REVIEW'],
     PENDING_REVIEW: ['REVIEWED'],
     // 终态：REVIEWED、CANCELLED — 无可转移目标
   },
