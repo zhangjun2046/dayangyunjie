@@ -1,6 +1,6 @@
-# OrderModule API Contract（P2.1–P2.12 交接文档）
+# OrderModule API Contract（P2.1–P2.13 交接文档）
 
-> **生成节点**：P2.4 完成后 → 进入 P2.5a 前；**P2.12（2026-06-15）** 更新至 v2.0  
+> **生成节点**：P2.4 完成后 → 进入 P2.5a 前；**P2.13（2026-06-15）** 更新至 v2.1  
 > **用途**：供后续订单模块（CleaningOrder 等）开发读取，避免上下文丢失  
 > **Base URL**：`http://localhost:3000/api/v1`  
 > **统一响应格式**：`{ code: number, message: string, data: T | null }`  
@@ -11,6 +11,13 @@
 > - `ConsultOrder`：请求字段 `name→contactName`、`phone→contactPhone`、`description→requirementDesc`；状态枚举 `PENDING→FOLLOW_UP`、`FOLLOWING_UP→FOLLOWING`
 > - `OrderSource`：移除 `PROXY`，仅保留 `MINIPROGRAM / PHONE`
 > - 新增数据库表：`Banner`、`Operator`、`ConsultFollowUp`（API 接口由 P2.14/P2.15 补充）
+>
+> **v2.1 变更摘要（P2.13，2026-06-15）**：
+> - 新增 `POST /auth/worker-login`：员工手机号+密码登录，签发 `role=worker` JWT
+> - 新增 `WorkerJwtStrategy` / `WorkerJwtAuthGuard`：Worker 与 Resident token 完全隔离
+> - 新增 `PUT /workers/:id/change-password`：员工自行修改密码（需 Worker JWT + 旧密码验证）
+> - 新增 `POST /workers/:id/reset-password`：管理员重置员工密码为手机号（公开接口）
+> - `JwtPayload` 接口：`openid` 改为可选，新增可选 `phone` 字段
 
 ---
 
@@ -101,6 +108,72 @@
   };
 }
 ```
+
+### 2.4 POST `/auth/worker-login`（P2.13）
+
+员工手机号+密码登录，签发 Worker JWT（`role=worker`，与居民端完全隔离）。
+
+**鉴权**：公开
+
+**Request Body**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `phone` | string | ✅ | 员工手机号 |
+| `password` | string | ✅ | 登录密码（首次由管理员设定，遗忘可 reset-password 重置为手机号） |
+
+**Response `data`**
+
+```typescript
+{
+  tokens: {
+    accessToken: string;   // role=worker，2h 有效
+    refreshToken: string;  // 7d 有效
+    expiresIn: number;     // 7200
+  };
+  worker: {
+    id: number;
+    phone: string;
+    name: string;
+    employeeNo: string;
+  };
+}
+```
+
+**错误码**：`401 Unauthorized`（手机号不存在或密码错误，统一消息"手机号或密码错误"，不区分以防枚举）
+
+---
+
+### 2.5 PUT `/workers/:id/change-password`（P2.13）
+
+员工自行修改密码（需旧密码验证）。
+
+**鉴权**：`WorkerJwtAuthGuard`（需携带 Worker access token）
+
+**Request Body**
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `oldPassword` | string | ✅ | 当前密码 |
+| `newPassword` | string | ✅ | 新密码（≥6 位） |
+
+**Response `data`**：`WorkerDto`（不含 `passwordHash`）
+
+**错误码**：`400 BadRequest`（旧密码错误）、`401 Unauthorized`（未携带/无效 token）、`404 NotFound`（员工不存在）
+
+---
+
+### 2.6 POST `/workers/:id/reset-password`（P2.13）
+
+管理员重置员工密码为完整手机号（员工忘记密码时使用）。
+
+**鉴权**：公开（本期暂无 Admin Guard，P5 阶段加固）
+
+**Response `data`**：`WorkerDto`（不含 `passwordHash`）
+
+**错误码**：`404 NotFound`（员工不存在）
+
+> **重置规则**：新密码 = `bcrypt.hash(worker.phone, 10)`，员工用手机号即可重新登录。
 
 ---
 

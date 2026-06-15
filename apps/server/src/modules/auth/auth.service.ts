@@ -1,12 +1,14 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Resident } from '@prisma/client';
+import { Resident, Worker } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 import { createHash } from 'crypto';
 import { EnvConfigService } from '../../common/config/env-config.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { AUTH_ROLE_RESIDENT } from './auth.constants';
+import { AUTH_ROLE_RESIDENT, AUTH_ROLE_WORKER } from './auth.constants';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { WechatLoginDto } from './dto/wechat-login.dto';
+import { WorkerLoginDto } from './dto/worker-login.dto';
 import { CurrentUser } from './interfaces/current-user.interface';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 
@@ -80,6 +82,36 @@ export class AuthService {
     return { tokens };
   }
 
+  async workerLogin(loginDto: WorkerLoginDto): Promise<{
+    tokens: TokenPair;
+    worker: Pick<Worker, 'id' | 'phone' | 'name' | 'employeeNo'>;
+  }> {
+    const worker = await this.prismaService.worker.findUnique({
+      where: { phone: loginDto.phone },
+    });
+
+    if (!worker) {
+      throw new UnauthorizedException('手机号或密码错误');
+    }
+
+    const isPasswordValid = await bcrypt.compare(loginDto.password, worker.passwordHash);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('手机号或密码错误');
+    }
+
+    const tokens = await this.issueWorkerTokens(worker.id, worker.phone);
+
+    return {
+      tokens,
+      worker: {
+        id: worker.id,
+        phone: worker.phone,
+        name: worker.name,
+        employeeNo: worker.employeeNo,
+      },
+    };
+  }
+
   async getProfile(user: CurrentUser): Promise<{
     resident: Pick<Resident, 'id' | 'openid' | 'nickname' | 'avatar'>;
   }> {
@@ -93,6 +125,36 @@ export class AuthService {
     }
 
     return { resident };
+  }
+
+  private async issueWorkerTokens(workerId: number, phone: string): Promise<TokenPair> {
+    const accessPayload: JwtPayload = {
+      sub: workerId,
+      phone,
+      role: AUTH_ROLE_WORKER,
+      tokenType: 'access',
+    };
+    const refreshPayload: JwtPayload = {
+      ...accessPayload,
+      tokenType: 'refresh',
+    };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(accessPayload, {
+        secret: this.envConfigService.jwtAccessSecret,
+        expiresIn: this.envConfigService.jwtAccessExpiresIn as never,
+      }),
+      this.jwtService.signAsync(refreshPayload, {
+        secret: this.envConfigService.jwtRefreshSecret,
+        expiresIn: this.envConfigService.jwtRefreshExpiresIn as never,
+      }),
+    ]);
+
+    return {
+      accessToken,
+      refreshToken,
+      expiresIn: this.parseExpiresInToSeconds(this.envConfigService.jwtAccessExpiresIn),
+    };
   }
 
   private getMockOpenidByCode(code: string): string {

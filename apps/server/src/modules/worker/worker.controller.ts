@@ -7,10 +7,19 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  UseGuards,
   Query,
 } from '@nestjs/common';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { ApiResponseDto } from '../auth/dto/auth-response.dto';
+import { WorkerJwtAuthGuard } from '../auth/guards/worker-jwt-auth.guard';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateWorkerDto } from './dto/create-worker.dto';
 import { QueryWorkerDto } from './dto/query-worker.dto';
 import { UpdateWorkerDto } from './dto/update-worker.dto';
@@ -69,6 +78,30 @@ export class WorkerController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ApiResponseDto<Awaited<ReturnType<WorkerService['remove']>>>> {
     const data = await this.workerService.remove(id);
+    return { code: 0, message: 'ok', data };
+  }
+
+  @Put(':id/change-password')
+  @UseGuards(WorkerJwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '员工修改密码（需 Worker JWT，旧密码验证）' })
+  @ApiOkResponse({ description: '密码修改成功' })
+  @ApiUnauthorizedResponse({ description: '未携带 Worker Token 或 Token 无效' })
+  async changePassword(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ChangePasswordDto,
+  ): Promise<ApiResponseDto<Awaited<ReturnType<WorkerService['changePassword']>>>> {
+    const data = await this.workerService.changePassword(id, dto.oldPassword, dto.newPassword);
+    return { code: 0, message: 'ok', data };
+  }
+
+  @Post(':id/reset-password')
+  @ApiOperation({ summary: '管理员重置员工密码为手机号（公开接口，管理员调用）' })
+  @ApiOkResponse({ description: '密码已重置为手机号' })
+  async resetPassword(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ApiResponseDto<Awaited<ReturnType<WorkerService['resetPassword']>>>> {
+    const data = await this.workerService.resetPassword(id);
     return { code: 0, message: 'ok', data };
   }
 }

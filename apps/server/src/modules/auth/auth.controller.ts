@@ -11,6 +11,7 @@ import { CurrentUserDecorator } from './decorators/current-user.decorator';
 import { ApiResponseDto, LoginResultDto } from './dto/auth-response.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { WechatLoginDto } from './dto/wechat-login.dto';
+import { WorkerLoginDto } from './dto/worker-login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './interfaces/current-user.interface';
 
@@ -47,6 +48,42 @@ export class AuthController {
     @Body() body: WechatLoginDto,
   ): Promise<ApiResponseDto<LoginResultDto>> {
     const data = await this.authService.wechatLogin(body);
+    return {
+      code: 0,
+      message: 'ok',
+      data,
+    };
+  }
+
+  @Post('worker-login')
+  @ApiOperation({ summary: '员工手机号+密码登录，签发 Worker JWT' })
+  @ApiOkResponse({
+    description: '登录成功',
+    schema: {
+      example: {
+        code: 0,
+        message: 'ok',
+        data: {
+          tokens: {
+            accessToken: 'worker_access_token',
+            refreshToken: 'worker_refresh_token',
+            expiresIn: 7200,
+          },
+          worker: {
+            id: 1,
+            phone: '13800138001',
+            name: '张师傅',
+            employeeNo: 'W001',
+          },
+        },
+      },
+    },
+  })
+  @ApiUnauthorizedResponse({ description: '手机号或密码错误' })
+  async workerLogin(
+    @Body() body: WorkerLoginDto,
+  ): Promise<ApiResponseDto<Awaited<ReturnType<AuthService['workerLogin']>>>> {
+    const data = await this.authService.workerLogin(body);
     return {
       code: 0,
       message: 'ok',

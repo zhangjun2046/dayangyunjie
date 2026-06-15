@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -86,6 +87,39 @@ export class WorkerService {
     await this.findOne(id);
     await this.prismaService.worker.delete({ where: { id } });
     return { id };
+  }
+
+  async changePassword(id: number, oldPassword: string, newPassword: string) {
+    const worker = await this.prismaService.worker.findUnique({ where: { id } });
+    if (!worker) {
+      throw new NotFoundException(`Worker ${id} not found`);
+    }
+
+    const isMatch = await bcrypt.compare(oldPassword, worker.passwordHash);
+    if (!isMatch) {
+      throw new BadRequestException('旧密码不正确');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const updated = await this.prismaService.worker.update({
+      where: { id },
+      data: { passwordHash },
+    });
+    return this.toPublicWorker(updated);
+  }
+
+  async resetPassword(id: number) {
+    const worker = await this.prismaService.worker.findUnique({ where: { id } });
+    if (!worker) {
+      throw new NotFoundException(`Worker ${id} not found`);
+    }
+
+    const passwordHash = await bcrypt.hash(worker.phone, 10);
+    const updated = await this.prismaService.worker.update({
+      where: { id },
+      data: { passwordHash },
+    });
+    return this.toPublicWorker(updated);
   }
 
   private toPublicWorker(worker: Worker) {

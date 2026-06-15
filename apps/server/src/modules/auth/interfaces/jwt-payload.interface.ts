@@ -1,6 +1,7 @@
 export interface JwtPayload {
   sub: number;
-  openid: string;
+  openid?: string;
+  phone?: string;
   role: string;
   tokenType: 'access' | 'refresh';
 }

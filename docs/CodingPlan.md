@@ -30,11 +30,11 @@
 | P2.10 评价与投诉模块                    | ✅ 已通过 | 2026-06-08 | ReviewModule（3接口）+ ComplaintModule（5接口）；评价提交驱动 `PENDING_REVIEW → REVIEWED` 并写审计日志；投诉三态流转（PENDING→PROCESSING→COMPLETED）+ 跟进记录；Prisma 无需迁移（schema 已有模型）；Jest 39 项新增（全套回归 162 项）通过；评价/投诉全链路 e2e 验收通过；`npm run build` 通过；使用 Sonnet 4.6 LLM 完成 |
 | P2.11 数据看板聚合 API                  | ✅ 已通过 | 2026-06-08 | DashboardModule（6 聚合接口）；统计卡/订单趋势/服务类型分布/满意度分布/时段分布/员工绩效排名；返回格式适配 ECharts 折线图/环形图/柱状图；支持 `startDate`/`endDate` 时间范围筛选；Jest 20 项新增（全套回归 182 项）通过；全接口 e2e 验收通过（数字合理性 + ECharts 格式校验）；已生成 `Backend-API-Summary.md` 交接文档；`npm run build` 通过；使用 Sonnet 4.6 LLM 完成 |
 | P2.12 Schema v2.0 迁移 + 代码适配      | ✅ 已通过 | 2026-06-15 | `prisma db push` 同步 v2.0 schema；新增 Banner/Operator/ConsultFollowUp 三张表；Worker/Address 字段扩展；seed.ts 更新（ServiceCatalog 无价格字段，Operator 初始记录）；ConsultStatus/OrderSource 枚举适配；Jest 182 项全部通过；使用 Sonnet 4.6 LLM 完成 |
-| P2.13 Worker 手机号+密码登录 + 密码管理 | ⏳ 待开发 | —          | `POST /auth/worker-login`（phone+password → JWT）；Worker JWT Strategy/Guard；员工修改密码接口；管理员重置密码接口（重置为完整手机号） |
+| P2.13 Worker 手机号+密码登录 + 密码管理 | ✅ 已通过 | 2026-06-15 | `POST /auth/worker-login`（phone+password → JWT）；WorkerJwtStrategy/WorkerJwtAuthGuard（role=worker 隔离）；`PUT /workers/:id/change-password`（旧密码验证）；`POST /workers/:id/reset-password`（重置为手机号）；Jest 192 项全部通过；使用 Sonnet 4.6 LLM 完成 |
 | P2.14 配置管理 CRUD 接口               | ⏳ 待开发 | —          | ServiceCatalog 扩展为全 CRUD + toggle 启用/停用；Banner 全 CRUD + 有效轮播图查询；Operator 全 CRUD + `/operators/contact` 接单人查询接口 |
 | P2.15 废品居民验收 + 家政跟进记录接口   | ⏳ 待开发 | —          | `POST /recycling-orders/:id/accept`（居民「验收服务」→ IN_SERVICE→PENDING_REVIEW）；ConsultFollowUp CRUD；ConsultOrder v2.0 字段适配（isProxyOrder/serviceContactName/serviceAddress/source） |
 
-> **P2.1–P2.12 后端核心 API 及 Schema v2.0 迁移全部完成。** v2.0 补充单元 **P2.13–P2.15** 待开发，内容见七、P2 章节末尾。下一单元：**P2.13** — Worker 手机号+密码登录。
+> **P2.1–P2.13 后端核心 API 全部完成。** v2.0 补充单元 **P2.14–P2.15** 待开发，内容见七、P2 章节末尾。下一单元：**P2.14** — 配置管理 CRUD 接口（ServiceCatalog / Banner / Operator）。
 
 ---
 
@@ -1158,6 +1158,10 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 1. `POST /auth/worker-login` 返回 JWT token
 2. Worker token 与 Resident token 互相隔离（各自 Guard 保护）
 3. 重置密码后手机号可作为新密码登录
+
+**验收结论**：✅ 2026-06-15 通过，可进入 P2.14
+
+**使用模型**: Sonnet 4.6
 
 ---
 

@@ -5,6 +5,7 @@ import { EnvConfigService } from '../../common/config/env-config.service';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { WorkerJwtStrategy } from './strategies/worker-jwt.strategy';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, WorkerJwtStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}
