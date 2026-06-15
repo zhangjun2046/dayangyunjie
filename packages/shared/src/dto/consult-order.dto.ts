@@ -1,9 +1,10 @@
-/** 居民端提交家政咨询 */
+/** 居民端提交家政咨询（v2.0：name→contactName, phone→contactPhone, description→requirementDesc） */
 export interface CreateConsultOrderDto {
   serviceType: string;
-  name: string;
-  phone: string;
-  description: string;
+  contactName: string;
+  contactPhone: string;
+  requirementDesc: string;
+  residentId?: number;
 }
 
 /** 管理后台更新咨询单状态 */

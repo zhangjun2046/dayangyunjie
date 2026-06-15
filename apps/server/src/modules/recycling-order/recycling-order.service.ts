@@ -72,8 +72,8 @@ export class RecyclingOrderService {
               remark: createRecyclingOrderDto.remark,
               source: (createRecyclingOrderDto.source ?? OrderSource.MINIPROGRAM) as PrismaOrderSource,
               isProxyOrder: createRecyclingOrderDto.isProxyOrder ?? false,
-              proxyName: createRecyclingOrderDto.proxyName,
-              proxyPhone: createRecyclingOrderDto.proxyPhone,
+              serviceContactName: createRecyclingOrderDto.serviceContactName,
+              serviceContactPhone: createRecyclingOrderDto.serviceContactPhone,
             },
           });
         });
@@ -371,8 +371,8 @@ export class RecyclingOrderService {
     if (!dto.isProxyOrder) {
       return;
     }
-    if (!dto.proxyName || !dto.proxyPhone) {
-      throw new BadRequestException('proxyName and proxyPhone are required when isProxyOrder is true');
+    if (!dto.serviceContactName || !dto.serviceContactPhone) {
+      throw new BadRequestException('serviceContactName and serviceContactPhone are required when isProxyOrder is true');
     }
   }
 
@@ -392,22 +392,26 @@ export class RecyclingOrderService {
   }
 
   private toAddressSnapshot(address: {
-    name: string;
-    phone: string;
+    contactName: string;
+    contactPhone: string;
     province: string;
     city: string;
     district: string;
     detail: string;
+    buildingInfo: string | null;
+    addressTag: string | null;
     lat: number | null;
     lng: number | null;
   }): AddressSnapshot {
     return {
-      name: address.name,
-      phone: address.phone,
+      contactName: address.contactName,
+      contactPhone: address.contactPhone,
       province: address.province,
       city: address.city,
       district: address.district,
       detail: address.detail,
+      ...(address.buildingInfo ? { buildingInfo: address.buildingInfo } : {}),
+      ...(address.addressTag ? { addressTag: address.addressTag } : {}),
       ...(typeof address.lat === 'number' ? { lat: address.lat } : {}),
       ...(typeof address.lng === 'number' ? { lng: address.lng } : {}),
     };
@@ -429,8 +433,8 @@ export class RecyclingOrderService {
       remark: row.remark,
       source: row.source as RecyclingOrderDto['source'],
       isProxyOrder: row.isProxyOrder,
-      proxyName: row.proxyName,
-      proxyPhone: row.proxyPhone,
+      serviceContactName: row.serviceContactName,
+      serviceContactPhone: row.serviceContactPhone,
       status: row.status as RecyclingOrderDto['status'],
       gpsLat: row.gpsLat,
       gpsLng: row.gpsLng,

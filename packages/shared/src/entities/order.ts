@@ -1,7 +1,7 @@
 import type { AddressSnapshot } from '../types/address';
 import type { ConsultStatus, OrderSource, OrderStatus, PaymentStatus } from '../enums';
 
-/** 保洁订单（API 出参） */
+/** 保洁订单（API 出参，v2.0：proxyName→serviceContactName，proxyPhone→serviceContactPhone） */
 export interface CleaningOrderDto {
   id: number;
   orderNo: string;
@@ -17,8 +17,8 @@ export interface CleaningOrderDto {
   remark?: string | null;
   source: OrderSource;
   isProxyOrder: boolean;
-  proxyName?: string | null;
-  proxyPhone?: string | null;
+  serviceContactName?: string | null;
+  serviceContactPhone?: string | null;
   status: OrderStatus;
   referenceAmount?: string | null;
   finalAmount?: string | null;
@@ -33,15 +33,13 @@ export interface CleaningOrderDto {
   updatedAt: string;
 }
 
-/** 废品订单（API 出参，P2.6a：无价格/支付/实际重量字段） */
+/** 废品订单（API 出参，v2.0：proxyName→serviceContactName，proxyPhone→serviceContactPhone） */
 export interface RecyclingOrderDto {
   id: number;
   orderNo: string;
   residentId: number;
   workerId?: number | null;
-  /** 物品大类，如 大件类 / 小件类（前端展示用） */
   serviceItem: string;
-  /** 预估重量（kg），供员工确认搬运工具 */
   estimatedWeight: number;
   appointDate: string;
   appointTimeSlot: string;
@@ -51,8 +49,8 @@ export interface RecyclingOrderDto {
   remark?: string | null;
   source: OrderSource;
   isProxyOrder: boolean;
-  proxyName?: string | null;
-  proxyPhone?: string | null;
+  serviceContactName?: string | null;
+  serviceContactPhone?: string | null;
   status: OrderStatus;
   gpsLat?: number | null;
   gpsLng?: number | null;
@@ -63,15 +61,15 @@ export interface RecyclingOrderDto {
   updatedAt: string;
 }
 
-/** 家政咨询单（API 出参） */
+/** 家政咨询单（API 出参，v2.0：name→contactName, phone→contactPhone, description→requirementDesc） */
 export interface ConsultOrderDto {
   id: number;
   orderNo: string;
   residentId?: number | null;
   serviceType: string;
-  name: string;
-  phone: string;
-  description: string;
+  contactName: string;
+  contactPhone: string;
+  requirementDesc: string;
   status: ConsultStatus;
   createdAt: string;
   updatedAt: string;

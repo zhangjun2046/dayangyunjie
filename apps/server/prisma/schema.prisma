@@ -1,4 +1,4 @@
-// 大洋云洁智享平台 — 由 docs/Schema.md v1.1 转译（P1.2）
+// 大洋云洁智享平台 — 由 docs/Schema.md v2.0 转译（基于需求文档 v2.0）
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,20 +10,22 @@ datasource db {
 
 // ─── 枚举（8）────────────────────────────────────────────
 
+// v2.0: 删除 PENDING_ACCEPTANCE（废品验收在 IN_SERVICE 阶段完成，不设独立待验收状态）
+// 取消规则：仅 PENDING_ASSIGN 阶段可取消
 enum OrderStatus {
   PENDING_ASSIGN
   ASSIGNED
   ACCEPTED
   IN_SERVICE
-  PENDING_ACCEPTANCE
   PENDING_REVIEW
   REVIEWED
   CANCELLED
 }
 
+// v2.0: PENDING→FOLLOW_UP, FOLLOWING_UP→FOLLOWING
 enum ConsultStatus {
-  PENDING
-  FOLLOWING_UP
+  FOLLOW_UP
+  FOLLOWING
   COMPLETED
 }
 
@@ -32,10 +34,10 @@ enum PaymentStatus {
   PAID
 }
 
+// v2.0: 删除 PROXY，代下单由 isProxyOrder 字段独立标记
 enum OrderSource {
   MINIPROGRAM
   PHONE
-  PROXY
 }
 
 enum WorkerStatus {
@@ -76,35 +78,46 @@ model Resident {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  addresses        Address[]
-  cleaningOrders   CleaningOrder[]
-  recyclingOrders  RecyclingOrder[]
-  consultOrders    ConsultOrder[]
+  addresses       Address[]
+  cleaningOrders  CleaningOrder[]
+  recyclingOrders RecyclingOrder[]
+  consultOrders   ConsultOrder[]
+  complaints      Complaint[]
 
   @@map("residents")
 }
 
+// v2.0: 删除 openid（员工端改手机号+密码登录）；skills Json→skillType String（单选）；新增多个字段
 model Worker {
-  id           Int          @id @default(autoincrement())
-  openid       String       @unique @db.VarChar(64)
-  employeeNo   String       @unique @map("employee_no") @db.VarChar(32)
-  passwordHash String       @map("password_hash") @db.VarChar(128)
-  name         String       @db.VarChar(32)
-  phone        String       @db.VarChar(20)
-  avatar       String?      @db.VarChar(512)
-  status       WorkerStatus @default(IDLE)
-  rating       Float        @default(5.0)
-  totalOrders  Int          @default(0) @map("total_orders")
-  skills       Json
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
+  id               Int          @id @default(autoincrement())
+  employeeNo       String       @unique @map("employee_no") @db.VarChar(32)
+  passwordHash     String       @map("password_hash") @db.VarChar(128)
+  name             String       @db.VarChar(32)
+  phone            String       @unique @db.VarChar(20)
+  nickname         String?      @db.VarChar(32)
+  gender           String?      @db.VarChar(8) // MALE / FEMALE
+  idCard           String?      @map("id_card") @db.VarChar(18)
+  position         String?      @db.VarChar(16) // CLEANER / RECYCLER
+  skillType        String       @map("skill_type") @db.VarChar(16) // CLEANING / RECYCLING
+  emergencyContact String?      @map("emergency_contact") @db.VarChar(32)
+  emergencyPhone   String?      @map("emergency_phone") @db.VarChar(20)
+  avatar           String?      @db.VarChar(512)
+  status           WorkerStatus @default(IDLE)
+  rating           Float        @default(5.0)
+  totalOrders      Int          @default(0) @map("total_orders")
+  healthCertUrl    String?      @map("health_cert_url") @db.VarChar(512)
+  healthCertExpiry DateTime?    @map("health_cert_expiry")
+  skillCertUrl     String?      @map("skill_cert_url") @db.VarChar(512)
+  skillCertExpiry  DateTime?    @map("skill_cert_expiry")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
 
   cleaningOrders  CleaningOrder[]
   recyclingOrders RecyclingOrder[]
-  workPhotos      WorkPhoto[]     @relation("WorkPhotoUploader")
+  workPhotos      WorkPhoto[]      @relation("WorkPhotoUploader")
 
-  // skills 为 Json，MySQL 复合索引由业务层过滤；status 索引支撑派单查空闲员工
-  @@index([status])
+  // status + skillType 复合索引支撑派单查空闲员工
+  @@index([status, skillType])
   @@map("workers")
 }
 
@@ -121,20 +134,23 @@ model Admin {
 
 // ─── 地址（1）────────────────────────────────────────────
 
+// v2.0: 「收货地址」→「服务地址」；新增 contactName/buildingInfo/addressTag；name→addressTag, phone→contactPhone
 model Address {
-  id         Int      @id @default(autoincrement())
-  residentId Int      @map("resident_id")
-  name       String   @db.VarChar(64)
-  phone      String   @db.VarChar(20)
-  province   String   @db.VarChar(32)
-  city       String   @db.VarChar(32)
-  district   String   @db.VarChar(32)
-  detail     String   @db.VarChar(256)
-  lat        Float?
-  lng        Float?
-  isDefault  Boolean  @default(false) @map("is_default")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id           Int      @id @default(autoincrement())
+  residentId   Int      @map("resident_id")
+  contactName  String   @map("contact_name") @db.VarChar(32)
+  contactPhone String   @map("contact_phone") @db.VarChar(20)
+  province     String   @db.VarChar(32)
+  city         String   @db.VarChar(32)
+  district     String   @db.VarChar(32)
+  detail       String   @db.VarChar(256)
+  buildingInfo String?  @map("building_info") @db.VarChar(64)
+  addressTag   String?  @map("address_tag") @db.VarChar(32)
+  lat          Float?
+  lng          Float?
+  isDefault    Boolean  @default(false) @map("is_default")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   resident Resident @relation(fields: [residentId], references: [id], onDelete: Cascade)
 
@@ -144,35 +160,38 @@ model Address {
 
 // ─── 订单模型（3）────────────────────────────────────────
 
+// v2.0: proxyName→serviceContactName, proxyPhone→serviceContactPhone
+// 封存字段（⚠️ 数据库保留，API层不暴露）: referenceAmount, finalAmount, paymentStatus, paidAt, paidBy
 model CleaningOrder {
-  id                Int            @id @default(autoincrement())
-  orderNo           String         @unique @map("order_no") @db.VarChar(32)
-  residentId        Int            @map("resident_id")
-  workerId          Int?           @map("worker_id")
-  serviceItem       String           @map("service_item") @db.VarChar(64)
-  serviceDuration   Int            @default(2) @map("service_duration")
-  appointDate       DateTime       @map("appoint_date") @db.Date
-  appointTimeSlot   String           @map("appoint_time_slot") @db.VarChar(32)
-  addressSnapshot   Json           @map("address_snapshot")
-  contactName       String           @map("contact_name") @db.VarChar(32)
-  contactPhone      String           @map("contact_phone") @db.VarChar(20)
-  remark            String?          @db.VarChar(512)
-  source            OrderSource
-  isProxyOrder      Boolean          @default(false) @map("is_proxy_order")
-  proxyName         String?          @map("proxy_name") @db.VarChar(32)
-  proxyPhone        String?          @map("proxy_phone") @db.VarChar(20)
-  status            OrderStatus      @default(PENDING_ASSIGN)
-  referenceAmount   Decimal?         @map("reference_amount") @db.Decimal(10, 2)
-  finalAmount       Decimal?         @map("final_amount") @db.Decimal(10, 2)
-  paymentStatus     PaymentStatus    @default(UNPAID) @map("payment_status")
-  paidAt            DateTime?        @map("paid_at")
-  gpsLat            Float?           @map("gps_lat")
-  gpsLng            Float?           @map("gps_lng")
-  gpsCheckinAt      DateTime?        @map("gps_checkin_at")
-  gpsDistance       Float?           @map("gps_distance")
-  gpsRemark         String?          @map("gps_remark") @db.VarChar(256)
-  createdAt         DateTime         @default(now()) @map("created_at")
-  updatedAt         DateTime         @updatedAt @map("updated_at")
+  id                  Int           @id @default(autoincrement())
+  orderNo             String        @unique @map("order_no") @db.VarChar(32)
+  residentId          Int           @map("resident_id")
+  workerId            Int?          @map("worker_id")
+  serviceItem         String        @map("service_item") @db.VarChar(64)
+  serviceDuration     Int           @default(2) @map("service_duration")
+  appointDate         DateTime      @map("appoint_date") @db.Date
+  appointTimeSlot     String        @map("appoint_time_slot") @db.VarChar(32)
+  addressSnapshot     Json          @map("address_snapshot")
+  contactName         String        @map("contact_name") @db.VarChar(32)
+  contactPhone        String        @map("contact_phone") @db.VarChar(20)
+  remark              String?       @db.VarChar(512)
+  source              OrderSource
+  isProxyOrder        Boolean       @default(false) @map("is_proxy_order")
+  serviceContactName  String?       @map("service_contact_name") @db.VarChar(32)
+  serviceContactPhone String?       @map("service_contact_phone") @db.VarChar(20)
+  status              OrderStatus   @default(PENDING_ASSIGN)
+  referenceAmount     Decimal?      @map("reference_amount") @db.Decimal(10, 2) // ⚠️ 封存
+  finalAmount         Decimal?      @map("final_amount") @db.Decimal(10, 2) // ⚠️ 封存
+  paymentStatus       PaymentStatus @default(UNPAID) @map("payment_status") // ⚠️ 封存
+  paidAt              DateTime?     @map("paid_at") // ⚠️ 封存
+  paidBy              String?       @map("paid_by") @db.VarChar(32) // ⚠️ 封存
+  gpsLat              Float?        @map("gps_lat")
+  gpsLng              Float?        @map("gps_lng")
+  gpsCheckinAt        DateTime?     @map("gps_checkin_at")
+  gpsDistance         Float?        @map("gps_distance")
+  gpsRemark           String?       @map("gps_remark") @db.VarChar(256)
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
 
   resident   Resident    @relation(fields: [residentId], references: [id])
   worker     Worker?     @relation(fields: [workerId], references: [id])
@@ -187,36 +206,39 @@ model CleaningOrder {
   @@map("cleaning_orders")
 }
 
+// v2.0: proxyName→serviceContactName, proxyPhone→serviceContactPhone
+// 封存字段（⚠️ 三端均不展示，数据库保留）: actualWeight, referenceAmount, finalAmount, paymentStatus, paidAt, paidBy
 model RecyclingOrder {
-  id                Int            @id @default(autoincrement())
-  orderNo           String         @unique @map("order_no") @db.VarChar(32)
-  residentId        Int            @map("resident_id")
-  workerId          Int?           @map("worker_id")
-  itemType          String           @map("item_type") @db.VarChar(16)
-  estimatedWeight   Float            @default(5) @map("estimated_weight")
-  actualWeight      Float?           @map("actual_weight")
-  appointDate       DateTime       @map("appoint_date") @db.Date
-  appointTimeSlot   String           @map("appoint_time_slot") @db.VarChar(32)
-  addressSnapshot   Json           @map("address_snapshot")
-  contactName       String           @map("contact_name") @db.VarChar(32)
-  contactPhone      String           @map("contact_phone") @db.VarChar(20)
-  remark            String?          @db.VarChar(512)
-  source            OrderSource
-  isProxyOrder      Boolean          @default(false) @map("is_proxy_order")
-  proxyName         String?          @map("proxy_name") @db.VarChar(32)
-  proxyPhone        String?          @map("proxy_phone") @db.VarChar(20)
-  status            OrderStatus      @default(PENDING_ASSIGN)
-  referenceAmount   Decimal?         @map("reference_amount") @db.Decimal(10, 2)
-  finalAmount       Decimal?         @map("final_amount") @db.Decimal(10, 2)
-  paymentStatus     PaymentStatus    @default(UNPAID) @map("payment_status")
-  paidAt            DateTime?        @map("paid_at")
-  gpsLat            Float?           @map("gps_lat")
-  gpsLng            Float?           @map("gps_lng")
-  gpsCheckinAt      DateTime?        @map("gps_checkin_at")
-  gpsDistance       Float?           @map("gps_distance")
-  gpsRemark         String?          @map("gps_remark") @db.VarChar(256)
-  createdAt         DateTime         @default(now()) @map("created_at")
-  updatedAt         DateTime         @updatedAt @map("updated_at")
+  id                  Int           @id @default(autoincrement())
+  orderNo             String        @unique @map("order_no") @db.VarChar(32)
+  residentId          Int           @map("resident_id")
+  workerId            Int?          @map("worker_id")
+  itemType            String        @map("item_type") @db.VarChar(16)
+  estimatedWeight     Float         @default(5) @map("estimated_weight")
+  actualWeight        Float?        @map("actual_weight") // ⚠️ 封存
+  appointDate         DateTime      @map("appoint_date") @db.Date
+  appointTimeSlot     String        @map("appoint_time_slot") @db.VarChar(32)
+  addressSnapshot     Json          @map("address_snapshot")
+  contactName         String        @map("contact_name") @db.VarChar(32)
+  contactPhone        String        @map("contact_phone") @db.VarChar(20)
+  remark              String?       @db.VarChar(512)
+  source              OrderSource
+  isProxyOrder        Boolean       @default(false) @map("is_proxy_order")
+  serviceContactName  String?       @map("service_contact_name") @db.VarChar(32)
+  serviceContactPhone String?       @map("service_contact_phone") @db.VarChar(20)
+  status              OrderStatus   @default(PENDING_ASSIGN)
+  referenceAmount     Decimal?      @map("reference_amount") @db.Decimal(10, 2) // ⚠️ 封存
+  finalAmount         Decimal?      @map("final_amount") @db.Decimal(10, 2) // ⚠️ 封存
+  paymentStatus       PaymentStatus @default(UNPAID) @map("payment_status") // ⚠️ 封存
+  paidAt              DateTime?     @map("paid_at") // ⚠️ 封存
+  paidBy              String?       @map("paid_by") @db.VarChar(32) // ⚠️ 封存
+  gpsLat              Float?        @map("gps_lat")
+  gpsLng              Float?        @map("gps_lng")
+  gpsCheckinAt        DateTime?     @map("gps_checkin_at")
+  gpsDistance         Float?        @map("gps_distance")
+  gpsRemark           String?       @map("gps_remark") @db.VarChar(256)
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
 
   resident   Resident    @relation(fields: [residentId], references: [id])
   worker     Worker?     @relation(fields: [workerId], references: [id])
@@ -231,19 +253,28 @@ model RecyclingOrder {
   @@map("recycling_orders")
 }
 
+// v2.0: 新增代下单/地址/来源/备注字段；name→contactName, phone→contactPhone, description→requirementDesc
+// 状态默认值改为 FOLLOW_UP；跟进记录改用独立 ConsultFollowUp 子表
 model ConsultOrder {
-  id          Int           @id @default(autoincrement())
-  orderNo     String        @unique @map("order_no") @db.VarChar(32)
-  residentId  Int?          @map("resident_id")
-  serviceType String        @map("service_type") @db.VarChar(32)
-  name        String        @db.VarChar(32)
-  phone       String        @db.VarChar(20)
-  description String        @db.Text
-  status      ConsultStatus @default(PENDING)
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
+  id                  Int           @id @default(autoincrement())
+  orderNo             String        @unique @map("order_no") @db.VarChar(32)
+  residentId          Int?          @map("resident_id")
+  serviceType         String        @map("service_type") @db.VarChar(32)
+  contactName         String        @map("contact_name") @db.VarChar(32)
+  contactPhone        String        @map("contact_phone") @db.VarChar(20)
+  requirementDesc     String        @map("requirement_desc") @db.Text
+  isProxyOrder        Boolean       @default(false) @map("is_proxy_order")
+  serviceContactName  String?       @map("service_contact_name") @db.VarChar(32)
+  serviceContactPhone String?       @map("service_contact_phone") @db.VarChar(20)
+  serviceAddress      String?       @map("service_address") @db.VarChar(256)
+  source              OrderSource?
+  remark              String?       @db.VarChar(512)
+  status              ConsultStatus @default(FOLLOW_UP)
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
 
-  resident   Resident?   @relation(fields: [residentId], references: [id])
+  resident   Resident?         @relation(fields: [residentId], references: [id])
+  followUps  ConsultFollowUp[]
   complaints Complaint[]
 
   @@index([status])
@@ -288,12 +319,18 @@ model Review {
   @@map("reviews")
 }
 
+// v2.0: 新增 complaintNo/residentId/orderNo/serviceType/serviceAddress 冗余字段（便于列表展示）
 model Complaint {
   id               Int             @id @default(autoincrement())
+  complaintNo      String          @unique @map("complaint_no") @db.VarChar(32)
   cleaningOrderId  Int?            @map("cleaning_order_id")
   recyclingOrderId Int?            @map("recycling_order_id")
   consultOrderId   Int?            @map("consult_order_id")
   orderType        String          @map("order_type") @db.VarChar(16)
+  orderNo          String?         @map("order_no") @db.VarChar(32)
+  residentId       Int?            @map("resident_id")
+  serviceType      String?         @map("service_type") @db.VarChar(32)
+  serviceAddress   String?         @map("service_address") @db.VarChar(256)
   reason           ComplaintReason
   description      String          @db.Text
   evidenceImages   Json?           @map("evidence_images")
@@ -301,9 +338,10 @@ model Complaint {
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")
 
-  cleaningOrder  CleaningOrder?  @relation(fields: [cleaningOrderId], references: [id])
-  recyclingOrder RecyclingOrder? @relation(fields: [recyclingOrderId], references: [id])
-  consultOrder   ConsultOrder?   @relation(fields: [consultOrderId], references: [id])
+  cleaningOrder  CleaningOrder?      @relation(fields: [cleaningOrderId], references: [id])
+  recyclingOrder RecyclingOrder?     @relation(fields: [recyclingOrderId], references: [id])
+  consultOrder   ConsultOrder?       @relation(fields: [consultOrderId], references: [id])
+  resident       Resident?           @relation(fields: [residentId], references: [id])
   followUps      ComplaintFollowUp[]
 
   @@index([status])
@@ -341,19 +379,67 @@ model OrderStatusLog {
 
 // ─── 配置（1）────────────────────────────────────────────
 
+// v2.0: 删除 priceMin/priceMax/priceUnit/description；新增 subtitle/icon；isActive→isEnabled
+// 封存字段（⚠️ 数据库保留，管理后台不展示）: specialTips
 model ServiceCatalog {
   id          Int      @id @default(autoincrement())
   bizType     String   @map("biz_type") @db.VarChar(16)
-  serviceItem String   @map("service_item") @db.VarChar(64)
-  priceMin    Decimal  @map("price_min") @db.Decimal(10, 2)
-  priceMax    Decimal  @map("price_max") @db.Decimal(10, 2)
-  priceUnit   String   @map("price_unit") @db.VarChar(32)
-  description String?  @db.VarChar(512)
+  name        String   @db.VarChar(64)
+  subtitle    String?  @db.VarChar(128)
+  icon        String?  @db.VarChar(512)
   sortOrder   Int      @default(0) @map("sort_order")
-  isActive    Boolean  @default(true) @map("is_active")
+  isEnabled   Boolean  @default(true) @map("is_enabled")
+  specialTips String?  @map("special_tips") @db.VarChar(256) // ⚠️ 封存，管理后台不展示
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  @@index([bizType, isActive])
+  @@index([bizType, isEnabled])
   @@map("service_catalogs")
+}
+
+// v2.0 新增：轮播图管理（§5.4.5 / §6.4）
+// displayTarget 取值：RESIDENT（居民端）/ WORKER（员工端）/ ALL（全部）
+model Banner {
+  id            Int      @id @default(autoincrement())
+  imageUrl      String   @map("image_url") @db.VarChar(512)
+  title         String?  @db.VarChar(128)
+  displayTarget String   @default("RESIDENT") @map("display_target") @db.VarChar(16) // RESIDENT / WORKER / ALL
+  linkType      String   @default("NONE") @map("link_type") @db.VarChar(16)
+  linkTarget    String?  @map("link_target") @db.VarChar(512)
+  startTime     DateTime @map("start_time")
+  endTime       DateTime @map("end_time")
+  sortOrder     Int      @default(0) @map("sort_order")
+  isEnabled     Boolean  @default(true) @map("is_enabled")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([isEnabled, startTime, endTime])
+  @@map("banners")
+}
+
+// v2.0 新增：运营人员信息配置（§5.4.3 / §6.5），仅存储联系信息，不是后台登录账号
+model Operator {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(32)
+  phone     String   @db.VarChar(20)
+  purpose   String   @default("接单") @db.VarChar(32)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([purpose])
+  @@map("operators")
+}
+
+// v2.0 新增：家政咨询跟进记录，与 ComplaintFollowUp 设计一致
+model ConsultFollowUp {
+  id          Int      @id @default(autoincrement())
+  consultId   Int      @map("consult_id")
+  handlerName String   @map("handler_name") @db.VarChar(32)
+  content     String   @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  consultOrder ConsultOrder @relation(fields: [consultId], references: [id], onDelete: Cascade)
+
+  @@index([consultId])
+  @@map("consult_follow_ups")
 }

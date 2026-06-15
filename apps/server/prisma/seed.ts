@@ -7,103 +7,86 @@ const prisma = new PrismaClient();
 const ADMIN_DEFAULT_PASSWORD = 'Admin@123';
 
 const serviceCatalogSeed = [
+  // 保洁
   {
     bizType: 'CLEANING',
-    serviceItem: '日常清扫',
-    priceMin: 35,
-    priceMax: 45,
-    priceUnit: '元/小时',
-    description: '地面、桌面、卫生间基础清洁',
+    name: '日常清扫',
+    subtitle: '地面、桌面、卫生间基础清洁',
     sortOrder: 1,
+    isEnabled: true,
   },
   {
     bizType: 'CLEANING',
-    serviceItem: '深度清扫',
-    priceMin: 50,
-    priceMax: 80,
-    priceUnit: '元/小时',
-    description: '厨房油烟、卫生间水垢深度去除（上门核定）',
+    name: '深度清扫',
+    subtitle: '厨房油烟、卫生间水垢深度去除',
     sortOrder: 2,
+    isEnabled: true,
   },
   {
     bizType: 'CLEANING',
-    serviceItem: '专项清洁',
-    priceMin: 0,
-    priceMax: 0,
-    priceUnit: '按项目报价',
-    description: '搬家清洁、开荒保洁（上门核定）',
+    name: '专项清洁',
+    subtitle: '搬家清洁、开荒保洁',
     sortOrder: 3,
+    isEnabled: true,
+  },
+  // 废品回收
+  {
+    bizType: 'RECYCLING',
+    name: '大件类',
+    subtitle: '大家电、家具',
+    sortOrder: 1,
+    isEnabled: true,
   },
   {
     bizType: 'RECYCLING',
-    serviceItem: '大件类',
-    priceMin: 0,
-    priceMax: 0,
-    priceUnit: '上门核定',
-    description: '大家电、家具回收，需搬运工上门',
-    sortOrder: 1,
-  },
-  {
-    bizType: 'RECYCLING',
-    serviceItem: '小件类',
-    priceMin: 0,
-    priceMax: 0,
-    priceUnit: '上门核定',
-    description: '书籍纸箱、塑料瓶、废金属、小家电',
+    name: '小件类',
+    subtitle: '书籍纸箱、塑料瓶、废金属、小家电',
     sortOrder: 2,
+    isEnabled: true,
   },
+  // 家政咨询
   {
     bizType: 'CONSULT',
-    serviceItem: '保姆',
-    priceMin: 5000,
-    priceMax: 8000,
-    priceUnit: '元/月',
-    description: '住家保姆服务（具体价格上门核定）',
+    name: '保姆',
+    subtitle: '日常家务、做饭、打扫卫生',
     sortOrder: 1,
+    isEnabled: true,
   },
   {
     bizType: 'CONSULT',
-    serviceItem: '月嫂',
-    priceMin: 8000,
-    priceMax: 15000,
-    priceUnit: '元/月',
-    description: '产后母婴护理（具体价格上门核定）',
+    name: '月嫂',
+    subtitle: '产妇护理与新生儿照护',
     sortOrder: 2,
+    isEnabled: true,
   },
   {
     bizType: 'CONSULT',
-    serviceItem: '育儿嫂',
-    priceMin: 5000,
-    priceMax: 8000,
-    priceUnit: '元/月',
-    description: '婴幼儿照护（具体价格上门核定）',
+    name: '育儿嫂',
+    subtitle: '科学喂养、早教与宝宝日常照料',
     sortOrder: 3,
+    isEnabled: true,
   },
   {
     bizType: 'CONSULT',
-    serviceItem: '陪诊',
-    priceMin: 200,
-    priceMax: 500,
-    priceUnit: '元/次',
-    description: '陪同就医服务',
+    name: '陪诊',
+    subtitle: '陪同挂号、取药、检查、就诊',
     sortOrder: 4,
+    isEnabled: true,
   },
   {
     bizType: 'CONSULT',
-    serviceItem: '代买菜',
-    priceMin: 20,
-    priceMax: 50,
-    priceUnit: '元/次',
-    description: '代购食材上门',
+    name: '代买菜',
+    subtitle: '按需求代买生鲜蔬菜送到家',
     sortOrder: 5,
+    isEnabled: true,
   },
 ] as const;
 
 async function main() {
   console.info('[seed] Starting database seed...');
 
+  // ─── Admin ───────────────────────────────────────────────────────────────
   const passwordHash = await bcrypt.hash(ADMIN_DEFAULT_PASSWORD, 10);
-
   await prisma.admin.upsert({
     where: { email: 'admin@dayunyunjie.com' },
     update: { passwordHash, name: '管理员' },
@@ -115,17 +98,30 @@ async function main() {
   });
   console.info('[seed] Admin upserted: admin@dayunyunjie.com');
 
-  const existingCount = await prisma.serviceCatalog.count();
-  if (existingCount === 0) {
+  // ─── ServiceCatalog ───────────────────────────────────────────────────────
+  const existingCatalogCount = await prisma.serviceCatalog.count();
+  if (existingCatalogCount === 0) {
     await prisma.serviceCatalog.createMany({
-      data: serviceCatalogSeed.map((row) => ({
-        ...row,
-        isActive: true,
-      })),
+      data: serviceCatalogSeed.map((row) => ({ ...row })),
     });
     console.info(`[seed] ServiceCatalog created: ${serviceCatalogSeed.length} rows`);
   } else {
-    console.info(`[seed] ServiceCatalog skipped (${existingCount} rows already exist)`);
+    console.info(`[seed] ServiceCatalog skipped (${existingCatalogCount} rows already exist)`);
+  }
+
+  // ─── Operator（至少一条接单运营人员，居民端首页客服电话兜底） ──────────────
+  const existingOperatorCount = await prisma.operator.count();
+  if (existingOperatorCount === 0) {
+    await prisma.operator.create({
+      data: {
+        name: '运营客服',
+        phone: '13800138000',
+        purpose: '接单',
+      },
+    });
+    console.info('[seed] Operator created: 运营客服 (purpose=接单)');
+  } else {
+    console.info(`[seed] Operator skipped (${existingOperatorCount} rows already exist)`);
   }
 
   console.info('[seed] Done.');

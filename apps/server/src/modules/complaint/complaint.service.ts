@@ -36,8 +36,11 @@ export class ComplaintService {
     // 验证订单存在
     await this.findOrderOrThrow(orderType, orderId);
 
+    const complaintNo = await this.generateComplaintNo();
+
     const row = await this.prismaService.complaint.create({
       data: {
+        complaintNo,
         orderType,
         reason,
         description,
@@ -150,6 +153,21 @@ export class ComplaintService {
         `非法状态转移：投诉当前状态 ${fromStatus} 不允许变更为 ${toStatus}`,
       );
     }
+  }
+
+  /** 生成投诉单编号，格式 CPL{yyyyMMdd}{4位序号} */
+  private async generateComplaintNo(): Promise<string> {
+    const now = new Date();
+    const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    const prefix = `CPL${datePart}`;
+    const last = await this.prismaService.complaint.findFirst({
+      where: { complaintNo: { startsWith: prefix } },
+      orderBy: { complaintNo: 'desc' },
+      select: { complaintNo: true },
+    });
+    const currentSeq = last ? Number.parseInt(last.complaintNo.slice(-4), 10) : 0;
+    const paddedSeq = String(currentSeq + 1).padStart(4, '0');
+    return `${prefix}${paddedSeq}`;
   }
 
   /** 查询投诉（不含 followUps），不存在时抛 404 */

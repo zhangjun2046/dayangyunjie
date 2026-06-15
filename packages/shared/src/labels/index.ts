@@ -15,15 +15,14 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   ASSIGNED: '已派单',
   ACCEPTED: '已接单',
   IN_SERVICE: '服务中',
-  PENDING_ACCEPTANCE: '待验收',
   PENDING_REVIEW: '待评价',
   REVIEWED: '已评价',
   CANCELLED: '已取消',
 };
 
 export const CONSULT_STATUS_LABELS: Record<ConsultStatus, string> = {
-  PENDING: '待跟进',
-  FOLLOWING_UP: '跟进中',
+  FOLLOW_UP: '待跟进',
+  FOLLOWING: '跟进中',
   COMPLETED: '已完成',
 };
 
@@ -35,7 +34,6 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
 export const ORDER_SOURCE_LABELS: Record<OrderSource, string> = {
   MINIPROGRAM: '小程序',
   PHONE: '电话预约',
-  PROXY: '代下单',
 };
 
 export const WORKER_STATUS_LABELS: Record<WorkerStatus, string> = {

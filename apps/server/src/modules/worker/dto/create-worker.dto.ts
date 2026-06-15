@@ -1,7 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { WorkerStatus } from '@prisma/client';
 import {
-  IsArray,
   IsEnum,
   IsNumber,
   IsOptional,
@@ -13,17 +12,12 @@ import {
 } from 'class-validator';
 
 export class CreateWorkerDto {
-  @ApiProperty({ description: '员工微信 openid', example: 'wx_worker_openid_001' })
-  @IsString()
-  @Length(1, 64)
-  openid!: string;
-
-  @ApiProperty({ description: '员工工号', example: 'WK0001' })
+  @ApiProperty({ description: '员工工号（系统自动生成或手工录入）', example: 'WK0001' })
   @IsString()
   @Length(1, 32)
   employeeNo!: string;
 
-  @ApiProperty({ description: '登录密码（明文，仅传输使用）', example: 'Worker@123' })
+  @ApiProperty({ description: '登录密码（明文，仅传输使用；默认建议用完整手机号）', example: 'Worker@123' })
   @IsString()
   @Length(6, 128)
   password!: string;
@@ -33,10 +27,37 @@ export class CreateWorkerDto {
   @Length(1, 32)
   name!: string;
 
-  @ApiProperty({ description: '手机号', example: '13900000000' })
+  @ApiProperty({ description: '手机号（登录账号，UNIQUE）', example: '13900000000' })
   @IsString()
   @Length(1, 20)
   phone!: string;
+
+  @ApiProperty({
+    description: '技能单选（v2.0：CLEANING=保洁，RECYCLING=收废品）',
+    example: 'CLEANING',
+    enum: ['CLEANING', 'RECYCLING'],
+  })
+  @IsString()
+  @Length(1, 16)
+  skillType!: string;
+
+  @ApiPropertyOptional({ description: '昵称', example: '李姐' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  nickname?: string;
+
+  @ApiPropertyOptional({ description: '性别（MALE / FEMALE）', example: 'MALE', enum: ['MALE', 'FEMALE'] })
+  @IsOptional()
+  @IsString()
+  @Length(1, 8)
+  gender?: string;
+
+  @ApiPropertyOptional({ description: '岗位（CLEANER / RECYCLER）', example: 'CLEANER', enum: ['CLEANER', 'RECYCLER'] })
+  @IsOptional()
+  @IsString()
+  @Length(1, 16)
+  position?: string;
 
   @ApiPropertyOptional({
     description: '头像 URL',
@@ -64,12 +85,4 @@ export class CreateWorkerDto {
   @IsNumber()
   @Min(0)
   totalOrders?: number;
-
-  @ApiProperty({
-    description: '技能标签列表',
-    type: [String],
-    example: ['日常保洁', '深度保洁'],
-  })
-  @IsArray()
-  skills!: string[];
 }

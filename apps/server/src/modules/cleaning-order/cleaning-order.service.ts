@@ -58,8 +58,8 @@ export class CleaningOrderService {
           const catalog = await tx.serviceCatalog.findFirst({
             where: {
               bizType: 'CLEANING',
-              serviceItem: createCleaningOrderDto.serviceItem,
-              isActive: true,
+              name: createCleaningOrderDto.serviceItem,
+              isEnabled: true,
             },
           });
           if (!catalog) {
@@ -71,7 +71,6 @@ export class CleaningOrderService {
           const orderNo = await this.generateOrderNo(tx);
           const serviceDuration = createCleaningOrderDto.serviceDuration ?? 2;
           const appointDate = this.parseDateString(createCleaningOrderDto.appointDate, 'appointDate');
-          const referenceAmount = catalog.priceMin.mul(serviceDuration);
 
           return tx.cleaningOrder.create({
             data: {
@@ -87,9 +86,8 @@ export class CleaningOrderService {
               remark: createCleaningOrderDto.remark,
               source: (createCleaningOrderDto.source ?? OrderSource.MINIPROGRAM) as PrismaOrderSource,
               isProxyOrder: createCleaningOrderDto.isProxyOrder ?? false,
-              proxyName: createCleaningOrderDto.proxyName,
-              proxyPhone: createCleaningOrderDto.proxyPhone,
-              referenceAmount,
+              serviceContactName: createCleaningOrderDto.serviceContactName,
+              serviceContactPhone: createCleaningOrderDto.serviceContactPhone,
             },
           });
         });
@@ -382,8 +380,8 @@ export class CleaningOrderService {
     if (!dto.isProxyOrder) {
       return;
     }
-    if (!dto.proxyName || !dto.proxyPhone) {
-      throw new BadRequestException('proxyName and proxyPhone are required when isProxyOrder is true');
+    if (!dto.serviceContactName || !dto.serviceContactPhone) {
+      throw new BadRequestException('serviceContactName and serviceContactPhone are required when isProxyOrder is true');
     }
   }
 
@@ -403,22 +401,26 @@ export class CleaningOrderService {
   }
 
   private toAddressSnapshot(address: {
-    name: string;
-    phone: string;
+    contactName: string;
+    contactPhone: string;
     province: string;
     city: string;
     district: string;
     detail: string;
+    buildingInfo: string | null;
+    addressTag: string | null;
     lat: number | null;
     lng: number | null;
   }): AddressSnapshot {
     return {
-      name: address.name,
-      phone: address.phone,
+      contactName: address.contactName,
+      contactPhone: address.contactPhone,
       province: address.province,
       city: address.city,
       district: address.district,
       detail: address.detail,
+      ...(address.buildingInfo ? { buildingInfo: address.buildingInfo } : {}),
+      ...(address.addressTag ? { addressTag: address.addressTag } : {}),
       ...(typeof address.lat === 'number' ? { lat: address.lat } : {}),
       ...(typeof address.lng === 'number' ? { lng: address.lng } : {}),
     };
@@ -440,8 +442,8 @@ export class CleaningOrderService {
       remark: row.remark,
       source: row.source as CleaningOrderDto['source'],
       isProxyOrder: row.isProxyOrder,
-      proxyName: row.proxyName,
-      proxyPhone: row.proxyPhone,
+      serviceContactName: row.serviceContactName,
+      serviceContactPhone: row.serviceContactPhone,
       status: row.status as CleaningOrderDto['status'],
       referenceAmount: row.referenceAmount?.toString() ?? null,
       finalAmount: row.finalAmount?.toString() ?? null,

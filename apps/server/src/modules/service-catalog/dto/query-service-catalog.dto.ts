@@ -38,5 +38,5 @@ export class QueryServiceCatalogDto {
   @Type(() => Boolean)
   @IsOptional()
   @IsBoolean()
-  isActive = true;
+  isEnabled = true;
 }

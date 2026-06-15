@@ -17,15 +17,15 @@ export class CreateAddressDto {
   @Min(1)
   residentId!: number;
 
-  @ApiProperty({ description: '联系人姓名', example: '张三' })
+  @ApiProperty({ description: '联系人姓名（v2.0）', example: '张三' })
   @IsString()
-  @MaxLength(64)
-  name!: string;
+  @MaxLength(32)
+  contactName!: string;
 
-  @ApiProperty({ description: '联系人手机号', example: '13800138000' })
+  @ApiProperty({ description: '联系人手机号（v2.0）', example: '13800138000' })
   @IsString()
   @MaxLength(20)
-  phone!: string;
+  contactPhone!: string;
 
   @ApiProperty({ description: '省', example: '北京市' })
   @IsString()
@@ -46,6 +46,18 @@ export class CreateAddressDto {
   @IsString()
   @MaxLength(256)
   detail!: string;
+
+  @ApiPropertyOptional({ description: '门牌号（v2.0 新增）', example: '2单元1201室' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  buildingInfo?: string;
+
+  @ApiPropertyOptional({ description: '地址标签（v2.0 新增）', example: '家' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  addressTag?: string;
 
   @ApiPropertyOptional({ description: '纬度', example: 39.9042 })
   @Type(() => Number)

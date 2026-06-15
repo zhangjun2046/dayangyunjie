@@ -21,7 +21,7 @@ export class ConsultOrderController {
   constructor(private readonly consultOrderService: ConsultOrderService) {}
 
   @Post()
-  @ApiOperation({ summary: '创建咨询单', description: '居民提交家政咨询需求，默认状态为 PENDING（待跟进）。residentId 可选传入。' })
+  @ApiOperation({ summary: '创建咨询单', description: '居民提交家政咨询需求，默认状态为 FOLLOW_UP（待跟进）。residentId 可选传入。' })
   @ApiOkResponse({ description: '创建成功，返回咨询单数据（含 CNS 前缀订单号）' })
   async create(
     @Body() createConsultOrderDto: CreateConsultOrderDto,
@@ -54,7 +54,7 @@ export class ConsultOrderController {
   @ApiOperation({
     summary: '更新咨询单状态（管理员操作）',
     description:
-      '合法状态路径：PENDING（待跟进）→ FOLLOWING_UP（跟进中）→ COMPLETED（已完成）。' +
+      '合法状态路径：FOLLOW_UP（待跟进）→ FOLLOWING（跟进中）→ COMPLETED（已完成）。' +
       '不可逆，非法转移返回 HTTP 400，并写入 order_status_logs 审计记录。',
   })
   @ApiOkResponse({ description: '状态更新成功，返回最新咨询单数据' })

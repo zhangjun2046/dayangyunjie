@@ -7,7 +7,7 @@ export class QueryConsultOrderDto {
   @ApiPropertyOptional({
     description: '按状态筛选',
     enum: ConsultStatus,
-    example: ConsultStatus.PENDING,
+    example: ConsultStatus.FOLLOW_UP,
   })
   @IsOptional()
   @IsEnum(ConsultStatus)

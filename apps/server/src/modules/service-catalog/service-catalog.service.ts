@@ -9,9 +9,9 @@ export class ServiceCatalogService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async findAll(query: QueryServiceCatalogDto) {
-    const { page = 1, pageSize = 10, bizType, isActive = true } = query;
+    const { page = 1, pageSize = 10, bizType, isEnabled = true } = query;
     const where: Prisma.ServiceCatalogWhereInput = {
-      isActive,
+      isEnabled,
       ...(bizType ? { bizType } : {}),
     };
 
@@ -45,13 +45,11 @@ export class ServiceCatalogService {
     return {
       id: row.id,
       bizType: row.bizType as ServiceCatalogDto['bizType'],
-      serviceItem: row.serviceItem,
-      priceMin: row.priceMin.toString(),
-      priceMax: row.priceMax.toString(),
-      priceUnit: row.priceUnit,
-      description: row.description,
+      name: row.name,
+      subtitle: row.subtitle ?? null,
+      icon: row.icon ?? null,
       sortOrder: row.sortOrder,
-      isActive: row.isActive,
+      isEnabled: row.isEnabled,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };

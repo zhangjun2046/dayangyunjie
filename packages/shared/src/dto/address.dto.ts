@@ -1,11 +1,13 @@
-/** 创建/更新居民地址 */
+/** 创建/更新居民地址（v2.0：name→contactName, phone→contactPhone, 新增 buildingInfo/addressTag） */
 export interface UpsertAddressDto {
-  name: string;
-  phone: string;
+  contactName: string;
+  contactPhone: string;
   province: string;
   city: string;
   district: string;
   detail: string;
+  buildingInfo?: string;
+  addressTag?: string;
   lat?: number;
   lng?: number;
   isDefault?: boolean;

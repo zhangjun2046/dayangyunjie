@@ -77,15 +77,15 @@ export class CreateCleaningOrderDto {
   @IsBoolean()
   isProxyOrder?: boolean = false;
 
-  @ApiPropertyOptional({ description: '代下单服务对象姓名', example: '李阿姨' })
+  @ApiPropertyOptional({ description: '被服务人姓名（代下单时填写）', example: '李阿姨' })
   @IsOptional()
   @IsString()
   @MaxLength(32)
-  proxyName?: string;
+  serviceContactName?: string;
 
-  @ApiPropertyOptional({ description: '代下单服务对象手机号', example: '13900001111' })
+  @ApiPropertyOptional({ description: '被服务人手机号（代下单时填写）', example: '13900001111' })
   @IsOptional()
   @IsString()
   @MaxLength(20)
-  proxyPhone?: string;
+  serviceContactPhone?: string;
 }

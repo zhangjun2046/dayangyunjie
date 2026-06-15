@@ -18,10 +18,15 @@ import { ComplaintService } from './complaint.service';
 function makeComplaintRow(overrides: Record<string, unknown> = {}) {
   return {
     id: 1,
+    complaintNo: 'CPL202606080001',
     cleaningOrderId: 1,
     recyclingOrderId: null,
     consultOrderId: null,
     orderType: 'CLEANING',
+    orderNo: null,
+    residentId: null,
+    serviceType: null,
+    serviceAddress: null,
     reason: 'NOT_CLEAN',
     description: '保洁不彻底',
     evidenceImages: null,
@@ -62,6 +67,7 @@ function makePrismaMock(overrides: Record<string, unknown> = {}) {
     },
     complaint: {
       create: jest.fn().mockResolvedValue(makeComplaintRow()),
+      findFirst: jest.fn().mockResolvedValue(null),
       findUnique: jest.fn().mockResolvedValue(
         Object.assign(makeComplaintRow(), { followUps: [makeFollowUpRow()] }),
       ),

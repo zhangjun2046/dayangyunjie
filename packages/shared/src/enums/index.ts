@@ -4,17 +4,16 @@ export const OrderStatus = {
   ASSIGNED: 'ASSIGNED',
   ACCEPTED: 'ACCEPTED',
   IN_SERVICE: 'IN_SERVICE',
-  PENDING_ACCEPTANCE: 'PENDING_ACCEPTANCE',
   PENDING_REVIEW: 'PENDING_REVIEW',
   REVIEWED: 'REVIEWED',
   CANCELLED: 'CANCELLED',
 } as const;
 export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
 
-/** 家政咨询单状态 */
+/** 家政咨询单状态（v2.0：PENDING→FOLLOW_UP，FOLLOWING_UP→FOLLOWING） */
 export const ConsultStatus = {
-  PENDING: 'PENDING',
-  FOLLOWING_UP: 'FOLLOWING_UP',
+  FOLLOW_UP: 'FOLLOW_UP',
+  FOLLOWING: 'FOLLOWING',
   COMPLETED: 'COMPLETED',
 } as const;
 export type ConsultStatus = (typeof ConsultStatus)[keyof typeof ConsultStatus];
@@ -26,11 +25,10 @@ export const PaymentStatus = {
 } as const;
 export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
 
-/** 订单来源 */
+/** 订单来源（v2.0：删除 PROXY，代下单由 isProxyOrder 字段独立标记） */
 export const OrderSource = {
   MINIPROGRAM: 'MINIPROGRAM',
   PHONE: 'PHONE',
-  PROXY: 'PROXY',
 } as const;
 export type OrderSource = (typeof OrderSource)[keyof typeof OrderSource];
 

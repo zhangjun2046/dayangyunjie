@@ -60,3 +60,4 @@ npx prisma migrate dev
 - 使用Sonnet4.6 LLM完成P2.9，实现 COS 文件上传和水印功能
 - 使用Sonnet4.6 LLM完成P2.10，实现评价与投诉模块
 - 使用Sonnet4.6 LLM完成P2.11，实现数据看板聚合 API。后端核心API开发完成
+- 使用Sonnet4.6 LLM完成P211，执行 prisma migrate v2.0 并更新 seed.ts / 枚举引用（ConsultStatus / OrderSource），全量回归测试通过

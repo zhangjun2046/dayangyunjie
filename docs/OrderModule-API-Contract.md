@@ -1,10 +1,16 @@
-# OrderModule API Contract（P2.1–P2.5a 交接文档）
+# OrderModule API Contract（P2.1–P2.12 交接文档）
 
-> **生成节点**：P2.4 完成后 → 进入 P2.5a 前  
+> **生成节点**：P2.4 完成后 → 进入 P2.5a 前；**P2.12（2026-06-15）** 更新至 v2.0  
 > **用途**：供后续订单模块（CleaningOrder 等）开发读取，避免上下文丢失  
 > **Base URL**：`http://localhost:3000/api/v1`  
 > **统一响应格式**：`{ code: number, message: string, data: T | null }`  
 > **Swagger**：`http://localhost:3000/api/docs`
+>
+> **v2.0 变更摘要（P2.12，2026-06-15）**：
+> - `ServiceCatalog`：移除价格字段（`priceMin/priceMax/priceUnit/description/isActive/serviceItem`），新增 `name/subtitle/icon/isEnabled/specialTips`
+> - `ConsultOrder`：请求字段 `name→contactName`、`phone→contactPhone`、`description→requirementDesc`；状态枚举 `PENDING→FOLLOW_UP`、`FOLLOWING_UP→FOLLOWING`
+> - `OrderSource`：移除 `PROXY`，仅保留 `MINIPROGRAM / PHONE`
+> - 新增数据库表：`Banner`、`Operator`、`ConsultFollowUp`（API 接口由 P2.14/P2.15 补充）
 
 ---
 
@@ -17,7 +23,7 @@
 | 分页列表 | `data: { items: T[], total: number, page: number, pageSize: number }` |
 | 鉴权 | 仅 `/auth/profile` 需 `Authorization: Bearer <accessToken>`；其余 P2.1–P2.4 接口均为**公开** |
 | 时间字段 | ISO 8601 字符串（如 `2026-06-02T05:29:49.708Z`） |
-| 价格字段 | `ServiceCatalog` 的 `priceMin`/`priceMax` 为字符串（Decimal 序列化） |
+| 价格字段 | ~~`ServiceCatalog` 的 `priceMin`/`priceMax` 为字符串~~（v2.0 已移除价格字段，由运营后台配置报价） |
 
 ---
 
@@ -262,21 +268,22 @@
 }
 ```
 
-**ServiceCatalogDto**
+**ServiceCatalogDto**（v2.0，P2.12 迁移后生效）
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | `id` | number | |
 | `bizType` | `CLEANING` \| `RECYCLING` \| `CONSULT` | 业务大类 |
-| `serviceItem` | string | 服务项名称 |
-| `priceMin` | string | 最低参考价 |
-| `priceMax` | string | 最高参考价 |
-| `priceUnit` | string | 计价单位（如 `元/小时`） |
-| `description` | string \| null | 描述 |
+| `name` | string | 服务项名称（原 `serviceItem`） |
+| `subtitle` | string \| null | 副标题/简介 |
+| `icon` | string \| null | 图标 URL |
 | `sortOrder` | number | 排序 |
-| `isActive` | boolean | 是否启用 |
+| `isEnabled` | boolean | 是否启用（原 `isActive`） |
+| `specialTips` | string \| null | 特殊提示 |
 | `createdAt` | string | |
 | `updatedAt` | string | |
+
+> **v1.x 已废弃字段**：`serviceItem`、`priceMin`、`priceMax`、`priceUnit`、`description`、`isActive`（P2.12 迁移后从 schema 移除）
 
 **验收示例（2026-06-07）**
 
@@ -598,8 +605,10 @@ POST /cleaning-orders/:id/complete → 完成（status: PENDING_REVIEW）
 ### 11.1 状态机规则
 
 ```
-PENDING（待跟进）→ FOLLOWING_UP（跟进中）→ COMPLETED（已完成）
+FOLLOW_UP（待跟进）→ FOLLOWING（跟进中）→ COMPLETED（已完成）
 ```
+
+> **v2.0 变更（P2.12）**：`PENDING` 改名为 `FOLLOW_UP`，`FOLLOWING_UP` 改名为 `FOLLOWING`
 
 - 单向不可逆，无取消态
 - 非法转移（包括跳步）返回 HTTP 400
@@ -612,12 +621,12 @@ PENDING（待跟进）→ FOLLOWING_UP（跟进中）→ COMPLETED（已完成�
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | `serviceType` | string | ✅ | 咨询类型（最长 32 字符） |
-| `name` | string | ✅ | 联系人姓名（最长 32 字符） |
-| `phone` | string | ✅ | 联系电话（最长 20 字符） |
-| `description` | string | ✅ | 需求描述（最长 1000 字符） |
+| `contactName` | string | ✅ | 联系人姓名（原 `name`，最长 32 字符） |
+| `contactPhone` | string | ✅ | 联系电话（原 `phone`，最长 20 字符） |
+| `requirementDesc` | string | ✅ | 需求描述（原 `description`，最长 1000 字符） |
 | `residentId` | number | | 居民 ID（可选，不传表示匿名咨询） |
 
-**Response `data`**：`ConsultOrderDto`（`orderNo` 格式：`CNS + yyyyMMdd + 6位序号`，默认 `status: PENDING`）
+**Response `data`**：`ConsultOrderDto`（`orderNo` 格式：`CNS + yyyyMMdd + 6位序号`，默认 `status: FOLLOW_UP`）
 
 ---
 
@@ -629,7 +638,7 @@ PENDING（待跟进）→ FOLLOWING_UP（跟进中）→ COMPLETED（已完成�
 |------|------|------|------|
 | `page` | number | 1 | 页码 |
 | `pageSize` | number | 10 | 每页数量 |
-| `status` | enum | | `PENDING` / `FOLLOWING_UP` / `COMPLETED` |
+| `status` | enum | | `FOLLOW_UP` / `FOLLOWING` / `COMPLETED` |
 | `serviceType` | string | | 模糊匹配服务类型 |
 | `keyword` | string | | 模糊匹配订单号 / 联系人姓名 / 手机号 |
 
@@ -649,7 +658,7 @@ PENDING（待跟进）→ FOLLOWING_UP（跟进中）→ COMPLETED（已完成�
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `status` | enum | ✅ | 目标状态：`FOLLOWING_UP` 或 `COMPLETED` |
+| `status` | enum | ✅ | 目标状态：`FOLLOWING` 或 `COMPLETED` |
 | `operatorId` | number | ✅ | 操作管理员 ID |
 | `remark` | string | | 跟进备注（最长 512 字符） |
 
@@ -672,10 +681,10 @@ PENDING（待跟进）→ FOLLOWING_UP（跟进中）→ COMPLETED（已完成�
 | `orderNo` | string | `CNS + yyyyMMdd + 6位序号` |
 | `residentId` | number \| undefined | 关联居民（可选） |
 | `serviceType` | string | 咨询类型 |
-| `name` | string | 联系人姓名 |
-| `phone` | string | 联系电话 |
-| `description` | string | 需求描述 |
-| `status` | `PENDING` \| `FOLLOWING_UP` \| `COMPLETED` | 当前状态 |
+| `contactName` | string | 联系人姓名（原 `name`） |
+| `contactPhone` | string | 联系电话（原 `phone`） |
+| `requirementDesc` | string | 需求描述（原 `description`） |
+| `status` | `FOLLOW_UP` \| `FOLLOWING` \| `COMPLETED` | 当前状态 |
 | `createdAt` | string | ISO 8601 |
 | `updatedAt` | string | ISO 8601 |
 
@@ -684,13 +693,13 @@ PENDING（待跟进）→ FOLLOWING_UP（跟进中）→ COMPLETED（已完成�
 ### 11.7 全链路验收流程
 
 ```
-POST /consult-orders                           → 创建（status: PENDING，orderNo: CNS...）
-PATCH /consult-orders/:id/status {FOLLOWING_UP} → 跟进中（status: FOLLOWING_UP）
-PATCH /consult-orders/:id/status {COMPLETED}   → 已完成（status: COMPLETED）
-PATCH /consult-orders/:id/status {FOLLOWING_UP} → HTTP 400（终态保护）
+POST /consult-orders                          → 创建（status: FOLLOW_UP，orderNo: CNS...）
+PATCH /consult-orders/:id/status {FOLLOWING}  → 跟进中（status: FOLLOWING）
+PATCH /consult-orders/:id/status {COMPLETED}  → 已完成（status: COMPLETED）
+PATCH /consult-orders/:id/status {FOLLOWING}  → HTTP 400（终态保护）
 ```
 
-**非法转移验收**：`PENDING → COMPLETED`（跳步）应返回 HTTP 400，`message` 含 "非法状态转移"。
+**非法转移验收**：`FOLLOW_UP → COMPLETED`（跳步）应返回 HTTP 400，`message` 含 "非法状态转移"。
 
 ---
 

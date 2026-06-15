@@ -16,12 +16,12 @@ const ORDER_NO_SEQ_LENGTH = 6;
 const ORDER_NO_RETRY_TIMES = 3;
 
 /**
- * 咨询单合法状态转移规则
- * PENDING → FOLLOWING_UP → COMPLETED（单向，无取消）
+ * 咨询单合法状态转移规则（v2.0：FOLLOW_UP → FOLLOWING → COMPLETED）
+ * 单向流转，无取消态
  */
 const CONSULT_TRANSITION_RULES: Record<string, string[]> = {
-  [ConsultStatus.PENDING]: [ConsultStatus.FOLLOWING_UP],
-  [ConsultStatus.FOLLOWING_UP]: [ConsultStatus.COMPLETED],
+  [ConsultStatus.FOLLOW_UP]: [ConsultStatus.FOLLOWING],
+  [ConsultStatus.FOLLOWING]: [ConsultStatus.COMPLETED],
   // 终态：COMPLETED — 无可转移目标
 };
 
@@ -48,9 +48,9 @@ export class ConsultOrderService {
             data: {
               orderNo,
               serviceType: dto.serviceType,
-              name: dto.name,
-              phone: dto.phone,
-              description: dto.description,
+              contactName: dto.contactName,
+              contactPhone: dto.contactPhone,
+              requirementDesc: dto.requirementDesc,
               ...(dto.residentId !== undefined ? { residentId: dto.residentId } : {}),
             },
           });
@@ -79,8 +79,8 @@ export class ConsultOrderService {
         ? {
             OR: [
               { orderNo: { contains: keyword } },
-              { name: { contains: keyword } },
-              { phone: { contains: keyword } },
+              { contactName: { contains: keyword } },
+              { contactPhone: { contains: keyword } },
             ],
           }
         : {}),
@@ -111,7 +111,7 @@ export class ConsultOrderService {
 
   /**
    * 更新咨询单状态。
-   * 合法路径：PENDING → FOLLOWING_UP → COMPLETED（不可逆，无取消）
+   * 合法路径：FOLLOW_UP → FOLLOWING → COMPLETED（不可逆，无取消）
    * 非法转移抛出 HTTP 400；写入 order_status_logs 审计记录。
    */
   async updateStatus(id: number, dto: UpdateConsultStatusDto): Promise<ConsultOrderDto> {
@@ -201,9 +201,9 @@ export class ConsultOrderService {
       orderNo: row.orderNo,
       residentId: row.residentId ?? undefined,
       serviceType: row.serviceType,
-      name: row.name,
-      phone: row.phone,
-      description: row.description,
+      contactName: row.contactName,
+      contactPhone: row.contactPhone,
+      requirementDesc: row.requirementDesc,
       status: row.status as ConsultOrderDto['status'],
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
