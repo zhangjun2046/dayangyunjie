@@ -15,6 +15,8 @@ import { UploadModule } from './modules/upload/upload.module';
 import { ReviewModule } from './modules/review/review.module';
 import { ComplaintModule } from './modules/complaint/complaint.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { BannerModule } from './modules/banner/banner.module';
+import { OperatorModule } from './modules/operator/operator.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     ReviewModule,
     ComplaintModule,
     DashboardModule,
+    BannerModule,
+    OperatorModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -2,7 +2,9 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ServiceCatalogDto } from '@dayangyunjie/shared';
 import { Prisma, ServiceCatalog } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { CreateServiceCatalogDto } from './dto/create-service-catalog.dto';
 import { QueryServiceCatalogDto } from './dto/query-service-catalog.dto';
+import { UpdateServiceCatalogDto } from './dto/update-service-catalog.dto';
 
 @Injectable()
 export class ServiceCatalogService {
@@ -39,6 +41,59 @@ export class ServiceCatalogService {
       throw new NotFoundException(`ServiceCatalog ${id} not found`);
     }
     return this.toDto(row);
+  }
+
+  async create(dto: CreateServiceCatalogDto) {
+    const row = await this.prismaService.serviceCatalog.create({
+      data: {
+        bizType: dto.bizType,
+        name: dto.name,
+        subtitle: dto.subtitle,
+        icon: dto.icon,
+        sortOrder: dto.sortOrder ?? 0,
+      },
+    });
+    return this.toDto(row);
+  }
+
+  async update(id: number, dto: UpdateServiceCatalogDto) {
+    await this.assertExists(id);
+    const row = await this.prismaService.serviceCatalog.update({
+      where: { id },
+      data: {
+        ...(dto.bizType !== undefined ? { bizType: dto.bizType } : {}),
+        ...(dto.name !== undefined ? { name: dto.name } : {}),
+        ...(dto.subtitle !== undefined ? { subtitle: dto.subtitle } : {}),
+        ...(dto.icon !== undefined ? { icon: dto.icon } : {}),
+        ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),
+      },
+    });
+    return this.toDto(row);
+  }
+
+  async remove(id: number) {
+    await this.assertExists(id);
+    await this.prismaService.serviceCatalog.delete({ where: { id } });
+    return { id };
+  }
+
+  async toggle(id: number) {
+    const row = await this.prismaService.serviceCatalog.findUnique({ where: { id } });
+    if (!row) {
+      throw new NotFoundException(`ServiceCatalog ${id} not found`);
+    }
+    const updated = await this.prismaService.serviceCatalog.update({
+      where: { id },
+      data: { isEnabled: !row.isEnabled },
+    });
+    return this.toDto(updated);
+  }
+
+  private async assertExists(id: number): Promise<void> {
+    const count = await this.prismaService.serviceCatalog.count({ where: { id } });
+    if (count === 0) {
+      throw new NotFoundException(`ServiceCatalog ${id} not found`);
+    }
   }
 
   private toDto(row: ServiceCatalog): ServiceCatalogDto {

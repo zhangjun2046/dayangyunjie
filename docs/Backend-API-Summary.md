@@ -1,6 +1,6 @@
 # Backend API Summary（P2 全接口交接文档）
 
-> **生成节点**：P2.11 完成后 → 进入 P3 前  
+> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2  
 > **用途**：供居民端（P3）、员工端（P4）、管理后台（P5）对接后端 API，避免上下文丢失  
 > **Base URL**：`http://localhost:3000/api/v1`  
 > **统一响应格式**：`{ code: number, message: string, data: T | null }`  
@@ -24,6 +24,8 @@
 11. [Review 评价](#11-review-评价)
 12. [Complaint 投诉](#12-complaint-投诉)
 13. [Dashboard 数据看板](#13-dashboard-数据看板)
+14. [Banner 轮播图](#14-banner-轮播图)
+15. [Operator 运营人员](#15-operator-运营人员)
 
 ---
 
@@ -116,11 +118,40 @@ CRUD 标准五接口
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/service-catalogs` | 分页列表（Query：`bizType?`, `isActive?=true`，按 `sortOrder` 升序） |
+| POST | `/service-catalogs` | 新增服务目录 |
+| GET | `/service-catalogs` | 分页列表（Query：`bizType?`, `isEnabled?=true`，按 `sortOrder` 升序） |
 | GET | `/service-catalogs/:id` | 详情 |
+| PUT | `/service-catalogs/:id` | 编辑（name/subtitle/icon/sortOrder） |
+| DELETE | `/service-catalogs/:id` | 删除 |
+| PATCH | `/service-catalogs/:id/toggle` | 切换启用/停用（反转 `isEnabled`） |
 
-**bizType**：`CLEANING` / `RECYCLING` / `CONSULT`  
-**Response**：`ServiceCatalogDto`（含 `serviceItem`, `priceMin`, `priceMax`, `priceUnit`, `bizType`, `sortOrder`）
+**bizType**：`CLEANING` / `RECYCLING` / `CONSULT`
+
+**Request Body（POST/PUT）**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `bizType` | string | ✅（POST） | `CLEANING` / `RECYCLING` / `CONSULT` |
+| `name` | string | ✅（POST） | 服务名称，最长 64 字符 |
+| `subtitle` | string | | 副标题，最长 128 字符 |
+| `icon` | string | | 图标 URL，最长 512 字符 |
+| `sortOrder` | number | | 排序权重，越小越靠前，默认 0 |
+
+**Response（ServiceCatalogDto）**
+
+```typescript
+{
+  id: number;
+  bizType: 'CLEANING' | 'RECYCLING' | 'CONSULT';
+  name: string;
+  subtitle?: string | null;
+  icon?: string | null;
+  sortOrder: number;
+  isEnabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+```
 
 ---
 
@@ -367,17 +398,104 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
+## 14. Banner 轮播图
+
+**路径前缀**：`/banners`
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/banners` | 新增轮播图 |
+| GET | `/banners` | 分页列表（Query：`displayTarget?`, `isEnabled?`） |
+| GET | `/banners/active` | **有效轮播图**（isEnabled=true 且当前时间在 startTime~endTime 内，Query：`displayTarget?`） |
+| GET | `/banners/:id` | 详情 |
+| PUT | `/banners/:id` | 编辑 |
+| DELETE | `/banners/:id` | 删除 |
+
+**Request Body（POST）**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `imageUrl` | string | ✅ | 图片 URL |
+| `title` | string | | 标题 |
+| `displayTarget` | string | | `RESIDENT`（默认）/ `WORKER` / `ALL` |
+| `linkType` | string | | `NONE`（默认）/ `PAGE` / `URL` |
+| `linkTarget` | string | | 跳转路径或 URL |
+| `startTime` | string | ✅ | 生效开始时间（ISO8601） |
+| `endTime` | string | ✅ | 生效结束时间（ISO8601） |
+| `sortOrder` | number | | 排序权重，默认 0 |
+
+**Response（BannerDto）**
+
+```typescript
+{
+  id: number;
+  imageUrl: string;
+  title?: string | null;
+  displayTarget: 'RESIDENT' | 'WORKER' | 'ALL';
+  linkType: 'NONE' | 'PAGE' | 'URL';
+  linkTarget?: string | null;
+  startTime: string;
+  endTime: string;
+  sortOrder: number;
+  isEnabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+> **居民端对接**：小程序首页轮播图调用 `GET /banners/active?displayTarget=RESIDENT`，无需鉴权。
+
+---
+
+## 15. Operator 运营人员
+
+**路径前缀**：`/operators`
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/operators` | 新增运营人员 |
+| GET | `/operators` | 分页列表（Query：`purpose?`） |
+| GET | `/operators/contact` | **接单联系人**（purpose='接单' 第一条，供居民端首页客服电话使用） |
+| GET | `/operators/:id` | 详情 |
+| PUT | `/operators/:id` | 编辑 |
+| DELETE | `/operators/:id` | 删除 |
+
+**Request Body（POST）**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `name` | string | ✅ | 姓名 |
+| `phone` | string | ✅ | 手机号（1[3-9]xxxxxxxx） |
+| `purpose` | string | | 用途，默认「接单」 |
+
+**Response（OperatorDto）**
+
+```typescript
+{
+  id: number;
+  name: string;
+  phone: string;
+  purpose: string;
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+> **居民端对接**：首页客服电话调用 `GET /operators/contact`，无需鉴权；若无接单人员则返回 `data: null`。
+
+---
+
 ## P3/P4/P5 对接注意事项
 
 | 端 | 关键说明 |
 |----|---------|
-| **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED` |
+| **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED`；首页轮播图 `GET /banners/active?displayTarget=RESIDENT`；客服电话 `GET /operators/contact` |
 | **员工端（P4）** | 接单用 `POST /cleaning-orders/:id/accept`；GPS 签到用 `POST /cleaning-orders/:id/gps-checkin`；完成服务先上传图片到 `/upload/image` 获取 URL，再调 `/cleaning-orders/:id/complete` |
-| **管理后台（P5）** | 看板接口均在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；数据看板图表可直接使用 Dashboard 接口返回数据对接 ECharts |
+| **管理后台（P5）** | 看板接口均在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；配置管理走 `/service-catalogs`、`/banners`、`/operators` |
 
 ---
 
-> **文档版本**：v1.0  
-> **生成日期**：2026-06-08  
-> **覆盖范围**：P2.1 ~ P2.11 全部后端接口（共 13 个模块，50+ 个端点）  
-> **下一里程碑**：P3 居民端小程序开发
+> **文档版本**：v2.2  
+> **生成日期**：2026-06-15  
+> **覆盖范围**：P2.1 ~ P2.14 全部后端接口（共 15 个模块，60+ 个端点）  
+> **下一里程碑**：P2.15 废品居民验收 + 家政跟进记录接口

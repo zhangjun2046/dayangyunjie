@@ -18,6 +18,12 @@
 > - 新增 `PUT /workers/:id/change-password`：员工自行修改密码（需 Worker JWT + 旧密码验证）
 > - 新增 `POST /workers/:id/reset-password`：管理员重置员工密码为手机号（公开接口）
 > - `JwtPayload` 接口：`openid` 改为可选，新增可选 `phone` 字段
+>
+> **v2.2 变更摘要（P2.14，2026-06-15）**：
+> - `ServiceCatalog` 扩展为全 CRUD：新增 `POST /service-catalogs`、`PUT /:id`、`DELETE /:id`、`PATCH /:id/toggle`（切换 `isEnabled`）
+> - 新增 `BannerModule`：6 个端点（全 CRUD + `GET /banners/active?displayTarget=`）；有效轮播图按 `isEnabled=true` 且当前时间在 `startTime~endTime` 内过滤
+> - 新增 `OperatorModule`：6 个端点（全 CRUD + `GET /operators/contact`）；`/contact` 返回 `purpose='接单'` 第一条记录，无记录返回 `null`
+> - `packages/shared` 新增 `BannerDto`、`OperatorDto` 两个共享接口类型
 
 ---
 

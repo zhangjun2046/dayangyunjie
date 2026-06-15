@@ -31,10 +31,10 @@
 | P2.11 数据看板聚合 API                  | ✅ 已通过 | 2026-06-08 | DashboardModule（6 聚合接口）；统计卡/订单趋势/服务类型分布/满意度分布/时段分布/员工绩效排名；返回格式适配 ECharts 折线图/环形图/柱状图；支持 `startDate`/`endDate` 时间范围筛选；Jest 20 项新增（全套回归 182 项）通过；全接口 e2e 验收通过（数字合理性 + ECharts 格式校验）；已生成 `Backend-API-Summary.md` 交接文档；`npm run build` 通过；使用 Sonnet 4.6 LLM 完成 |
 | P2.12 Schema v2.0 迁移 + 代码适配      | ✅ 已通过 | 2026-06-15 | `prisma db push` 同步 v2.0 schema；新增 Banner/Operator/ConsultFollowUp 三张表；Worker/Address 字段扩展；seed.ts 更新（ServiceCatalog 无价格字段，Operator 初始记录）；ConsultStatus/OrderSource 枚举适配；Jest 182 项全部通过；使用 Sonnet 4.6 LLM 完成 |
 | P2.13 Worker 手机号+密码登录 + 密码管理 | ✅ 已通过 | 2026-06-15 | `POST /auth/worker-login`（phone+password → JWT）；WorkerJwtStrategy/WorkerJwtAuthGuard（role=worker 隔离）；`PUT /workers/:id/change-password`（旧密码验证）；`POST /workers/:id/reset-password`（重置为手机号）；Jest 192 项全部通过；使用 Sonnet 4.6 LLM 完成 |
-| P2.14 配置管理 CRUD 接口               | ⏳ 待开发 | —          | ServiceCatalog 扩展为全 CRUD + toggle 启用/停用；Banner 全 CRUD + 有效轮播图查询；Operator 全 CRUD + `/operators/contact` 接单人查询接口 |
+| P2.14 配置管理 CRUD 接口               | ✅ 已通过 | 2026-06-15 | ServiceCatalog 扩展为全 CRUD + toggle 启用/停用；新建 BannerModule（全 CRUD + `/banners/active` 有效轮播查询）；新建 OperatorModule（全 CRUD + `/operators/contact` 接单人查询）；Jest 32 项全部通过；Swagger 三项验收通过；使用 Sonnet 4.6 LLM 完成 |
 | P2.15 废品居民验收 + 家政跟进记录接口   | ⏳ 待开发 | —          | `POST /recycling-orders/:id/accept`（居民「验收服务」→ IN_SERVICE→PENDING_REVIEW）；ConsultFollowUp CRUD；ConsultOrder v2.0 字段适配（isProxyOrder/serviceContactName/serviceAddress/source） |
 
-> **P2.1–P2.13 后端核心 API 全部完成。** v2.0 补充单元 **P2.14–P2.15** 待开发，内容见七、P2 章节末尾。下一单元：**P2.14** — 配置管理 CRUD 接口（ServiceCatalog / Banner / Operator）。
+> **P2.1–P2.14 后端核心 API 全部完成。** v2.0 补充单元 **P2.15** 待开发，内容见七、P2 章节末尾。下一单元：**P2.15** — 废品居民验收 + 家政跟进记录接口。
 
 ---
 
@@ -1205,6 +1205,8 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 1. 三组接口（ServiceCatalog / Banner / Operator）CRUD 均可在 Swagger 中操作
 2. `GET /banners/active` 仅返回 `isEnabled=true` 且在生效时间范围内的记录
 3. `GET /operators/contact` 返回第一条用途为「接单」的运营人员
+
+**验收结论**：✅ 2026-06-15 通过，**可进入 P2.15**
 
 ---
 

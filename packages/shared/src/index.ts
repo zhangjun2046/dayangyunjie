@@ -9,6 +9,8 @@ export * from './entities/order';
 export * from './entities/review';
 export * from './entities/complaint';
 export * from './entities/catalog';
+export * from './entities/banner';
+export * from './entities/operator';
 export * from './entities/work-photo';
 export * from './dto/auth.dto';
 export * from './dto/address.dto';
