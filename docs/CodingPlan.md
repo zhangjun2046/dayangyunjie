@@ -32,9 +32,9 @@
 | P2.12 Schema v2.0 迁移 + 代码适配      | ✅ 已通过 | 2026-06-15 | `prisma db push` 同步 v2.0 schema；新增 Banner/Operator/ConsultFollowUp 三张表；Worker/Address 字段扩展；seed.ts 更新（ServiceCatalog 无价格字段，Operator 初始记录）；ConsultStatus/OrderSource 枚举适配；Jest 182 项全部通过；使用 Sonnet 4.6 LLM 完成 |
 | P2.13 Worker 手机号+密码登录 + 密码管理 | ✅ 已通过 | 2026-06-15 | `POST /auth/worker-login`（phone+password → JWT）；WorkerJwtStrategy/WorkerJwtAuthGuard（role=worker 隔离）；`PUT /workers/:id/change-password`（旧密码验证）；`POST /workers/:id/reset-password`（重置为手机号）；Jest 192 项全部通过；使用 Sonnet 4.6 LLM 完成 |
 | P2.14 配置管理 CRUD 接口               | ✅ 已通过 | 2026-06-15 | ServiceCatalog 扩展为全 CRUD + toggle 启用/停用；新建 BannerModule（全 CRUD + `/banners/active` 有效轮播查询）；新建 OperatorModule（全 CRUD + `/operators/contact` 接单人查询）；Jest 32 项全部通过；Swagger 三项验收通过；使用 Sonnet 4.6 LLM 完成 |
-| P2.15 废品居民验收 + 家政跟进记录接口   | ⏳ 待开发 | —          | `POST /recycling-orders/:id/accept`（居民「验收服务」→ IN_SERVICE→PENDING_REVIEW）；ConsultFollowUp CRUD；ConsultOrder v2.0 字段适配（isProxyOrder/serviceContactName/serviceAddress/source） |
+| P2.15 家政跟进记录接口 + ConsultOrder v2.0 字段适配（需求修正：废品仍由员工 /complete 触发） | ✅ 已通过 | 2026-06-15 | ConsultFollowUp CRUD；ConsultOrder v2.0 字段（isProxyOrder/serviceContactName/serviceAddress/source）；需求#92「废品居民验收」为错误描述（#98已更正），撤销误引入的 /resident-accept |
 
-> **P2.1–P2.14 后端核心 API 全部完成。** v2.0 补充单元 **P2.15** 待开发，内容见七、P2 章节末尾。下一单元：**P2.15** — 废品居民验收 + 家政跟进记录接口。
+> **P2.1–P2.15 后端核心 API 全部完成（含 v2.0 补充）。** 下一阶段：**P3** — 居民端小程序。
 
 ---
 
@@ -1210,45 +1210,28 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 ---
 
-#### P2.15 废品居民验收接口 + 家政跟进记录接口（3h）
+#### P2.15 家政跟进记录接口 + ConsultOrder v2.0 字段适配（需求修正）✅
 
-> **需求来源**：`requirement_v2.0.md` §4.7、§5.1.3、§2.5、§10.2 #92
+> **需求来源**：`requirement_v2.0.md` §5.1.3、§10.2 #82、#98
 
-**干什么**
+**需求修正说明**
 
-补充两类 v2.0 新增的业务接口：
+`requirement_v2.0.md` #92 括号中「废品由居民「验收服务」触发」为**错误描述**，已在 #98 更正。废品订单「服务中→待评价」与保洁订单完全对称，均由**员工端「完成服务」**按钮触发（`POST /recycling-orders/:id/complete`，该接口在 P2.6a 已实现）。代码中误引入的 `/resident-accept` 端点已在本次修正中撤销。
 
-- **废品居民验收**：`POST /api/v1/recycling-orders/:id/accept`
-  - 调用方：居民端，在「服务中」阶段点击「验收服务」
-  - 状态流转：`IN_SERVICE → PENDING_REVIEW`（写入 OrderStatusLog）
-  - 注：保洁订单的 `IN_SERVICE → PENDING_REVIEW` 由已有 `/complete` 接口（worker 触发）负责，废品改为此接口（resident 触发）
+**已实现内容**
+
 - **家政跟进记录**：
   - `POST /api/v1/consult-orders/:id/follow-ups`：新增跟进记录（ConsultFollowUp）
-  - `GET /api/v1/consult-orders/:id/follow-ups`：获取跟进记录列表（时序展示）
-- **ConsultOrder 字段适配**：确保 ConsultOrder 创建/更新接口支持 v2.0 新增字段（isProxyOrder / serviceContactName / serviceContactPhone / serviceAddress / source）
+  - `GET /api/v1/consult-orders/:id/follow-ups`：获取跟进记录列表（按时间升序）
+- **ConsultOrder 字段适配**：ConsultOrder 创建接口支持 v2.0 新增字段（isProxyOrder / serviceContactName / serviceContactPhone / serviceAddress / source / remark）
+- **废品完成服务**：沿用 P2.6a 已有 `POST /recycling-orders/:id/complete`（员工触发，与保洁对称）
 
-**Cursor Agent 干什么**
+**测试结果**：63 tests passed（recycling×30 + consult×33），0 failed
 
-- 在 RecyclingOrderModule 新增 `accept` 操作接口（校验调用方为 resident）
-- 在 ConsultOrderModule 新增 `follow-ups` 子路由（CRUD）
-- 更新 ConsultOrder DTO 支持代下单字段
-- Jest 新增测试用例：废品验收全链路、咨询单跟进记录 CRUD
-
-**人工干什么**
-
-- ✅ e2e：废品订单 GPS 签到进 `IN_SERVICE` → 调 `/accept` → 状态变 `PENDING_REVIEW`
+**验收**：
 - ✅ 为一条咨询单新增跟进记录 → GET 列表返回按时间顺序排列
-- ✅ 保洁订单 `/complete`（worker 触发）仍正常工作（回归）
-
-**使用模型**: **强模型**
-
-**⚠️ P2.15 完成后（即 P2 v2.0 补充单元全部完成），更新 `Backend-API-Summary.md` 交接文档，补充 v2.0 新增接口。**
-
-**测试标准 — 通过后 P2 阶段（含 v2.0 补充）全部完成**:
-
-1. 废品订单 `/accept` 状态变更 `IN_SERVICE → PENDING_REVIEW` 正确
-2. 保洁订单 `/complete` 仍正常（回归无破坏）
-3. 咨询单跟进记录可写入、分页读取
+- ✅ 废品订单 GPS 签到进 `IN_SERVICE` → 员工调 `/complete` → 状态变 `PENDING_REVIEW`
+- ✅ 保洁订单 `/complete`（worker 触发）回归正常
 
 ---
 

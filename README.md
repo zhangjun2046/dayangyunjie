@@ -63,3 +63,4 @@ npx prisma migrate dev
 - 使用Sonnet4.6 LLM完成P2.12，执行 prisma migrate v2.0 并更新 seed.ts / 枚举引用（ConsultStatus / OrderSource），全量回归测试通过
 - 开始 P2.13（v2.0），实现 Worker 手机号+密码登录（/auth/worker-login）、Worker JWT Guard、员工改密与管理员重置密码接口
 - 使用Sonnet4.6 LLM完成P2.14，实现 ServiceCatalog 全 CRUD+toggle、Banner 全 CRUD+有效轮播查询、Operator 全 CRUD+接单人接口
+- 使用Sonnet4.6 LLM完成P2.15，实现废品居民验收接口（/recycling-orders/:id/accept）、ConsultFollowUp CRUD 及 ConsultOrder v2.0 字段适配

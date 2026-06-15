@@ -161,4 +161,5 @@ export class RecyclingOrderController {
     const data = await this.recyclingOrderService.cancelOrder(id, cancelOrderDto);
     return { code: 0, message: 'ok', data };
   }
+
 }

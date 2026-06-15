@@ -1,6 +1,7 @@
+import { OrderSource } from '@dayangyunjie/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 export class CreateConsultOrderDto {
   @ApiProperty({ description: '咨询服务类型（保姆 / 月嫂 / 育儿嫂 / 陪诊 / 代买菜等）', example: '家政咨询' })
@@ -29,4 +30,43 @@ export class CreateConsultOrderDto {
   @IsInt()
   @Min(1)
   residentId?: number;
+
+  @ApiPropertyOptional({
+    description: '订单来源',
+    enum: Object.values(OrderSource),
+    default: OrderSource.MINIPROGRAM,
+  })
+  @IsOptional()
+  @IsIn(Object.values(OrderSource))
+  source?: (typeof OrderSource)[keyof typeof OrderSource];
+
+  @ApiPropertyOptional({ description: '是否代下单', example: false, default: false })
+  @Type(() => Boolean)
+  @IsOptional()
+  @IsBoolean()
+  isProxyOrder?: boolean = false;
+
+  @ApiPropertyOptional({ description: '被服务人姓名（代下单时填写）', example: '李阿姨' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  serviceContactName?: string;
+
+  @ApiPropertyOptional({ description: '被服务人手机号（代下单时填写）', example: '13900001111' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  serviceContactPhone?: string;
+
+  @ApiPropertyOptional({ description: '服务地址（家政上门地址，自由文本，无需关联 addressId）', example: '北京市朝阳区建国路88号' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(256)
+  serviceAddress?: string;
+
+  @ApiPropertyOptional({ description: '备注', example: '请优先安排有经验的阿姨' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(512)
+  remark?: string;
 }

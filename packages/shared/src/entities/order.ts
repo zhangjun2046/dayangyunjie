@@ -61,7 +61,7 @@ export interface RecyclingOrderDto {
   updatedAt: string;
 }
 
-/** 家政咨询单（API 出参，v2.0：name→contactName, phone→contactPhone, description→requirementDesc） */
+/** 家政咨询单（API 出参，v2.0：新增代下单 / 服务地址 / 来源字段） */
 export interface ConsultOrderDto {
   id: number;
   orderNo: string;
@@ -70,7 +70,22 @@ export interface ConsultOrderDto {
   contactName: string;
   contactPhone: string;
   requirementDesc: string;
+  isProxyOrder: boolean;
+  serviceContactName?: string | null;
+  serviceContactPhone?: string | null;
+  serviceAddress?: string | null;
+  source?: OrderSource | null;
+  remark?: string | null;
   status: ConsultStatus;
   createdAt: string;
   updatedAt: string;
+}
+
+/** 家政咨询跟进记录（API 出参，v2.0） */
+export interface ConsultFollowUpDto {
+  id: number;
+  consultId: number;
+  handlerName: string;
+  content: string;
+  createdAt: string;
 }

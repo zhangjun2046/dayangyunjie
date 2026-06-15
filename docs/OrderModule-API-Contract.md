@@ -24,6 +24,12 @@
 > - 新增 `BannerModule`：6 个端点（全 CRUD + `GET /banners/active?displayTarget=`）；有效轮播图按 `isEnabled=true` 且当前时间在 `startTime~endTime` 内过滤
 > - 新增 `OperatorModule`：6 个端点（全 CRUD + `GET /operators/contact`）；`/contact` 返回 `purpose='接单'` 第一条记录，无记录返回 `null`
 > - `packages/shared` 新增 `BannerDto`、`OperatorDto` 两个共享接口类型
+>
+> **v2.3 变更摘要（P2.15，2026-06-15）**：
+> - `ConsultOrder` 新增字段：`isProxyOrder`、`serviceContactName`、`serviceContactPhone`、`serviceAddress`、`source`、`remark`（均可选；代下单时前两字段必填）
+> - 新增 `ConsultFollowUp` 接口：`POST /consult-orders/:id/follow-ups`（新增跟进记录）、`GET /consult-orders/:id/follow-ups`（分页查询，时序升序）
+> - `packages/shared` 新增 `ConsultFollowUpDto` 类型
+> - **废品流程修正**：`/resident-accept` 接口已撤销（与 §10.1 原始设计一致）；废品 `IN_SERVICE→PENDING_REVIEW` 由员工 `/complete` 触发（同保洁）
 
 ---
 
@@ -779,6 +785,37 @@ PATCH /consult-orders/:id/status {FOLLOWING}  → HTTP 400（终态保护）
 ```
 
 **非法转移验收**：`FOLLOW_UP → COMPLETED`（跳步）应返回 HTTP 400，`message` 含 "非法状态转移"。
+
+### 11.8 P2.15 v2.0 补充（2026-06-15）
+
+**新增接口**：
+- `POST /consult-orders/:id/follow-ups` — 新增跟进记录（Body: `handlerName: string`，`content: string`）
+- `GET /consult-orders/:id/follow-ups` — 分页查询跟进记录（Query: `page`，`pageSize`；按 `createdAt` 升序）
+
+**ConsultOrder v2.0 新增字段**（均可选，代下单时 `serviceContactName` 必填）：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `isProxyOrder` | `boolean` | 是否代下单 |
+| `serviceContactName` | `string \| null` | 服务联系人姓名（代下单必填） |
+| `serviceContactPhone` | `string \| null` | 服务联系人电话 |
+| `serviceAddress` | `string \| null` | 服务地址（代下单可指定） |
+| `source` | `'MINIPROGRAM' \| 'PHONE'` | 来源渠道 |
+| `remark` | `string \| null` | 备注 |
+
+**废品流程确认**：`/resident-accept` 接口**未实现**（与 §10.1 原始设计一致）；废品 `IN_SERVICE→PENDING_REVIEW` 由员工端「完成服务」触发（`POST /recycling-orders/:id/complete`），与保洁订单完全对称。
+
+### 11.9 P2.15 全链路验收结果（2026-06-15）
+
+| 验收项 | 操作 | 预期 | 结果 |
+|--------|------|------|------|
+| ConsultFollowUp CRUD | `POST /consult-orders/1/follow-ups` × 3 条（间隔1s） | 每次返回含 `id/consultId/handlerName/content/createdAt` | ✅ 通过 |
+| 跟进记录时序 | `GET /consult-orders/1/follow-ups?page=1&pageSize=20` | `total=3`，`createdAt` 严格升序 | ✅ 通过 |
+| 废品订单全链路 | 创建→派单→接单→GPS签到（14.6m）→`/complete` | 最终状态 `PENDING_REVIEW`，orderNo=`RCY20260615000001` | ✅ 通过 |
+| 保洁订单回归 | 创建→派单→接单→GPS签到（14.6m）→`/complete` | 最终状态 `PENDING_REVIEW`，orderNo=`CLN20260615000001` | ✅ 通过 |
+| 单元测试 | `npx jest "recycling-order.spec" --no-coverage` | 25 tests passed，0 failed | ✅ 通过 |
+
+**验收结论**：P2.15 全部验收通过（2026-06-15 14:06），P2 阶段（含 v2.0 补充单元）全部完成。
 
 ---
 

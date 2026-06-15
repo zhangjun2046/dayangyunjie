@@ -2,12 +2,12 @@
  * P2.6a 废品回收订单操作接口单元测试
  *
  * 测试矩阵：
- *  1. assignOrder  — 派单（含 workerId 写入、Worker 不存在、非法状态）
- *  2. acceptOrder  — 接单（合法 / 非法状态）
- *  3. gpsCheckin   — GPS签到（正常距离 / 超距 / 无坐标 / 非法状态）
- *  4. completeOrder — 完成服务（照片写入 / 非法状态）
- *  5. cancelOrder  — 取消（合法 / 非法状态）
- *  6. haversineMeters — 距离计算精度（通过 gpsCheckin 间接覆盖）
+ *  1. assignOrder       — 派单（含 workerId 写入、Worker 不存在、非法状态）
+ *  2. acceptOrder       — 接单（合法 / 非法状态）
+ *  3. gpsCheckin        — GPS签到（正常距离 / 超距 / 无坐标 / 非法状态）
+ *  4. completeOrder     — 完成服务（照片写入 / 非法状态）；员工触发 IN_SERVICE→PENDING_REVIEW
+ *  5. cancelOrder       — 取消（合法 / 非法状态）
+ *  6. haversineMeters   — 距离计算精度（通过 gpsCheckin 间接覆盖）
  */
 
 import { BadRequestException, NotFoundException } from '@nestjs/common';
@@ -398,3 +398,4 @@ describe('haversineMeters — 距离计算精度（通过 gpsCheckin 间接覆�
     expect(dist!).toBeGreaterThan(1_000_000);
   });
 });
+

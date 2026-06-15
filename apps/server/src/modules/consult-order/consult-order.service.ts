@@ -4,10 +4,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ConsultOrderDto } from '@dayangyunjie/shared';
-import { ConsultOrder, ConsultStatus, Prisma } from '@prisma/client';
+import { ConsultFollowUpDto, ConsultOrderDto, OrderSource } from '@dayangyunjie/shared';
+import { ConsultFollowUp, ConsultOrder, ConsultStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { CreateConsultFollowUpDto } from './dto/create-consult-follow-up.dto';
 import { CreateConsultOrderDto } from './dto/create-consult-order.dto';
+import { QueryConsultFollowUpDto } from './dto/query-consult-follow-up.dto';
 import { QueryConsultOrderDto } from './dto/query-consult-order.dto';
 import { UpdateConsultStatusDto } from './dto/update-consult-status.dto';
 
@@ -30,6 +32,8 @@ export class ConsultOrderService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async create(dto: CreateConsultOrderDto): Promise<ConsultOrderDto> {
+    this.validateProxyFields(dto);
+
     if (dto.residentId !== undefined) {
       const resident = await this.prismaService.resident.findUnique({
         where: { id: dto.residentId },
@@ -51,6 +55,12 @@ export class ConsultOrderService {
               contactName: dto.contactName,
               contactPhone: dto.contactPhone,
               requirementDesc: dto.requirementDesc,
+              isProxyOrder: dto.isProxyOrder ?? false,
+              serviceContactName: dto.serviceContactName,
+              serviceContactPhone: dto.serviceContactPhone,
+              serviceAddress: dto.serviceAddress,
+              source: (dto.source ?? null) as ConsultOrder['source'],
+              remark: dto.remark,
               ...(dto.residentId !== undefined ? { residentId: dto.residentId } : {}),
             },
           });
@@ -144,7 +154,70 @@ export class ConsultOrderService {
     return this.toDto(await this.findOneOrThrow(id));
   }
 
+  /**
+   * 新增跟进记录（v2.0）。
+   * 跟进记录与咨询单 1:N 关联，不限制咨询单状态。
+   */
+  async createFollowUp(consultId: number, dto: CreateConsultFollowUpDto): Promise<ConsultFollowUpDto> {
+    await this.findOneOrThrow(consultId);
+
+    const row = await this.prismaService.consultFollowUp.create({
+      data: {
+        consultId,
+        handlerName: dto.handlerName,
+        content: dto.content,
+      },
+    });
+
+    console.info(`[ConsultFollowUp] created id=${row.id} consultId=${consultId} handler=${dto.handlerName}`);
+    return this.toFollowUpDto(row);
+  }
+
+  /**
+   * 查询跟进记录列表（v2.0）。
+   * 按创建时间升序排列（时序展示），支持分页。
+   */
+  async findFollowUps(
+    consultId: number,
+    query: QueryConsultFollowUpDto,
+  ) {
+    await this.findOneOrThrow(consultId);
+
+    const { page = 1, pageSize = 20 } = query;
+
+    const [rows, total] = await this.prismaService.$transaction([
+      this.prismaService.consultFollowUp.findMany({
+        where: { consultId },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        orderBy: [{ createdAt: 'asc' }],
+      }),
+      this.prismaService.consultFollowUp.count({ where: { consultId } }),
+    ]);
+
+    return {
+      items: rows.map((row) => this.toFollowUpDto(row)),
+      total,
+      page,
+      pageSize,
+    };
+  }
+
   // ─── 私有方法 ─────────────────────────────────────────────────────────────
+
+  /**
+   * 校验代下单字段：isProxyOrder=true 时 serviceContactName/Phone 必填。
+   */
+  private validateProxyFields(dto: CreateConsultOrderDto): void {
+    if (!dto.isProxyOrder) {
+      return;
+    }
+    if (!dto.serviceContactName || !dto.serviceContactPhone) {
+      throw new BadRequestException(
+        'serviceContactName and serviceContactPhone are required when isProxyOrder is true',
+      );
+    }
+  }
 
   /**
    * 校验咨询单状态转移是否合法。
@@ -204,9 +277,25 @@ export class ConsultOrderService {
       contactName: row.contactName,
       contactPhone: row.contactPhone,
       requirementDesc: row.requirementDesc,
+      isProxyOrder: row.isProxyOrder,
+      serviceContactName: row.serviceContactName,
+      serviceContactPhone: row.serviceContactPhone,
+      serviceAddress: row.serviceAddress,
+      source: row.source as ConsultOrderDto['source'],
+      remark: row.remark,
       status: row.status as ConsultOrderDto['status'],
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
+    };
+  }
+
+  private toFollowUpDto(row: ConsultFollowUp): ConsultFollowUpDto {
+    return {
+      id: row.id,
+      consultId: row.consultId,
+      handlerName: row.handlerName,
+      content: row.content,
+      createdAt: row.createdAt.toISOString(),
     };
   }
 

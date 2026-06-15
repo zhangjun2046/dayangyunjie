@@ -196,7 +196,8 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 状态链与保洁完全一致（见第7节），操作接口对称。
 
 **创建必填**：`residentId`, `serviceItem`, `estimatedWeight`（预估重量 kg）, `appointDate`, `appointTimeSlot`, `addressId`, `contactName`, `contactPhone`  
-**无** `referenceAmount`、`actualWeight`、`finalAmount` 字段。
+**无** `referenceAmount`、`actualWeight`、`finalAmount` 字段。  
+**v2.0 可选字段**：`isProxyOrder`, `serviceContactName`, `serviceContactPhone`, `source`
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
@@ -204,11 +205,11 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 | GET | `/recycling-orders` | 分页列表 |
 | GET | `/recycling-orders/:id` | 详情 |
 | PUT | `/recycling-orders/:id` | 更新基础信息 |
-| POST | `/recycling-orders/:id/assign` | 派单 |
-| POST | `/recycling-orders/:id/accept` | 接单 |
-| POST | `/recycling-orders/:id/gps-checkin` | GPS签到 |
-| POST | `/recycling-orders/:id/complete` | 完成 |
-| POST | `/recycling-orders/:id/cancel` | 取消 |
+| POST | `/recycling-orders/:id/assign` | 派单（管理员，PENDING_ASSIGN→ASSIGNED） |
+| POST | `/recycling-orders/:id/accept` | 接单（员工，ASSIGNED→ACCEPTED） |
+| POST | `/recycling-orders/:id/gps-checkin` | GPS签到（员工，ACCEPTED→IN_SERVICE） |
+| POST | `/recycling-orders/:id/complete` | 完成服务（员工上传照片，IN_SERVICE→PENDING_REVIEW） |
+| POST | `/recycling-orders/:id/cancel` | 取消（仅 PENDING_ASSIGN 状态） |
 
 ---
 
@@ -217,14 +218,22 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 **路径前缀**：`/consult-orders`  
 订单号格式：`CNS + yyyyMMdd + 6位序号`
 
+**创建必填**：`serviceType`, `contactName`, `contactPhone`, `requirementDesc`；`residentId` 可选  
+**v2.0 可选字段**：`isProxyOrder`, `serviceContactName`, `serviceContactPhone`, `serviceAddress`, `source`, `remark`  
+代下单规则：`isProxyOrder=true` 时 `serviceContactName` 与 `serviceContactPhone` 必填
+
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | `/consult-orders` | 创建咨询单（必填：`serviceType`, `name`, `phone`, `description`；`residentId` 可选） |
+| POST | `/consult-orders` | 创建咨询单（v2.0：支持代下单字段） |
 | GET | `/consult-orders` | 分页列表（Query：`status?`, `serviceType?`, `keyword?`） |
 | GET | `/consult-orders/:id` | 详情 |
 | PATCH | `/consult-orders/:id/status` | 更新状态（Body：`status`, `operatorId`, `remark?`） |
+| POST | `/consult-orders/:id/follow-ups` | **新增跟进记录 v2.0**（Body：`handlerName`, `content`） |
+| GET | `/consult-orders/:id/follow-ups` | **查询跟进记录列表 v2.0**（Query：`page?`, `pageSize?`；按时间升序） |
 
-**状态链**：`PENDING → FOLLOWING_UP → COMPLETED`（单向不可逆，无取消态）
+**状态链**：`FOLLOW_UP → FOLLOWING → COMPLETED`（单向不可逆，无取消态）
+
+**ConsultFollowUp 结构**：`{ id, consultId, handlerName, content, createdAt }`
 
 ---
 
@@ -495,7 +504,8 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
-> **文档版本**：v2.2  
+> **文档版本**：v2.4（P2.15 流程修正）  
 > **生成日期**：2026-06-15  
-> **覆盖范围**：P2.1 ~ P2.14 全部后端接口（共 15 个模块，60+ 个端点）  
-> **下一里程碑**：P2.15 废品居民验收 + 家政跟进记录接口
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）  
+> **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
+> **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销

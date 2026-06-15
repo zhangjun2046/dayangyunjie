@@ -1,11 +1,14 @@
 /**
- * P2.7 ConsultOrder 咨询单模块单元测试（v2.0 适配）
+ * P2.7 + P2.15 ConsultOrder 咨询单模块单元测试（v2.0 适配）
  *
  * 测试矩阵：
  *  1. create         — 创建咨询单（CNS 前缀订单号、默认 FOLLOW_UP、匿名/绑定居民、居民不存在）
  *  2. findAll        — 列表查询（无筛选、按 status 筛选、按 keyword 筛选）
  *  3. findOne        — 详情（存在、不存在 404）
  *  4. updateStatus   — 状态转移（合法路径、非法跳步、终态保护、不存在 404、日志写入）
+ *  5. create v2.0    — 代下单字段校验（isProxyOrder / serviceContactName / serviceAddress / source）
+ *  6. createFollowUp — 新增跟进记录（v2.0）
+ *  7. findFollowUps  — 跟进记录列表查询（v2.0）
  */
 
 import { BadRequestException, NotFoundException } from '@nestjs/common';
@@ -33,6 +36,18 @@ function makeOrderRow(overrides: Record<string, unknown> = {}) {
     status: ConsultStatus.FOLLOW_UP,
     createdAt: new Date('2026-06-08T06:00:00.000Z'),
     updatedAt: new Date('2026-06-08T06:00:00.000Z'),
+    ...overrides,
+  };
+}
+
+/** 构造最小可用的数据库行（ConsultFollowUp） */
+function makeFollowUpRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 1,
+    consultId: 1,
+    handlerName: '客服小李',
+    content: '已与客户电话沟通，确认需求',
+    createdAt: new Date('2026-06-08T07:00:00.000Z'),
     ...overrides,
   };
 }
@@ -68,6 +83,11 @@ function makePrismaMock(txOverrides: Record<string, unknown> = {}) {
     consultOrder: {
       findUnique: jest.fn().mockResolvedValue(makeOrderRow()),
       findMany: jest.fn().mockResolvedValue([makeOrderRow()]),
+      count: jest.fn().mockResolvedValue(1),
+    },
+    consultFollowUp: {
+      create: jest.fn().mockResolvedValue(makeFollowUpRow()),
+      findMany: jest.fn().mockResolvedValue([makeFollowUpRow()]),
       count: jest.fn().mockResolvedValue(1),
     },
     resident: {
@@ -287,5 +307,144 @@ describe('ConsultOrderService — updateStatus（状态转移）', () => {
         data: expect.objectContaining({ remark: null }),
       }),
     );
+  });
+});
+
+// ─── 5. create v2.0 代下单字段 ────────────────────────────────────────────
+
+describe('ConsultOrderService — create v2.0（代下单字段）', () => {
+  const baseDto = {
+    serviceType: '家政咨询',
+    contactName: '张三',
+    contactPhone: '13800138000',
+    requirementDesc: '需要每周两次保洁服务',
+  };
+
+  it('isProxyOrder=true + 代下单字段：创建成功，数据写入事务', async () => {
+    const { svc, prisma } = makeService();
+    await svc.create({
+      ...baseDto,
+      isProxyOrder: true,
+      serviceContactName: '李阿姨',
+      serviceContactPhone: '13900001111',
+      serviceAddress: '北京市朝阳区建国路88号',
+    });
+    expect(prisma._tx.consultOrder.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          isProxyOrder: true,
+          serviceContactName: '李阿姨',
+          serviceContactPhone: '13900001111',
+          serviceAddress: '北京市朝阳区建国路88号',
+        }),
+      }),
+    );
+  });
+
+  it('isProxyOrder=true 但缺少 serviceContactName：抛出 BadRequestException', async () => {
+    const { svc } = makeService();
+    await expect(
+      svc.create({ ...baseDto, isProxyOrder: true, serviceContactPhone: '13900001111' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('isProxyOrder=true 但缺少 serviceContactPhone：抛出 BadRequestException', async () => {
+    const { svc } = makeService();
+    await expect(
+      svc.create({ ...baseDto, isProxyOrder: true, serviceContactName: '李阿姨' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('不传 isProxyOrder（默认 false）：不校验代下单字段', async () => {
+    const { svc } = makeService();
+    await expect(svc.create(baseDto)).resolves.toBeDefined();
+  });
+
+  it('source 字段写入：返回 DTO 含 source', async () => {
+    const { svc, prisma } = makeService();
+    prisma._tx.consultOrder.create = jest.fn().mockResolvedValue(
+      makeOrderRow({ source: 'ADMIN' }),
+    );
+    const result = await svc.create({ ...baseDto, source: 'ADMIN' as never });
+    expect(result.source).toBe('ADMIN');
+  });
+});
+
+// ─── 6. createFollowUp（新增跟进记录 v2.0）───────────────────────────────
+
+describe('ConsultOrderService — createFollowUp（新增跟进记录）', () => {
+  const dto = { handlerName: '客服小李', content: '已与客户电话沟通，确认需求' };
+
+  it('正常创建：consultFollowUp.create 被调用，返回 ConsultFollowUpDto', async () => {
+    const { svc, prisma } = makeService();
+    const result = await svc.createFollowUp(1, dto);
+
+    expect(prisma.consultFollowUp.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          consultId: 1,
+          handlerName: '客服小李',
+          content: '已与客户电话沟通，确认需求',
+        }),
+      }),
+    );
+    expect(result).toMatchObject({
+      id: expect.any(Number),
+      consultId: 1,
+      handlerName: '客服小李',
+      createdAt: expect.any(String),
+    });
+  });
+
+  it('咨询单不存在时抛出 NotFoundException（404）', async () => {
+    const { svc, prisma } = makeService();
+    prisma.consultOrder.findUnique = jest.fn().mockResolvedValue(null);
+    await expect(svc.createFollowUp(99, dto)).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
+
+// ─── 7. findFollowUps（跟进记录列表 v2.0）────────────────────────────────
+
+describe('ConsultOrderService — findFollowUps（跟进记录列表）', () => {
+  it('正常查询：返回分页结构（items / total / page / pageSize）', async () => {
+    const { svc } = makeService();
+    const result = await svc.findFollowUps(1, {});
+    expect(result).toMatchObject({
+      items: expect.any(Array),
+      total: expect.any(Number),
+      page: expect.any(Number),
+      pageSize: expect.any(Number),
+    });
+  });
+
+  it('items 含 ConsultFollowUpDto 结构（含 createdAt 字符串）', async () => {
+    const { svc } = makeService();
+    const result = await svc.findFollowUps(1, {});
+    expect(result.items[0]).toMatchObject({
+      id: expect.any(Number),
+      consultId: 1,
+      handlerName: expect.any(String),
+      content: expect.any(String),
+      createdAt: expect.any(String),
+    });
+  });
+
+  it('$transaction 以数组形式调用（findMany + count）', async () => {
+    const { svc, prisma } = makeService();
+    await svc.findFollowUps(1, {});
+    const txCall = (prisma.$transaction as jest.Mock).mock.calls[0][0];
+    expect(Array.isArray(txCall)).toBe(true);
+  });
+
+  it('咨询单不存在时抛出 NotFoundException（404）', async () => {
+    const { svc, prisma } = makeService();
+    prisma.consultOrder.findUnique = jest.fn().mockResolvedValue(null);
+    await expect(svc.findFollowUps(99, {})).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('分页参数生效：page=2，pageSize=5', async () => {
+    const { svc, prisma } = makeService();
+    await svc.findFollowUps(1, { page: 2, pageSize: 5 });
+    expect(prisma.$transaction).toHaveBeenCalled();
   });
 });
