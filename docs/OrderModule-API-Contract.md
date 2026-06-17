@@ -1240,3 +1240,65 @@ GET   /complaints/:id                     → 详情含 followUps 列表
 | 7 | 时间范围筛选 | `?startDate=2026-06-01&endDate=2026-06-05` 返回5天数据 | ✅ 范围计算正确 |
 | 8 | Jest 单元测试 | 新增20项（全套回归182项） | ✅ 全部通过 |
 | 9 | `npm run build` | 全链路编译 | ✅ 无报错 |
+
+---
+
+## 17. P3.1 居民端骨架对接契约（2026-06-17 确认）
+
+> **背景**：P3.1 实现居民端小程序 `apps/miniapp-customer` 的应用骨架、微信登录授权及首次下单手机号快速补全流程。本节记录前端对接 Auth 模块的关键约定。
+
+### 17.1 微信登录流程
+
+```
+wx.login() 获取 code
+  → POST /auth/wechat-login { code }
+  → 后端 mock openid → 查找或创建 Resident → 签发 JWT
+  → 前端持久化 { accessToken, refreshToken, residentId, residentName, residentPhone }
+```
+
+**关键约定**：
+- `accessToken` 有效期 2h；超期调 `POST /auth/refresh` 自动续期
+- 所有需鉴权的后续请求需在 Header 添加：`Authorization: Bearer {accessToken}`
+- Pinia `authStore` 存储登录态，使用 `uni.setStorageSync` 持久化
+
+### 17.2 首次下单身份补全弹窗
+
+**触发时机**：居民点击"确定预约"前，检测 `resident.name` 或 `resident.phone` 为空时弹出 `ProfileCompleteModal`。
+
+**补全方式**（二选一）：
+1. 微信快速授权：`<button open-type="getPhoneNumber">` → 获取加密手机号 → 调后端解密（后端接口待 P3.3 对接实现）
+2. 手动输入：直接填写姓名 + 手机号 → 调 `PUT /residents/:id` 更新 Resident 信息
+
+**补全后**：将姓名/手机号回填到订单创建表单的 `contactName` / `contactPhone` 字段。
+
+### 17.3 路由守卫规则
+
+| 页面路径 | 需要登录 | 未登录处理 |
+|---------|---------|-----------|
+| `/pages/index/index` | 无需 | 直接访问 |
+| `/pages/orders/index` | 需要 | 弹窗提示并引导登录 |
+| `/pages/mine/index` | 需要 | 弹窗提示并引导登录 |
+
+实现文件：`apps/miniapp-customer/src/composables/useRouteGuard.ts`
+
+### 17.4 新增源码文件（P3.1）
+
+| 文件 | 说明 |
+|------|------|
+| `apps/miniapp-customer/src/App.vue` | 应用入口，挂载隐私协议弹窗与登录初始化 |
+| `apps/miniapp-customer/src/store/auth.ts` | Pinia auth store（登录态、token、residentInfo） |
+| `apps/miniapp-customer/src/api/auth.ts` | 封装 `/auth/wechat-login` 和 `/auth/refresh` 请求 |
+| `apps/miniapp-customer/src/api/request.ts` | uni.request 封装（自动携带 token、401 自动刷新） |
+| `apps/miniapp-customer/src/components/PrivacyModal.vue` | 隐私协议弹窗（首次启动必弹，同意后写 storage 标记） |
+| `apps/miniapp-customer/src/components/ProfileCompleteModal.vue` | 身份补全弹窗（支持 getPhoneNumber 快速授权或手动输入） |
+| `apps/miniapp-customer/src/composables/useRouteGuard.ts` | 路由守卫 composable（onLoad 前校验登录态） |
+
+### 17.5 P3.1 验收结论（2026-06-17）
+
+| 验收项 | 结果 |
+|--------|------|
+| 首次启动弹出隐私协议弹窗，同意后微信登录成功 | ✅ 通过 |
+| 再次启动不弹隐私协议，直接完成静默登录 | ✅ 通过 |
+| 未登录访问「订单」「我的」Tab 弹出登录提示 | ✅ 通过 |
+| ProfileCompleteModal 弹窗支持手动填写手机号 | ✅ 通过 |
+| `npm run build` 全链路编译无报错 | ✅ 通过 |

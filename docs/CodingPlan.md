@@ -33,8 +33,9 @@
 | P2.13 Worker 手机号+密码登录 + 密码管理 | ✅ 已通过 | 2026-06-15 | `POST /auth/worker-login`（phone+password → JWT）；WorkerJwtStrategy/WorkerJwtAuthGuard（role=worker 隔离）；`PUT /workers/:id/change-password`（旧密码验证）；`POST /workers/:id/reset-password`（重置为手机号）；Jest 192 项全部通过；使用 Sonnet 4.6 LLM 完成 |
 | P2.14 配置管理 CRUD 接口               | ✅ 已通过 | 2026-06-15 | ServiceCatalog 扩展为全 CRUD + toggle 启用/停用；新建 BannerModule（全 CRUD + `/banners/active` 有效轮播查询）；新建 OperatorModule（全 CRUD + `/operators/contact` 接单人查询）；Jest 32 项全部通过；Swagger 三项验收通过；使用 Sonnet 4.6 LLM 完成 |
 | P2.15 家政跟进记录接口 + ConsultOrder v2.0 字段适配（需求修正：废品仍由员工 /complete 触发） | ✅ 已通过 | 2026-06-15 | ConsultFollowUp CRUD；ConsultOrder v2.0 字段（isProxyOrder/serviceContactName/serviceAddress/source）；需求#92「废品居民验收」为错误描述（#98已更正），撤销误引入的 /resident-accept |
+| P3.1 应用骨架 + 登录授权                    | ✅ 已通过 | 2026-06-17 | 居民端 App.vue 入口配置；微信 wx.login 静默获取 openid → 后端换取 JWT；隐私协议弹窗（PrivacyModal）首次必弹；首次下单身份补全弹窗（ProfileCompleteModal，支持 getPhoneNumber 快速授权或手动输入）；Pinia auth store 持久化登录态；路由守卫（useRouteGuard）拦截未登录页面；使用 Sonnet 4.6 LLM 完成 |
 
-> **P2.1–P2.15 后端核心 API 全部完成（含 v2.0 补充）。** 下一阶段：**P3** — 居民端小程序。
+> **P2.1–P2.15 后端核心 API 全部完成（含 v2.0 补充）。P3.1 居民端骨架已完成。** 下一阶段：**P3.2** — 居民端首页。
 
 ---
 
@@ -1245,6 +1246,10 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 #### P3.1 应用骨架 + 登录授权（3h）
 
+> **验收状态**：✅ **已通过**（2026-06-17）  
+> **验收依据**：① `App.vue` 配置隐私协议弹窗（`PrivacyModal.vue`）首次必弹，同意后调 `wx.login` → `/auth/wechat-login` 换取 JWT；② Pinia `auth store` 持久化登录态，刷新后免登录；③ `ProfileCompleteModal.vue` 在首次下单前弹出，支持 `getPhoneNumber` 快速授权或手动填写；④ `useRouteGuard` 路由守卫拦截未登录跳转至登录确认；⑤ 微信开发者工具 H5/mp-weixin 双模式可启动；`npm run build` 通过。  
+> 使用 Sonnet 4.6 LLM 完成；下一单元：[P3.2](#p32-首页3h)
+>
 > **需求来源**：`requirement_v2.0.md` §3.0.1
 
 **干什么**
@@ -1272,15 +1277,15 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 - ✅ 发起预约前弹出补全弹窗（首次），填入手机号后继续
 - ✅ 关闭再重新打开 → 不再弹出协议
 
-**使用模型**: **强模型**
+**使用模型**: **强模型**（Sonnet 4.6）
 
 **需要权限**: 文件读写、Node.js、微信开发者工具
 
 **测试标准 — 通过后方可进入 P3.2**:
 
-1. 首次进入触发隐私协议弹窗
-2. 首次下单前触发身份补全弹窗（支持手机号快速授权）
-3. 已登录状态下直接进入不弹窗
+1. 首次进入触发隐私协议弹窗 — ✅ 2026-06-17 已验
+2. 首次下单前触发身份补全弹窗（支持手机号快速授权）— ✅ 2026-06-17 已验
+3. 已登录状态下直接进入不弹窗 — ✅ 2026-06-17 已验
 
 ---
 
@@ -2758,8 +2763,8 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 ---
 
-> **文档版本**: v2.0
+> **文档版本**: v2.1
 > **创建日期**: 2026-06-01
-> **修订日期**: 2026-06-14（v2.0：基于需求文档 v2.0 / Schema v2.0 / Prisma schema v2.0 全面更新；P2 新增 P2.12–P2.15 四个后端补充单元；P3–P6 全面修订；P4.6 由「已取消」恢复为正式单元；P5 新增 P5.9–P5.11 配置管理模块；工时汇总更新至 155h / 51 单元；附录 A 口令表同步更新 | v1.3：废品流程调整，P2.6b/P4.6 取消并入上一单元 | v1.2：WorkBuddy → Cursor Agent；新增磁盘约束）
+> **修订日期**: 2026-06-17（v2.1：P3.1 居民端骨架+微信登录+首次下单手机号快速授权验收通过；验收进度表新增 P3.1 行 | v2.0：基于需求文档 v2.0 / Schema v2.0 / Prisma schema v2.0 全面更新；P2 新增 P2.12–P2.15 四个后端补充单元；P3–P6 全面修订；P4.6 由「已取消」恢复为正式单元；P5 新增 P5.9–P5.11 配置管理模块；工时汇总更新至 155h / 51 单元；附录 A 口令表同步更新 | v1.3：废品流程调整，P2.6b/P4.6 取消并入上一单元 | v1.2：WorkBuddy → Cursor Agent；新增磁盘约束）
 > **适用范围**: 大洋云洁 (dayangyunjie-code) 社区服务平台一期 MVP（v2.0 基线）
-> **使用方式**: 按 P1 → P2 → P3 → P4 → P5 → P6 顺序，逐单元执行。每单元完成后按"测试标准"验收，通过后进入下一单元。P2.1–P2.11 已完成（v1.x 阶段），从 P2.12 开始继续 v2.0 补充单元。
+> **使用方式**: 按 P1 → P2 → P3 → P4 → P5 → P6 顺序，逐单元执行。每单元完成后按"测试标准"验收，通过后进入下一单元。P2.1–P2.15 已完成（v1.x + v2.0 阶段）；P3.1 已完成，当前继续 P3.2。

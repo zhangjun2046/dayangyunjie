@@ -157,6 +157,18 @@ export class AuthService {
     };
   }
 
+  /**
+   * Mock 手机号解密
+   * 生产环境应调用微信 phonenumber.getPhoneNumber 接口解密 code
+   * 此处根据 code hash 生成一个确定性的 mock 手机号，供开发阶段使用
+   */
+  async decryptPhone(code: string): Promise<{ phone: string }> {
+    const hash = createHash('sha256').update(code).digest('hex');
+    const suffix = parseInt(hash.slice(0, 7), 16) % 100000000;
+    const phone = `138${String(suffix).padStart(8, '0')}`;
+    return { phone };
+  }
+
   private getMockOpenidByCode(code: string): string {
     const hash = createHash('sha256').update(code).digest('hex').slice(0, 24);
     return `${this.envConfigService.mockOpenidPrefix}${hash}`;

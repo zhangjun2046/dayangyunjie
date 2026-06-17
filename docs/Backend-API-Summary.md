@@ -47,9 +47,10 @@
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | `/auth/wechat-login` | 微信登录（mock code → openid），签发 JWT |
+| POST | `/auth/wechat-login` | 微信登录（mock code → openid），签发居民 JWT |
 | POST | `/auth/refresh` | 使用 refreshToken 换取新 accessToken |
 | GET | `/auth/profile` | 获取当前登录居民信息（需 Bearer Token） |
+| POST | `/auth/worker-login` | **员工登录**（phone + password → JWT，role=worker，P2.13） |
 
 ### POST `/auth/wechat-login`
 
@@ -78,9 +79,20 @@ CRUD 标准五接口：`POST` / `GET` 列表 / `GET :id` / `PUT :id` / `DELETE :
 ## 3. Worker 员工模块
 
 **路径前缀**：`/workers`  
-CRUD 标准五接口
+CRUD 标准五接口，另有 P2.13 新增的密码管理接口。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/workers` | 新增员工 |
+| GET | `/workers` | 分页列表 |
+| GET | `/workers/:id` | 员工详情 |
+| PUT | `/workers/:id` | 更新员工信息 |
+| DELETE | `/workers/:id` | 删除员工 |
+| PUT | `/workers/:id/change-password` | **员工自行改密**（需旧密码验证，需 Worker JWT，P2.13） |
+| POST | `/workers/:id/reset-password` | **管理员重置密码**（新密码=手机号，公开接口，P2.13） |
 
 **创建必填**：`openid`, `employeeNo`, `password`（服务端 bcrypt 入库）, `name`, `phone`, `skills`  
+**v2.0 可选扩展字段**：`nickname`, `gender`, `idCard`, `position`, `emergency`, `emergencyPhone`  
 **Response**：`WorkerDto`（**不含** `passwordHash`，含 `totalOrders`, `rating`, `status`, `skills`）
 
 ---
@@ -396,7 +408,7 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 ### 咨询单
 
 ```
-PENDING → FOLLOWING_UP → COMPLETED（终态）
+FOLLOW_UP → FOLLOWING → COMPLETED（终态）
 ```
 
 ### 投诉
@@ -504,8 +516,23 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
-> **文档版本**：v2.4（P2.15 流程修正）  
-> **生成日期**：2026-06-15  
-> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）  
+## P3.1 完成说明（2026-06-17）
+
+居民端应用骨架（P3.1）已完成，以下 Auth 接口已在前端完成对接：
+
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `POST /auth/wechat-login` | App.vue 启动时静默登录，获取 JWT + residentId | ✅ P3.1 已对接 |
+| `POST /auth/refresh` | request.ts 拦截器 401 自动刷新 token | ✅ P3.1 已对接 |
+| `GET /auth/profile` | 登录后获取居民信息（name/phone 判断是否需补全） | ✅ P3.1 已对接 |
+| `PUT /residents/:id` | ProfileCompleteModal 手动输入后更新姓名/手机号 | ✅ P3.1 已对接 |
+
+**P3.1 关键新增文件**：`src/store/auth.ts`（Pinia）、`src/api/auth.ts`、`src/api/request.ts`、`src/components/PrivacyModal.vue`、`src/components/ProfileCompleteModal.vue`、`src/composables/useRouteGuard.ts`
+
+---
+
+> **文档版本**：v2.6（P3.1 前端骨架已完成，Auth 接口对接状态更新）  
+> **生成日期**：2026-06-17  
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1 前端对接说明  
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销

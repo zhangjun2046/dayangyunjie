@@ -1,16 +1,24 @@
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app';
+import { useRouteGuard } from '@/composables/useRouteGuard';
+
+const { install: installRouteGuard } = useRouteGuard();
 
 onLaunch(() => {
-  console.info('[miniapp-customer] App Launch');
+  console.info('[App] Launch');
+
+  // 路由守卫必须在所有页面跳转前生效
+  installRouteGuard();
+
+  // 隐私协议检查 & 微信登录流程交由首页处理（App.vue template 在小程序端不渲染组件）
 });
 
 onShow(() => {
-  console.info('[miniapp-customer] App Show');
+  console.info('[App] Show');
 });
 
 onHide(() => {
-  console.info('[miniapp-customer] App Hide');
+  console.info('[App] Hide');
 });
 </script>
 

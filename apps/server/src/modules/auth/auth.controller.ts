@@ -9,6 +9,7 @@ import {
 import { AuthService } from './auth.service';
 import { CurrentUserDecorator } from './decorators/current-user.decorator';
 import { ApiResponseDto, LoginResultDto } from './dto/auth-response.dto';
+import { DecryptPhoneDto } from './dto/decrypt-phone.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { WechatLoginDto } from './dto/wechat-login.dto';
 import { WorkerLoginDto } from './dto/worker-login.dto';
@@ -53,6 +54,19 @@ export class AuthController {
       message: 'ok',
       data,
     };
+  }
+
+  @Post('decrypt-phone')
+  @ApiOperation({ summary: '用 getPhoneNumber code 解密获取手机号（mock）' })
+  @ApiOkResponse({
+    description: '解密成功',
+    schema: { example: { code: 0, message: 'ok', data: { phone: '13812345678' } } },
+  })
+  async decryptPhone(
+    @Body() body: DecryptPhoneDto,
+  ): Promise<ApiResponseDto<{ phone: string }>> {
+    const data = await this.authService.decryptPhone(body.code);
+    return { code: 0, message: 'ok', data };
   }
 
   @Post('worker-login')
