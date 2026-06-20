@@ -29,7 +29,32 @@ export interface RecyclingOrderDto {
   appointDate: string;
   appointTimeSlot: string;
   status: string;
-  remark?: string;
+  addressSnapshot?: Record<string, unknown> | null;
+  contactName: string;
+  contactPhone: string;
+  isProxyOrder?: boolean;
+  serviceContactName?: string | null;
+  serviceContactPhone?: string | null;
+  workerId?: number | null;
+  remark?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrderListResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface QueryRecyclingOrderParams {
+  residentId?: number;
+  status?: string;
+  /** 逗号分隔多状态，如 PENDING_ASSIGN,ASSIGNED,ACCEPTED */
+  statuses?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 /**
@@ -45,4 +70,51 @@ export function createRecyclingOrder(
     '/recycling-orders',
     params as unknown as Record<string, unknown>,
   );
+}
+
+/**
+ * 查询废品回收订单列表（分页）
+ * GET /recycling-orders
+ */
+export function fetchRecyclingOrderList(
+  params: QueryRecyclingOrderParams,
+): Promise<OrderListResult<RecyclingOrderDto>> {
+  const query = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    .join('&');
+  return request<OrderListResult<RecyclingOrderDto>>('GET', `/recycling-orders${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 查询废品回收订单详情
+ * GET /recycling-orders/:id
+ */
+export function fetchRecyclingOrderDetail(id: number): Promise<RecyclingOrderDto> {
+  return request<RecyclingOrderDto>('GET', `/recycling-orders/${id}`);
+}
+
+/**
+ * 取消废品回收订单（仅 PENDING_ASSIGN 状态可取消）
+ * POST /recycling-orders/:id/cancel
+ */
+export function cancelRecyclingOrder(id: number, operatorId: number): Promise<RecyclingOrderDto> {
+  return request<RecyclingOrderDto>('POST', `/recycling-orders/${id}/cancel`, {
+    operatorId,
+    operatorType: 'RESIDENT',
+    remark: '居民主动取消',
+  });
+}
+
+/**
+ * 居民验收废品服务（废品 IN_SERVICE → PENDING_REVIEW）
+ * POST /recycling-orders/:id/resident-confirm
+ */
+export function residentConfirmRecycling(
+  id: number,
+  operatorId: number,
+): Promise<RecyclingOrderDto> {
+  return request<RecyclingOrderDto>('POST', `/recycling-orders/${id}/resident-confirm`, {
+    operatorId,
+  });
 }

@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { ConsultStatus } from '@prisma/client';
 
 export class QueryConsultOrderDto {
@@ -37,5 +37,14 @@ export class QueryConsultOrderDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(100)
   pageSize?: number = 10;
+
+  /** 居民 ID 过滤，居民端仅查看自己的订单 */
+  @ApiPropertyOptional({ description: '居民 ID', example: 1 })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  residentId?: number;
 }

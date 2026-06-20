@@ -80,9 +80,10 @@ export class ConsultOrderService {
   }
 
   async findAll(query: QueryConsultOrderDto) {
-    const { page = 1, pageSize = 10, status, serviceType, keyword } = query;
+    const { page = 1, pageSize = 10, status, serviceType, keyword, residentId } = query;
 
     const where: Prisma.ConsultOrderWhereInput = {
+      ...(residentId ? { residentId } : {}),
       ...(status ? { status } : {}),
       ...(serviceType ? { serviceType: { contains: serviceType } } : {}),
       ...(keyword

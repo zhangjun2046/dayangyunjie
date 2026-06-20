@@ -177,7 +177,7 @@ CRUD 标准五接口
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | POST | `/cleaning-orders` | 创建订单（必填：`residentId`, `serviceItem`, `serviceDuration`, `appointDate`, `appointTimeSlot`, `addressId`, `contactName`, `contactPhone`） |
-| GET | `/cleaning-orders` | 分页列表（Query：`residentId?`, `workerId?`, `status?`, `page`, `pageSize`） |
+| GET | `/cleaning-orders` | 分页列表（Query：`residentId?`, `workerId?`, `status?`, `statuses?`逗号多值, `page`, `pageSize`） |
 | GET | `/cleaning-orders/:id` | 订单详情（含 `workPhotos[]`） |
 | PUT | `/cleaning-orders/:id` | 更新基础信息（仅 `PENDING_ASSIGN` 状态允许） |
 
@@ -214,7 +214,7 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | POST | `/recycling-orders` | 创建废品订单 |
-| GET | `/recycling-orders` | 分页列表 |
+| GET | `/recycling-orders` | 分页列表（Query：`residentId?`, `statuses?`逗号多值, `page?`, `pageSize?`） |
 | GET | `/recycling-orders/:id` | 详情 |
 | PUT | `/recycling-orders/:id` | 更新基础信息 |
 | POST | `/recycling-orders/:id/assign` | 派单（管理员，PENDING_ASSIGN→ASSIGNED） |
@@ -222,6 +222,16 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 | POST | `/recycling-orders/:id/gps-checkin` | GPS签到（员工，ACCEPTED→IN_SERVICE） |
 | POST | `/recycling-orders/:id/complete` | 完成服务（员工上传照片，IN_SERVICE→PENDING_REVIEW） |
 | POST | `/recycling-orders/:id/cancel` | 取消（仅 PENDING_ASSIGN 状态） |
+| POST | `/recycling-orders/:id/resident-confirm` | **居民验收服务**（IN_SERVICE→PENDING_REVIEW，P3.6 新增） |
+
+**`POST /recycling-orders/:id/resident-confirm` 说明**（P3.6 新增）：  
+居民端「验收服务」按钮触发，将废品订单从 `IN_SERVICE` 流转至 `PENDING_REVIEW`。  
+**Body**：`{ operatorId: number }` (居民 ID)  
+**错误**：非 `IN_SERVICE` 状态返回 HTTP 400
+
+**`GET /recycling-orders` 居民端查询参数**：
+- `residentId`（number，可选）：按居民过滤，居民端必传
+- `statuses`（string，可选）：逗号分隔多状态，如 `PENDING_ASSIGN,ASSIGNED,ACCEPTED`；与单值 `status` 互斥，`statuses` 优先级更高
 
 ---
 
@@ -608,21 +618,39 @@ PENDING → PROCESSING → COMPLETED（终态）
 | `GET /service-catalogs?bizType=CONSULT&isEnabled=true` | Step 1 动态家政类型卡片 | ✅ P3.5 已对接 |
 | `POST /consult-orders` | Step 2 提交咨询单，返回 CNS 前缀订单号 | ✅ P3.5 已对接 |
 
-**P3.5 页面与导航**：
+---
 
-| 路径 | 说明 |
-|------|------|
-| `pages/booking-consult/index` | 家政咨询两步向导（选类型 → 填写需求） |
-| `pages/service-detail/index?type=consult` | 服务详情「立即预约」跳转家政咨询向导 |
+## P3.6 完成说明（2026-06-20）
 
-**P3.5 关键新增文件**：`src/pages/booking-consult/index.vue`、`src/store/booking-consult.ts`、`src/api/consult-order.ts`、`src/api/service-catalog.ts`（新增 `fetchConsultCatalogs()`）
+居民端我的订单列表 + 详情页（P3.6）已完成：
 
-**代下单字段**：`isProxyOrder` / `serviceContactName` / `serviceContactPhone` / `source=MINIPROGRAM`；**无服务地址字段**
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `GET /cleaning-orders?residentId=&statuses=` | 保洁订单列表（三状态筛选胶囊） | ✅ P3.6 已对接 |
+| `GET /cleaning-orders/:id` | 保洁订单详情 | ✅ P3.6 已对接 |
+| `POST /cleaning-orders/:id/cancel` | 待派单取消 | ✅ P3.6 已对接 |
+| `GET /recycling-orders?residentId=&statuses=` | 废品订单列表 | ✅ P3.6 已对接 |
+| `GET /recycling-orders/:id` | 废品订单详情 | ✅ P3.6 已对接 |
+| `POST /recycling-orders/:id/resident-confirm` | 废品「验收服务」（IN_SERVICE→PENDING_REVIEW） | ✅ P3.6 新增并对接 |
+| `GET /consult-orders?residentId=` | 家政咨询订单列表 | ✅ P3.6 已对接 |
+| `GET /consult-orders/:id` | 家政咨询订单详情 | ✅ P3.6 已对接 |
+
+**P3.6 关键新增文件**：
+- `src/pages/orders/index.vue`（三 Tab 订单列表）
+- `src/pages/order-detail/index.vue`（三种模板详情页）
+- `src/components/OrderStatusTimeline.vue`（状态时间轴）
+- `src/api/review.ts`（评价提交 API）
+
+**P3.6 后端新增端点**：`POST /recycling-orders/:id/resident-confirm`（居民验收废品服务，P3.6）
+
+**P3.6 兼容性修复**：
+- 详情页使用 `onLoad`（uni-app）替代 `onMounted`（Vue）获取路由参数，解决 mp-weixin 下参数读取失败问题
+- 筛选胶囊改用 `white-space:nowrap` + `display:inline-flex` 内联方案，解决 `scroll-view[scroll-x]` 在 mp-weixin 下 flex 容器不溢出导致末尾选项截断问题
 
 ---
 
-> **文档版本**：v2.9（P3.5 家政咨询提交流程已完成，咨询单/服务目录接口对接状态更新）
+> **文档版本**：v3.0（P3.6 我的订单列表+详情页完成，新增 resident-confirm 端点，更新查询参数，记录兼容性修复）
 > **生成日期**：2026-06-20
-> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.5 前端对接说明
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.6 前端对接说明
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销

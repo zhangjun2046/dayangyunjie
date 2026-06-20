@@ -1,79 +1,79 @@
-# OrderModule API Contractï¼ˆP2.1â€“P2.13 äº¤æ¥æ–‡æ¡£ï¼‰
+# OrderModule API Contractï¼?P2.1â??P2.13 äº¤æ?¥æ??æ¡£ï¼?
 
-> **ç”ŸæˆèŠ‚ç‚¹**ï¼šP2.4 å®Œæˆå â†’ è¿›å…¥ P2.5a å‰ï¼›**P2.13ï¼ˆ2026-06-15ï¼‰** æ›´æ–°è‡³ v2.1  
-> **ç”¨é€”**ï¼šä¾›åç»­è®¢å•æ¨¡å—ï¼ˆCleaningOrder ç­‰ï¼‰å¼€å‘è¯»å–ï¼Œé¿å…ä¸Šä¸‹æ–‡ä¸¢å¤±  
-> **Base URL**ï¼š`http://localhost:3000/api/v1`  
-> **ç»Ÿä¸€å“åº”æ ¼å¼**ï¼š`{ code: number, message: string, data: T | null }`  
-> **Swagger**ï¼š`http://localhost:3000/api/docs`
+> **ç??æ?è??ç?¹**ï¼?P2.4 å®?æ?å? â?? è¿?å?¥ P2.5a å?ï¼?**P2.13ï¼?2026-06-15ï¼?** æ?´æ?°è?³ v2.1  
+> **ç?¨é??**ï¼?ä¾?å?ç»­è®¢å?æ¨¡å?ï¼?CleaningOrder ç­?ï¼?å¼?å?è¯»å?ï¼?é¿å?ä¸?ä¸?æ??ä¸¢å¤±  
+> **Base URL**ï¼?`http://localhost:3000/api/v1`  
+> **ç»?ä¸?å?åº?æ ¼å¼**ï¼?`{ code: number, message: string, data: T | null }`  
+> **Swagger**ï¼?`http://localhost:3000/api/docs`
 >
-> **v2.0 å˜æ›´æ‘˜è¦ï¼ˆP2.12ï¼Œ2026-06-15ï¼‰**ï¼š
-> - `ServiceCatalog`ï¼šç§»é™¤ä»·æ ¼å­—æ®µï¼ˆ`priceMin/priceMax/priceUnit/description/isActive/serviceItem`ï¼‰ï¼Œæ–°å¢ `name/subtitle/icon/isEnabled/specialTips`
-> - `ConsultOrder`ï¼šè¯·æ±‚å­—æ®µ `nameâ†’contactName`ã€`phoneâ†’contactPhone`ã€`descriptionâ†’requirementDesc`ï¼›çŠ¶æ€æšä¸¾ `PENDINGâ†’FOLLOW_UP`ã€`FOLLOWING_UPâ†’FOLLOWING`
-> - `OrderSource`ï¼šç§»é™¤ `PROXY`ï¼Œä»…ä¿ç•™ `MINIPROGRAM / PHONE`
-> - æ–°å¢æ•°æ®åº“è¡¨ï¼š`Banner`ã€`Operator`ã€`ConsultFollowUp`ï¼ˆAPI æ¥å£ç”± P2.14/P2.15 è¡¥å……ï¼‰
+> **v2.0 å?æ?´æ??è¦ï¼?P2.12ï¼?2026-06-15ï¼?**ï¼?
+> - `ServiceCatalog`ï¼?ç§»é?¤ä»·æ ¼å­?æ®µï¼?`priceMin/priceMax/priceUnit/description/isActive/serviceItem`ï¼?ï¼?æ?°å¢? `name/subtitle/icon/isEnabled/specialTips`
+> - `ConsultOrder`ï¼?è¯·æ±?å­?æ®µ `nameâ??contactName`ã?`phoneâ??contactPhone`ã?`descriptionâ??requirementDesc`ï¼?ç?¶æ?æ??ä¸¾ `PENDINGâ??FOLLOW_UP`ã?`FOLLOWING_UPâ??FOLLOWING`
+> - `OrderSource`ï¼?ç§»é?¤ `PROXY`ï¼?ä»?ä¿ç?? `MINIPROGRAM / PHONE`
+> - æ?°å¢?æ?°æ®åº?è¡¨ï¼?`Banner`ã?`Operator`ã?`ConsultFollowUp`ï¼?API æ?¥å£ç?± P2.14/P2.15 è¡¥å??ï¼?
 >
-> **v2.1 å˜æ›´æ‘˜è¦ï¼ˆP2.13ï¼Œ2026-06-15ï¼‰**ï¼š
-> - æ–°å¢ `POST /auth/worker-login`ï¼šå‘˜å·¥æ‰‹æœºå·+å¯†ç ç™»å½•ï¼Œç­¾å‘ `role=worker` JWT
-> - æ–°å¢ `WorkerJwtStrategy` / `WorkerJwtAuthGuard`ï¼šWorker ä¸ Resident token å®Œå…¨éš”ç¦»
-> - æ–°å¢ `PUT /workers/:id/change-password`ï¼šå‘˜å·¥è‡ªè¡Œä¿®æ”¹å¯†ç ï¼ˆéœ€ Worker JWT + æ—§å¯†ç éªŒè¯ï¼‰
-> - æ–°å¢ `POST /workers/:id/reset-password`ï¼šç®¡ç†å‘˜é‡ç½®å‘˜å·¥å¯†ç ä¸ºæ‰‹æœºå·ï¼ˆå…¬å¼€æ¥å£ï¼‰
-> - `JwtPayload` æ¥å£ï¼š`openid` æ”¹ä¸ºå¯é€‰ï¼Œæ–°å¢å¯é€‰ `phone` å­—æ®µ
+> **v2.1 å?æ?´æ??è¦ï¼?P2.13ï¼?2026-06-15ï¼?**ï¼?
+> - æ?°å¢? `POST /auth/worker-login`ï¼?å??å·¥æ??æ?ºå·+å¯?ç ç?»å½?ï¼?ç­¾å? `role=worker` JWT
+> - æ?°å¢? `WorkerJwtStrategy` / `WorkerJwtAuthGuard`ï¼?Worker ä¸? Resident token å®?å?¨é??ç¦»
+> - æ?°å¢? `PUT /workers/:id/change-password`ï¼?å??å·¥è?ªè¡?ä¿®æ?¹å¯?ç ï¼?é?? Worker JWT + æ?§å¯?ç éª?è¯ï¼?
+> - æ?°å¢? `POST /workers/:id/reset-password`ï¼?ç®¡ç?å??é?ç½®å??å·¥å¯?ç ä¸ºæ??æ?ºå·ï¼?å?¬å¼?æ?¥å£ï¼?
+> - `JwtPayload` æ?¥å£ï¼?`openid` æ?¹ä¸ºå¯é??ï¼?æ?°å¢?å¯é?? `phone` å­?æ®µ
 >
-> **v2.2 å˜æ›´æ‘˜è¦ï¼ˆP2.14ï¼Œ2026-06-15ï¼‰**ï¼š
-> - `ServiceCatalog` æ‰©å±•ä¸ºå…¨ CRUDï¼šæ–°å¢ `POST /service-catalogs`ã€`PUT /:id`ã€`DELETE /:id`ã€`PATCH /:id/toggle`ï¼ˆåˆ‡æ¢ `isEnabled`ï¼‰
-> - æ–°å¢ `BannerModule`ï¼š6 ä¸ªç«¯ç‚¹ï¼ˆå…¨ CRUD + `GET /banners/active?displayTarget=`ï¼‰ï¼›æœ‰æ•ˆè½®æ’­å›¾æŒ‰ `isEnabled=true` ä¸”å½“å‰æ—¶é—´åœ¨ `startTime~endTime` å†…è¿‡æ»¤
-> - æ–°å¢ `OperatorModule`ï¼š6 ä¸ªç«¯ç‚¹ï¼ˆå…¨ CRUD + `GET /operators/contact`ï¼‰ï¼›`/contact` è¿”å› `purpose='æ¥å•'` ç¬¬ä¸€æ¡è®°å½•ï¼Œæ— è®°å½•è¿”å› `null`
-> - `packages/shared` æ–°å¢ `BannerDto`ã€`OperatorDto` ä¸¤ä¸ªå…±äº«æ¥å£ç±»å‹
+> **v2.2 å?æ?´æ??è¦ï¼?P2.14ï¼?2026-06-15ï¼?**ï¼?
+> - `ServiceCatalog` æ?©å±?ä¸ºå?¨ CRUDï¼?æ?°å¢? `POST /service-catalogs`ã?`PUT /:id`ã?`DELETE /:id`ã?`PATCH /:id/toggle`ï¼?å??æ¢ `isEnabled`ï¼?
+> - æ?°å¢? `BannerModule`ï¼?6 ä¸ªç«¯ç?¹ï¼?å?¨ CRUD + `GET /banners/active?displayTarget=`ï¼?ï¼?æ??æ??è½®æ?­å?¾æ?? `isEnabled=true` ä¸?å½?å?æ?¶é?´å?¨ `startTime~endTime` å??è¿?æ»¤
+> - æ?°å¢? `OperatorModule`ï¼?6 ä¸ªç«¯ç?¹ï¼?å?¨ CRUD + `GET /operators/contact`ï¼?ï¼?`/contact` è¿?å?? `purpose='æ?¥å?'` ç¬¬ä¸?æ¡è®°å½?ï¼?æ? è®°å½?è¿?å?? `null`
+> - `packages/shared` æ?°å¢? `BannerDto`ã?`OperatorDto` ä¸¤ä¸ªå?±äº«æ?¥å£ç±»å??
 >
-> **v2.4 å˜æ›´æ‘˜è¦ï¼ˆP3.2ï¼Œ2026-06-20ï¼‰**ï¼š
-> - å±…æ°‘ç«¯é¦–é¡µå¯¹æ¥ `GET /banners/active?displayTarget=RESIDENT` ä¸ `GET /operators/contact`
-> - æ–°å¢æœåŠ¡è¯¦æƒ…é¡µï¼ˆ`/pages/service-detail/index`ï¼‰ï¼Œå±•ç¤ºæœåŠ¡è¯´æ˜ + Â§1.6 è¾¹ç•Œå£°æ˜ï¼Œã€Œç«‹å³é¢„çº¦ã€è·³è½¬ä¸‰æ­¥å‘å¯¼
-> - H5 å¼€å‘èµ° Vite ä»£ç† `/api/v1`ï¼›å°ç¨‹åºèµ° `VITE_API_BASE` ç»å¯¹ URL
-> - è·¯ç”±å®ˆå«å…¬å¼€é¡µæ‰©å±•ï¼š`pages/index/index`ã€`pages/service-detail/index`ï¼ˆæµè§ˆæœåŠ¡æ— éœ€ç™»å½•ï¼‰
+> **v2.4 å?æ?´æ??è¦ï¼?P3.2ï¼?2026-06-20ï¼?**ï¼?
+> - å±?æ°?ç«¯é¦?é¡µå¯¹æ?¥ `GET /banners/active?displayTarget=RESIDENT` ä¸? `GET /operators/contact`
+> - æ?°å¢?æ?å?¡è¯¦æ??é¡µï¼?`/pages/service-detail/index`ï¼?ï¼?å±?ç¤ºæ?å?¡è¯´æ?? + Â§1.6 è¾¹ç??å£°æ??ï¼?ã??ç«?å³é¢?çº¦ã?è·³è½¬ä¸?æ­¥å?å¯¼
+> - H5 å¼?å?èµ° Vite ä»£ç? `/api/v1`ï¼?å°ç¨?åºèµ° `VITE_API_BASE` ç»å¯¹ URL
+> - è·¯ç?±å®?å«å?¬å¼?é¡µæ?©å±?ï¼?`pages/index/index`ã?`pages/service-detail/index`ï¼?æµè§?æ?å?¡æ? é??ç?»å½?ï¼?
 >
-> **v2.5 å˜æ›´æ‘˜è¦ï¼ˆP3.3/P3.4ï¼Œ2026-06-20ï¼‰**ï¼š
-> - å±…æ°‘ç«¯ä¿æ´é¢„çº¦ä¸‰æ­¥å‘å¯¼å¯¹æ¥ `GET /service-catalogs?bizType=CLEANING`ã€`GET /addresses`ã€`POST /cleaning-orders`
-> - å±…æ°‘ç«¯åºŸå“å›æ”¶é¢„çº¦ä¸‰æ­¥å‘å¯¼å¯¹æ¥ `GET /service-catalogs?bizType=RECYCLING`ã€`POST /recycling-orders`
-> - æ–°å¢åœ°å€é€‰æ‹©é¡µï¼ˆ`/pages/address-select/index?from=cleaning|recycling`ï¼‰ï¼Œæ”¯æŒåˆ—è¡¨é€‰æ‹© + ç©ºåœ°å€å¼•å¯¼æ–°å¢ï¼ˆ`POST /addresses`ï¼‰
-> - åˆ›å»ºè®¢å•æ”¯æŒ v2.0 ä»£ä¸‹å•å­—æ®µï¼š`isProxyOrder`ã€`serviceContactName`ã€`serviceContactPhone`ã€`source=MINIPROGRAM`
-> - ç¡®è®¤é¡µæ— ä»·æ ¼å±•ç¤ºï¼›ä¿æ´ç”Ÿæˆ CLN å‰ç¼€è®¢å•å·ï¼ŒåºŸå“ç”Ÿæˆ RCY å‰ç¼€è®¢å•å·
+> **v2.5 å?æ?´æ??è¦ï¼?P3.3/P3.4ï¼?2026-06-20ï¼?**ï¼?
+> - å±?æ°?ç«¯ä¿æ´é¢?çº¦ä¸?æ­¥å?å¯¼å¯¹æ?¥ `GET /service-catalogs?bizType=CLEANING`ã?`GET /addresses`ã?`POST /cleaning-orders`
+> - å±?æ°?ç«¯åº?å?å??æ?¶é¢?çº¦ä¸?æ­¥å?å¯¼å¯¹æ?¥ `GET /service-catalogs?bizType=RECYCLING`ã?`POST /recycling-orders`
+> - æ?°å¢?å?°å?é??æ?©é¡µï¼?`/pages/address-select/index?from=cleaning|recycling`ï¼?ï¼?æ?¯æ?å??è¡¨é??æ?© + ç©ºå?°å?å¼?å¯¼æ?°å¢?ï¼?`POST /addresses`ï¼?
+> - å??å»ºè®¢å?æ?¯æ? v2.0 ä»£ä¸?å?å­?æ®µï¼?`isProxyOrder`ã?`serviceContactName`ã?`serviceContactPhone`ã?`source=MINIPROGRAM`
+> - ç¡®è®¤é¡µæ? ä»·æ ¼å±?ç¤ºï¼?ä¿æ´ç??æ? CLN å?ç¼?è®¢å?å·ï¼?åº?å?ç??æ? RCY å?ç¼?è®¢å?å·
 >
-> **v2.6 å˜æ›´æ‘˜è¦ï¼ˆP3.5ï¼Œ2026-06-20ï¼‰**ï¼š
-> - å±…æ°‘ç«¯å®¶æ”¿å’¨è¯¢ä¸¤æ­¥å‘å¯¼å¯¹æ¥ `GET /service-catalogs?bizType=CONSULT`ã€`POST /consult-orders`
-> - æ–°å¢å®¶æ”¿å’¨è¯¢é¢„çº¦é¡µï¼ˆ`/pages/booking-consult/index`ï¼‰ï¼šStep 1 åŠ¨æ€ç±»å‹é€‰æ‹© + Step 2 éœ€æ±‚å¡«å†™
-> - æœåŠ¡è¯¦æƒ…é¡µ `type=consult`ã€Œç«‹å³é¢„çº¦ã€è·³è½¬å®¶æ”¿å’¨è¯¢å‘å¯¼ï¼ˆæ›¿æ¢åŸ Toast å ä½ï¼‰
-> - ä»£ä¸‹å•æ”¯æŒ `isProxyOrder`ã€`serviceContactName`ã€`serviceContactPhone`ï¼›æ— æœåŠ¡åœ°å€å­—æ®µï¼›ç”Ÿæˆ CNS å‰ç¼€è®¢å•å·
+> **v2.6 å?æ?´æ??è¦ï¼?P3.5ï¼?2026-06-20ï¼?**ï¼?
+> - å±?æ°?ç«¯å®¶æ?¿å?¨è¯¢ä¸¤æ­¥å?å¯¼å¯¹æ?¥ `GET /service-catalogs?bizType=CONSULT`ã?`POST /consult-orders`
+> - æ?°å¢?å®¶æ?¿å?¨è¯¢é¢?çº¦é¡µï¼?`/pages/booking-consult/index`ï¼?ï¼?Step 1 å?¨æ?ç±»å??é??æ?© + Step 2 é??æ±?å¡«å??
+> - æ?å?¡è¯¦æ??é¡µ `type=consult`ã??ç«?å³é¢?çº¦ã?è·³è½¬å®¶æ?¿å?¨è¯¢å?å¯¼ï¼?æ?¿æ¢å?? Toast å ä½ï¼?
+> - ä»£ä¸?å?æ?¯æ? `isProxyOrder`ã?`serviceContactName`ã?`serviceContactPhone`ï¼?æ? æ?å?¡å?°å?å­?æ®µï¼?ç??æ? CNS å?ç¼?è®¢å?å·
 
 ---
 
-## 1. é€šç”¨çº¦å®š
+## 1. é??ç?¨çº¦å®?
 
-| é¡¹ | è¯´æ˜ |
+| é¡¹ | è¯´æ?? |
 |---|---|
-| æˆåŠŸç  | `code = 0`ï¼Œ`message = "ok"` |
-| é”™è¯¯ç  | HTTP çŠ¶æ€ç ä¸ `code` ä¸€è‡´ï¼ˆ400/401/404 ç­‰ï¼‰ |
-| åˆ†é¡µåˆ—è¡¨ | `data: { items: T[], total: number, page: number, pageSize: number }` |
-| é‰´æƒ | ä»… `/auth/profile` éœ€ `Authorization: Bearer <accessToken>`ï¼›å…¶ä½™ P2.1â€“P2.4 æ¥å£å‡ä¸º**å…¬å¼€** |
-| æ—¶é—´å­—æ®µ | ISO 8601 å­—ç¬¦ä¸²ï¼ˆå¦‚ `2026-06-02T05:29:49.708Z`ï¼‰ |
-| ä»·æ ¼å­—æ®µ | ~~`ServiceCatalog` çš„ `priceMin`/`priceMax` ä¸ºå­—ç¬¦ä¸²~~ï¼ˆv2.0 å·²ç§»é™¤ä»·æ ¼å­—æ®µï¼Œç”±è¿è¥åå°é…ç½®æŠ¥ä»·ï¼‰ |
+| æ?å??ç  | `code = 0`ï¼?`message = "ok"` |
+| é??è¯¯ç  | HTTP ç?¶æ?ç ä¸? `code` ä¸?è?´ï¼?400/401/404 ç­?ï¼? |
+| å??é¡µå??è¡¨ | `data: { items: T[], total: number, page: number, pageSize: number }` |
+| é?´æ? | ä»? `/auth/profile` é?? `Authorization: Bearer <accessToken>`ï¼?å?¶ä½? P2.1â??P2.4 æ?¥å£å?ä¸º**å?¬å¼?** |
+| æ?¶é?´å­?æ®µ | ISO 8601 å­?ç¬¦ä¸²ï¼?å¦? `2026-06-02T05:29:49.708Z`ï¼? |
+| ä»·æ ¼å­?æ®µ | ~~`ServiceCatalog` ç?? `priceMin`/`priceMax` ä¸ºå­?ç¬¦ä¸²~~ï¼?v2.0 å·²ç§»é?¤ä»·æ ¼å­?æ®µï¼?ç?±è¿è¥å?å°é?ç½®æ?¥ä»·ï¼? |
 
 ---
 
-## 2. Auth æ¨¡å—ï¼ˆP2.1ï¼‰
+## 2. Auth æ¨¡å?ï¼?P2.1ï¼?
 
 ### 2.1 POST `/auth/wechat-login`
 
-å¾®ä¿¡ç™»å½•ï¼ˆmockï¼š`code` â†’ å›ºå®š openidï¼‰ï¼Œç­¾å‘ JWTã€‚
+å¾®ä¿¡ç?»å½?ï¼?mockï¼?`code` â?? å?ºå®? openidï¼?ï¼?ç­¾å? JWTã??
 
-**é‰´æƒ**ï¼šå…¬å¼€
+**é?´æ?**ï¼?å?¬å¼?
 
 **Request Body**
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | å¿?å¡« | è¯´æ?? |
 |---|---|---|---|
-| `code` | string | âœ… | å¾®ä¿¡ç™»å½• codeï¼ˆmock å¯ä»»æ„å­—ç¬¦ä¸²ï¼‰ |
-| `nickname` | string | | é¦–æ¬¡ç™»å½•å¯é€‰ |
-| `avatar` | string | | å¤´åƒ URLï¼Œé¦–æ¬¡ç™»å½•å¯é€‰ |
+| `code` | string | â?? | å¾®ä¿¡ç?»å½? codeï¼?mock å¯ä»»æ?å­?ç¬¦ä¸²ï¼? |
+| `nickname` | string | | é¦?æ¬¡ç?»å½?å¯é?? |
+| `avatar` | string | | å¤´å? URLï¼?é¦?æ¬¡ç?»å½?å¯é?? |
 
 **Response `data`**
 
@@ -82,7 +82,7 @@
   tokens: {
     accessToken: string;
     refreshToken: string;
-    expiresIn: number; // ç§’ï¼Œé»˜è®¤ 7200
+    expiresIn: number; // ç§?ï¼?é»?è®¤ 7200
   };
   resident: {
     id: number;
@@ -97,15 +97,15 @@
 
 ### 2.2 POST `/auth/refresh`
 
-ä½¿ç”¨ refresh token åˆ·æ–° access tokenã€‚
+ä½¿ç?¨ refresh token å?·æ?° access tokenã??
 
-**é‰´æƒ**ï¼šå…¬å¼€
+**é?´æ?**ï¼?å?¬å¼?
 
 **Request Body**
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« |
+| å­?æ®µ | ç±»å?? | å¿?å¡« |
 |---|---|---|
-| `refreshToken` | string | âœ… |
+| `refreshToken` | string | â?? |
 
 **Response `data`**
 
@@ -117,9 +117,9 @@
 
 ### 2.3 GET `/auth/profile`
 
-è·å–å½“å‰ç™»å½•å±…æ°‘ä¿¡æ¯ã€‚
+è?·å?å½?å?ç?»å½?å±?æ°?ä¿¡æ¯ã??
 
-**é‰´æƒ**ï¼šBearer Tokenï¼ˆ401 æœªæºå¸¦æˆ–æ— æ•ˆï¼‰
+**é?´æ?**ï¼?Bearer Tokenï¼?401 æ?ªæºå¸¦æ??æ? æ??ï¼?
 
 **Response `data`**
 
@@ -134,26 +134,26 @@
 }
 ```
 
-### 2.4 POST `/auth/worker-login`ï¼ˆP2.13ï¼‰
+### 2.4 POST `/auth/worker-login`ï¼?P2.13ï¼?
 
-å‘˜å·¥æ‰‹æœºå·+å¯†ç ç™»å½•ï¼Œç­¾å‘ Worker JWTï¼ˆ`role=worker`ï¼Œä¸å±…æ°‘ç«¯å®Œå…¨éš”ç¦»ï¼‰ã€‚
+å??å·¥æ??æ?ºå·+å¯?ç ç?»å½?ï¼?ç­¾å? Worker JWTï¼?`role=worker`ï¼?ä¸?å±?æ°?ç«¯å®?å?¨é??ç¦»ï¼?ã??
 
-**é‰´æƒ**ï¼šå…¬å¼€
+**é?´æ?**ï¼?å?¬å¼?
 
 **Request Body**
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | å¿?å¡« | è¯´æ?? |
 |---|---|---|---|
-| `phone` | string | âœ… | å‘˜å·¥æ‰‹æœºå· |
-| `password` | string | âœ… | ç™»å½•å¯†ç ï¼ˆé¦–æ¬¡ç”±ç®¡ç†å‘˜è®¾å®šï¼Œé—å¿˜å¯ reset-password é‡ç½®ä¸ºæ‰‹æœºå·ï¼‰ |
+| `phone` | string | â?? | å??å·¥æ??æ?ºå· |
+| `password` | string | â?? | ç?»å½?å¯?ç ï¼?é¦?æ¬¡ç?±ç®¡ç?å??è®¾å®?ï¼?é?å¿?å¯ reset-password é?ç½®ä¸ºæ??æ?ºå·ï¼? |
 
 **Response `data`**
 
 ```typescript
 {
   tokens: {
-    accessToken: string;   // role=workerï¼Œ2h æœ‰æ•ˆ
-    refreshToken: string;  // 7d æœ‰æ•ˆ
+    accessToken: string;   // role=workerï¼?2h æ??æ??
+    refreshToken: string;  // 7d æ??æ??
     expiresIn: number;     // 7200
   };
   worker: {
@@ -165,195 +165,195 @@
 }
 ```
 
-**é”™è¯¯ç **ï¼š`401 Unauthorized`ï¼ˆæ‰‹æœºå·ä¸å­˜åœ¨æˆ–å¯†ç é”™è¯¯ï¼Œç»Ÿä¸€æ¶ˆæ¯"æ‰‹æœºå·æˆ–å¯†ç é”™è¯¯"ï¼Œä¸åŒºåˆ†ä»¥é˜²æšä¸¾ï¼‰
+**é??è¯¯ç **ï¼?`401 Unauthorized`ï¼?æ??æ?ºå·ä¸å­?å?¨æ??å¯?ç é??è¯¯ï¼?ç»?ä¸?æ¶?æ¯"æ??æ?ºå·æ??å¯?ç é??è¯¯"ï¼?ä¸å?ºå??ä»¥é?²æ??ä¸¾ï¼?
 
 ---
 
-### 2.5 PUT `/workers/:id/change-password`ï¼ˆP2.13ï¼‰
+### 2.5 PUT `/workers/:id/change-password`ï¼?P2.13ï¼?
 
-å‘˜å·¥è‡ªè¡Œä¿®æ”¹å¯†ç ï¼ˆéœ€æ—§å¯†ç éªŒè¯ï¼‰ã€‚
+å??å·¥è?ªè¡?ä¿®æ?¹å¯?ç ï¼?é??æ?§å¯?ç éª?è¯ï¼?ã??
 
-**é‰´æƒ**ï¼š`WorkerJwtAuthGuard`ï¼ˆéœ€æºå¸¦ Worker access tokenï¼‰
+**é?´æ?**ï¼?`WorkerJwtAuthGuard`ï¼?é??æºå¸¦ Worker access tokenï¼?
 
 **Request Body**
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | å¿?å¡« | è¯´æ?? |
 |---|---|---|---|
-| `oldPassword` | string | âœ… | å½“å‰å¯†ç  |
-| `newPassword` | string | âœ… | æ–°å¯†ç ï¼ˆâ‰¥6 ä½ï¼‰ |
+| `oldPassword` | string | â?? | å½?å?å¯?ç  |
+| `newPassword` | string | â?? | æ?°å¯?ç ï¼?â?¥6 ä½ï¼? |
 
-**Response `data`**ï¼š`WorkerDto`ï¼ˆä¸å« `passwordHash`ï¼‰
+**Response `data`**ï¼?`WorkerDto`ï¼?ä¸å« `passwordHash`ï¼?
 
-**é”™è¯¯ç **ï¼š`400 BadRequest`ï¼ˆæ—§å¯†ç é”™è¯¯ï¼‰ã€`401 Unauthorized`ï¼ˆæœªæºå¸¦/æ— æ•ˆ tokenï¼‰ã€`404 NotFound`ï¼ˆå‘˜å·¥ä¸å­˜åœ¨ï¼‰
-
----
-
-### 2.6 POST `/workers/:id/reset-password`ï¼ˆP2.13ï¼‰
-
-ç®¡ç†å‘˜é‡ç½®å‘˜å·¥å¯†ç ä¸ºå®Œæ•´æ‰‹æœºå·ï¼ˆå‘˜å·¥å¿˜è®°å¯†ç æ—¶ä½¿ç”¨ï¼‰ã€‚
-
-**é‰´æƒ**ï¼šå…¬å¼€ï¼ˆæœ¬æœŸæš‚æ—  Admin Guardï¼ŒP5 é˜¶æ®µåŠ å›ºï¼‰
-
-**Response `data`**ï¼š`WorkerDto`ï¼ˆä¸å« `passwordHash`ï¼‰
-
-**é”™è¯¯ç **ï¼š`404 NotFound`ï¼ˆå‘˜å·¥ä¸å­˜åœ¨ï¼‰
-
-> **é‡ç½®è§„åˆ™**ï¼šæ–°å¯†ç  = `bcrypt.hash(worker.phone, 10)`ï¼Œå‘˜å·¥ç”¨æ‰‹æœºå·å³å¯é‡æ–°ç™»å½•ã€‚
+**é??è¯¯ç **ï¼?`400 BadRequest`ï¼?æ?§å¯?ç é??è¯¯ï¼?ã?`401 Unauthorized`ï¼?æ?ªæºå¸¦/æ? æ?? tokenï¼?ã?`404 NotFound`ï¼?å??å·¥ä¸å­?å?¨ï¼?
 
 ---
 
-## 3. ç”¨æˆ· CRUDï¼ˆP2.2ï¼‰
+### 2.6 POST `/workers/:id/reset-password`ï¼?P2.13ï¼?
 
-ä¸‰ç±»ç”¨æˆ·æ¥å£ç»“æ„ä¸€è‡´ï¼š`POST` åˆ›å»º / `GET` åˆ—è¡¨ / `GET :id` è¯¦æƒ… / `PUT :id` æ›´æ–° / `DELETE :id` åˆ é™¤ã€‚
+ç®¡ç?å??é?ç½®å??å·¥å¯?ç ä¸ºå®?æ?´æ??æ?ºå·ï¼?å??å·¥å¿?è®°å¯?ç æ?¶ä½¿ç?¨ï¼?ã??
 
-**é‰´æƒ**ï¼šå…¬å¼€ï¼ˆç®¡ç†ç«¯é‰´æƒç•™åç»­é˜¶æ®µï¼‰
+**é?´æ?**ï¼?å?¬å¼?ï¼?æ?¬æ??æ??æ?  Admin Guardï¼?P5 é?¶æ®µå? å?ºï¼?
+
+**Response `data`**ï¼?`WorkerDto`ï¼?ä¸å« `passwordHash`ï¼?
+
+**é??è¯¯ç **ï¼?`404 NotFound`ï¼?å??å·¥ä¸å­?å?¨ï¼?
+
+> **é?ç½®è§?å??**ï¼?æ?°å¯?ç  = `bcrypt.hash(worker.phone, 10)`ï¼?å??å·¥ç?¨æ??æ?ºå·å³å¯é?æ?°ç?»å½?ã??
+
+---
+
+## 3. ç?¨æ?· CRUDï¼?P2.2ï¼?
+
+ä¸?ç±»ç?¨æ?·æ?¥å£ç»?æ??ä¸?è?´ï¼?`POST` å??å»º / `GET` å??è¡¨ / `GET :id` è¯¦æ?? / `PUT :id` æ?´æ?° / `DELETE :id` å? é?¤ã??
+
+**é?´æ?**ï¼?å?¬å¼?ï¼?ç®¡ç?ç«¯é?´æ?ç??å?ç»­é?¶æ®µï¼?
 
 ### 3.1 Residents `/residents`
 
-**åˆ›å»º Bodyï¼ˆæœ€å°å¿…å¡« `openid`ï¼‰**
+**å??å»º Bodyï¼?æ??å°å¿?å¡« `openid`ï¼?**
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« |
+| å­?æ®µ | ç±»å?? | å¿?å¡« |
 |---|---|---|
-| `openid` | string | âœ… |
+| `openid` | string | â?? |
 | `nickname` | string | |
 | `name` | string | |
 | `phone` | string | |
 | `avatar` | string | |
 
-**åˆ—è¡¨ Query**ï¼š`page`, `pageSize`, `openid?`, `phone?`, `name?`
+**å??è¡¨ Query**ï¼?`page`, `pageSize`, `openid?`, `phone?`, `name?`
 
-**Response å•æ¡ `data`**ï¼š`ResidentDto`ï¼ˆå« `id`, `openid`, `nickname`, `name`, `phone`, `avatar`, `createdAt`, `updatedAt`ï¼‰
+**Response å?æ¡ `data`**ï¼?`ResidentDto`ï¼?å« `id`, `openid`, `nickname`, `name`, `phone`, `avatar`, `createdAt`, `updatedAt`ï¼?
 
 ---
 
 ### 3.2 Workers `/workers`
 
-**åˆ›å»º Bodyï¼ˆå¿…å¡«ï¼‰**
+**å??å»º Bodyï¼?å¿?å¡«ï¼?**
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | å¿?å¡« | è¯´æ?? |
 |---|---|---|---|
-| `openid` | string | âœ… | |
-| `employeeNo` | string | âœ… | å·¥å· |
-| `password` | string | âœ… | æ˜æ–‡ä¼ è¾“ï¼ŒæœåŠ¡ç«¯ bcrypt å­˜ `passwordHash` |
-| `name` | string | âœ… | |
-| `phone` | string | âœ… | |
+| `openid` | string | â?? | |
+| `employeeNo` | string | â?? | å·¥å· |
+| `password` | string | â?? | æ??æ??ä¼ è¾?ï¼?æ?å?¡ç«¯ bcrypt å­? `passwordHash` |
+| `name` | string | â?? | |
+| `phone` | string | â?? | |
 | `avatar` | string | | |
-| `status` | enum | | `IDLE` / `BUSY`ï¼Œé»˜è®¤ `IDLE` |
-| `rating` | number | | 0â€“5ï¼Œé»˜è®¤ 5 |
-| `totalOrders` | number | | é»˜è®¤ 0 |
-| `skills` | string[] | âœ… | æŠ€èƒ½æ ‡ç­¾ |
+| `status` | enum | | `IDLE` / `BUSY`ï¼?é»?è®¤ `IDLE` |
+| `rating` | number | | 0â??5ï¼?é»?è®¤ 5 |
+| `totalOrders` | number | | é»?è®¤ 0 |
+| `skills` | string[] | â?? | æ??è?½æ ?ç­¾ |
 
-**åˆ—è¡¨ Query**ï¼š`page`, `pageSize`, `employeeNo?`, `name?`, `phone?`, `status?`
+**å??è¡¨ Query**ï¼?`page`, `pageSize`, `employeeNo?`, `name?`, `phone?`, `status?`
 
-**Response å•æ¡ `data`**ï¼š`WorkerDto`ï¼ˆ**ä¸å«** `passwordHash`ï¼‰
+**Response å?æ¡ `data`**ï¼?`WorkerDto`ï¼?**ä¸å«** `passwordHash`ï¼?
 
 ---
 
 ### 3.3 Admins `/admins`
 
-**åˆ›å»º Body**
+**å??å»º Body**
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« |
+| å­?æ®µ | ç±»å?? | å¿?å¡« |
 |---|---|---|
-| `email` | string | âœ… |
-| `password` | string | âœ… |
-| `name` | string | âœ… |
+| `email` | string | â?? |
+| `password` | string | â?? |
+| `name` | string | â?? |
 
-**åˆ—è¡¨ Query**ï¼š`page`, `pageSize`, `email?`, `name?`
+**å??è¡¨ Query**ï¼?`page`, `pageSize`, `email?`, `name?`
 
-**Response å•æ¡ `data`**ï¼š`AdminDto`ï¼ˆ**ä¸å«** `passwordHash`ï¼‰
+**Response å?æ¡ `data`**ï¼?`AdminDto`ï¼?**ä¸å«** `passwordHash`ï¼?
 
 ---
 
-## 4. åœ°å€ç®¡ç†ï¼ˆP2.3ï¼‰
+## 4. å?°å?ç®¡ç?ï¼?P2.3ï¼?
 
-**Base path**ï¼š`/addresses`
+**Base path**ï¼?`/addresses`
 
-**é‰´æƒ**ï¼šå…¬å¼€
+**é?´æ?**ï¼?å?¬å¼?
 
 ### 4.1 POST `/addresses`
 
 **Body**
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« |
+| å­?æ®µ | ç±»å?? | å¿?å¡« |
 |---|---|---|
-| `residentId` | number | âœ… |
-| `name` | string | âœ… |
-| `phone` | string | âœ… |
-| `province` | string | âœ… |
-| `city` | string | âœ… |
-| `district` | string | âœ… |
-| `detail` | string | âœ… |
+| `residentId` | number | â?? |
+| `name` | string | â?? |
+| `phone` | string | â?? |
+| `province` | string | â?? |
+| `city` | string | â?? |
+| `district` | string | â?? |
+| `detail` | string | â?? |
 | `lat` | number | |
 | `lng` | number | |
-| `isDefault` | boolean | é»˜è®¤ falseï¼›ä¸º true æ—¶åŒ resident å…¶ä»–åœ°å€è‡ªåŠ¨å–æ¶ˆé»˜è®¤ |
+| `isDefault` | boolean | é»?è®¤ falseï¼?ä¸º true æ?¶å? resident å?¶ä»?å?°å?è?ªå?¨å?æ¶?é»?è®¤ |
 
-**Response `data`**ï¼š`AddressDto`
+**Response `data`**ï¼?`AddressDto`
 
 ---
 
 ### 4.2 GET `/addresses`
 
-**Query**ï¼š`page`, `pageSize`, `residentId?`, `isDefault?`
+**Query**ï¼?`page`, `pageSize`, `residentId?`, `isDefault?`
 
-**Response `data`**ï¼šåˆ†é¡µ `{ items: AddressDto[], total, page, pageSize }`
+**Response `data`**ï¼?å??é¡µ `{ items: AddressDto[], total, page, pageSize }`
 
 ---
 
 ### 4.3 GET `/addresses/:id`
 
-**Response `data`**ï¼š`AddressDto`ï¼ˆ404 ä¸å­˜åœ¨ï¼‰
+**Response `data`**ï¼?`AddressDto`ï¼?404 ä¸å­?å?¨ï¼?
 
 ---
 
 ### 4.4 PUT `/addresses/:id`
 
-**Body**ï¼š`UpdateAddressDto`ï¼ˆ`CreateAddressDto` å…¨éƒ¨å­—æ®µå¯é€‰ï¼‰
+**Body**ï¼?`UpdateAddressDto`ï¼?`CreateAddressDto` å?¨é?¨å­?æ®µå¯é??ï¼?
 
-**ä¸šåŠ¡è§„åˆ™**ï¼šæ›´æ–° `isDefault=true` æ—¶ï¼ŒåŒ resident ä»…ä¿ç•™ä¸€æ¡é»˜è®¤
+**ä¸?å?¡è§?å??**ï¼?æ?´æ?° `isDefault=true` æ?¶ï¼?å? resident ä»?ä¿ç??ä¸?æ¡é»?è®¤
 
-**Response `data`**ï¼š`AddressDto`
+**Response `data`**ï¼?`AddressDto`
 
 ---
 
 ### 4.5 PUT `/addresses/:id/default`
 
-è®¾ä¸ºé»˜è®¤åœ°å€ï¼ˆåŒ resident å…¶ä»–åœ°å€ `isDefault` ç½® falseï¼‰ã€‚
+è®¾ä¸ºé»?è®¤å?°å?ï¼?å? resident å?¶ä»?å?°å? `isDefault` ç½® falseï¼?ã??
 
-**Response `data`**ï¼š`AddressDto`
+**Response `data`**ï¼?`AddressDto`
 
 ---
 
 ### 4.6 DELETE `/addresses/:id`
 
-**Response `data`**ï¼š`{ id: number }`
+**Response `data`**ï¼?`{ id: number }`
 
 ---
 
-## 5. æœåŠ¡ç›®å½•æŸ¥è¯¢ï¼ˆP2.4ï¼‰
+## 5. æ?å?¡ç?®å½?æ?¥è¯¢ï¼?P2.4ï¼?
 
-**Base path**ï¼š`/service-catalogs`
+**Base path**ï¼?`/service-catalogs`
 
-**é‰´æƒ**ï¼šå…¬å¼€ï¼ˆå°ç¨‹åºä¸‹å•å‰æµè§ˆæœåŠ¡é¡¹ï¼‰
+**é?´æ?**ï¼?å?¬å¼?ï¼?å°ç¨?åºä¸?å?å?æµè§?æ?å?¡é¡¹ï¼?
 
-**æ•°æ®æ¥æº**ï¼šP1.2 ç§å­æ•°æ®ï¼ˆ10 æ¡ï¼šCLEANINGÃ—3ã€RECYCLINGÃ—2ã€CONSULTÃ—5ï¼‰
+**æ?°æ®æ¥æº**ï¼?P1.2 ç§å­æ?°æ®ï¼?10 æ¡ï¼?CLEANINGÃ?3ã?RECYCLINGÃ?2ã?CONSULTÃ?5ï¼?
 
-**å›¾æ ‡è¯´æ˜**ï¼šSchema æ—  `icon` å­—æ®µï¼›å‰ç«¯æŒ‰ `bizType` é™æ€æ˜ å°„å›¾æ ‡
+**å?¾æ ?è¯´æ??**ï¼?Schema æ?  `icon` å­?æ®µï¼?å?ç«¯æ?? `bizType` é?æ?æ? å°?å?¾æ ?
 
 ### 5.1 GET `/service-catalogs`
 
-åˆ†é¡µæŸ¥è¯¢æœåŠ¡ç›®å½•åˆ—è¡¨ã€‚
+å??é¡µæ?¥è¯¢æ?å?¡ç?®å½?å??è¡¨ã??
 
 **Query**
 
-| å­—æ®µ | ç±»å‹ | é»˜è®¤ | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | é»?è®¤ | è¯´æ?? |
 |---|---|---|---|
 | `page` | number | 1 | é¡µç  |
-| `pageSize` | number | 10 | æ¯é¡µæ•°é‡ï¼Œæœ€å¤§ 100 |
+| `pageSize` | number | 10 | æ¯é¡µæ?°é?ï¼?æ??å¤§ 100 |
 | `bizType` | enum | | `CLEANING` / `RECYCLING` / `CONSULT` |
-| `isActive` | boolean | `true` | é»˜è®¤ä»…è¿”å›å¯ç”¨é¡¹ |
+| `isActive` | boolean | `true` | é»?è®¤ä»?è¿?å??å¯ç?¨é¡¹ |
 
-**æ’åº**ï¼š`sortOrder ASC`, `id ASC`
+**æ??åº**ï¼?`sortOrder ASC`, `id ASC`
 
 **Response `data`**
 
@@ -366,44 +366,44 @@
 }
 ```
 
-**ServiceCatalogDto**ï¼ˆv2.0ï¼ŒP2.12 è¿ç§»åç”Ÿæ•ˆï¼‰
+**ServiceCatalogDto**ï¼?v2.0ï¼?P2.12 è¿ç§»å?ç??æ??ï¼?
 
-| å­—æ®µ | ç±»å‹ | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | è¯´æ?? |
 |---|---|---|
 | `id` | number | |
-| `bizType` | `CLEANING` \| `RECYCLING` \| `CONSULT` | ä¸šåŠ¡å¤§ç±» |
-| `name` | string | æœåŠ¡é¡¹åç§°ï¼ˆåŸ `serviceItem`ï¼‰ |
-| `subtitle` | string \| null | å‰¯æ ‡é¢˜/ç®€ä»‹ |
-| `icon` | string \| null | å›¾æ ‡ URL |
-| `sortOrder` | number | æ’åº |
-| `isEnabled` | boolean | æ˜¯å¦å¯ç”¨ï¼ˆåŸ `isActive`ï¼‰ |
-| `specialTips` | string \| null | ç‰¹æ®Šæç¤º |
+| `bizType` | `CLEANING` \| `RECYCLING` \| `CONSULT` | ä¸?å?¡å¤§ç±» |
+| `name` | string | æ?å?¡é¡¹åç§°ï¼?å?? `serviceItem`ï¼? |
+| `subtitle` | string \| null | å?¯æ ?é¢?/ç®?ä»? |
+| `icon` | string \| null | å?¾æ ? URL |
+| `sortOrder` | number | æ??åº |
+| `isEnabled` | boolean | æ?¯å¦å¯ç?¨ï¼?å?? `isActive`ï¼? |
+| `specialTips` | string \| null | ç?¹æ®?æç¤º |
 | `createdAt` | string | |
 | `updatedAt` | string | |
 
-> **v1.x å·²åºŸå¼ƒå­—æ®µ**ï¼š`serviceItem`ã€`priceMin`ã€`priceMax`ã€`priceUnit`ã€`description`ã€`isActive`ï¼ˆP2.12 è¿ç§»åä» schema ç§»é™¤ï¼‰
+> **v1.x å·²åº?å¼?å­?æ®µ**ï¼?`serviceItem`ã?`priceMin`ã?`priceMax`ã?`priceUnit`ã?`description`ã?`isActive`ï¼?P2.12 è¿ç§»å?ä»? schema ç§»é?¤ï¼?
 
-**éªŒæ”¶ç¤ºä¾‹ï¼ˆ2026-06-07ï¼‰**
+**éª?æ?¶ç¤ºä¾?ï¼?2026-06-07ï¼?**
 
-| Query | æœŸæœ› total |
+| Query | æ??æ?? total |
 |---|---|
 | `?bizType=CLEANING&pageSize=100` | 3 |
 | `?bizType=RECYCLING&pageSize=100` | 2 |
 | `?bizType=CONSULT&pageSize=100` | 5 |
 | `?pageSize=100` | 10 |
-| `?bizType=FOO` | 400 æ ¡éªŒé”™è¯¯ |
+| `?bizType=FOO` | 400 æ ¡éª?é??è¯¯ |
 
 ---
 
 ### 5.2 GET `/service-catalogs/:id`
 
-**Response `data`**ï¼š`ServiceCatalogDto`ï¼ˆ404 ä¸å­˜åœ¨ï¼‰
+**Response `data`**ï¼?`ServiceCatalogDto`ï¼?404 ä¸å­?å?¨ï¼?
 
 ---
 
-## 6. å…³é”®æ–‡ä»¶ç´¢å¼•
+## 6. å?³é?®æ??ä»¶ç´¢å¼?
 
-| æ¨¡å— | è·¯å¾„ |
+| æ¨¡å? | è·¯å¾? |
 |---|---|
 | Auth | `apps/server/src/modules/auth/` |
 | Resident | `apps/server/src/modules/resident/` |
@@ -411,530 +411,530 @@
 | Admin | `apps/server/src/modules/admin/` |
 | Address | `apps/server/src/modules/address/` |
 | ServiceCatalog | `apps/server/src/modules/service-catalog/` |
-| å…±äº«ç±»å‹ | `packages/shared/src/entities/`, `packages/shared/src/constants/` |
-| ç§å­æ•°æ® | `apps/server/prisma/seed.ts` |
+| å?±äº«ç±»å?? | `packages/shared/src/entities/`, `packages/shared/src/constants/` |
+| ç§å­æ?°æ® | `apps/server/prisma/seed.ts` |
 
 ---
 
-## 7. P2.5a å£å¾„æ›´æ–°ï¼ˆCleaningOrder åˆ›å»ºï¼‰
+## 7. P2.5a å£å¾?æ?´æ?°ï¼?CleaningOrder å??å»ºï¼?
 
-- è¯»å–æœ¬æ–‡æ¡£ + `packages/shared` è®¢å• DTO
-- åˆ›å»º `CleaningOrder` CRUDï¼Œè®¢å•å·è§„åˆ™ä¸º `CLN + yyyyMMdd + 6ä½åºå·`
-- åˆ›å»ºè®¢å•æ—¶ `referenceAmount = serviceDuration Ã— priceMin`
-- åˆ›å»ºæ¥å£è¯·æ±‚ä½“ä¸­æ˜¾å¼å¿…å¡« `residentId`ï¼ˆå…¬å¼€æ¥å£è”è°ƒé˜¶æ®µï¼‰
+- è¯»å?æ?¬æ??æ¡£ + `packages/shared` è®¢å? DTO
+- å??å»º `CleaningOrder` CRUDï¼?è®¢å?å·è§?å??ä¸º `CLN + yyyyMMdd + 6ä½åºå·`
+- å??å»ºè®¢å?æ?¶ `referenceAmount = serviceDuration Ã? priceMin`
+- å??å»ºæ?¥å£è¯·æ±?ä½?ä¸­æ?¾å¼å¿?å¡« `residentId`ï¼?å?¬å¼?æ?¥å£è?è°?é?¶æ®µï¼?
 
-**åˆ›å»ºæ¥å£å…³é”®å­—æ®µï¼ˆç¡®è®¤ç‰ˆï¼‰**
+**å??å»ºæ?¥å£å?³é?®å­?æ®µï¼?ç¡®è®¤ç??ï¼?**
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | å¿?å¡« | è¯´æ?? |
 |---|---|---|---|
-| `residentId` | number | âœ… | åˆ›å»ºè¯·æ±‚ä½“æ˜¾å¼ä¼ å…¥ |
-| `serviceItem` | string | âœ… | ä¿æ´æœåŠ¡é¡¹åç§° |
-| `serviceDuration` | number | âœ… | æœåŠ¡æ—¶é•¿ï¼ˆå°æ—¶ï¼‰ |
-| `appointDate` | string | âœ… | é¢„çº¦æ—¥æœŸ |
-| `appointTimeSlot` | string | âœ… | é¢„çº¦æ—¶æ®µ |
-| `addressId` | number | âœ… | åœ°å€ ID |
-| `contactName` | string | âœ… | è”ç³»äºº |
-| `contactPhone` | string | âœ… | è”ç³»ç”µè¯ |
+| `residentId` | number | â?? | å??å»ºè¯·æ±?ä½?æ?¾å¼ä¼ å?¥ |
+| `serviceItem` | string | â?? | ä¿æ´æ?å?¡é¡¹åç§° |
+| `serviceDuration` | number | â?? | æ?å?¡æ?¶é?¿ï¼?å°æ?¶ï¼? |
+| `appointDate` | string | â?? | é¢?çº¦æ?¥æ?? |
+| `appointTimeSlot` | string | â?? | é¢?çº¦æ?¶æ®µ |
+| `addressId` | number | â?? | å?°å? ID |
+| `contactName` | string | â?? | è?ç³»äºº |
+| `contactPhone` | string | â?? | è?ç³»ç?µè¯ |
 
 ---
 
-## 8. P2.5b çŠ¶æ€æœºå¥‘çº¦ï¼ˆCleaningOrder çŠ¶æ€æœºæ ¸å¿ƒï¼Œ2026-06-07 ç¡®è®¤ï¼‰
+## 8. P2.5b ç?¶æ?æ?ºå¥?çº¦ï¼?CleaningOrder ç?¶æ?æ?ºæ ¸å¿?ï¼?2026-06-07 ç¡®è®¤ï¼?
 
-> æœ¬èŠ‚ä¸º P2.5b ç¼–ç çš„å‰ç½®å¥‘çº¦ï¼ŒAI Agent å®ç°æ—¶é¡»ä¸¥æ ¼éµå®ˆã€‚
+> æ?¬è??ä¸º P2.5b ç¼?ç ç??å?ç½®å¥?çº¦ï¼?AI Agent å®?ç?°æ?¶é¡»ä¸¥æ ¼éµå®?ã??
 
-### 8.1 ä¿æ´è®¢å•çŠ¶æ€æšä¸¾
+### 8.1 ä¿æ´è®¢å?ç?¶æ?æ??ä¸¾
 
 ```typescript
 enum CleaningOrderStatus {
-  PENDING_ASSIGN  = 'PENDING_ASSIGN',   // å¾…æ´¾å•
-  ASSIGNED        = 'ASSIGNED',          // å·²æ´¾å•
-  ACCEPTED        = 'ACCEPTED',          // å·²æ¥å•
-  IN_SERVICE      = 'IN_SERVICE',        // æœåŠ¡ä¸­
-  PENDING_REVIEW  = 'PENDING_REVIEW',    // å¾…è¯„ä»·
-  REVIEWED        = 'REVIEWED',          // å·²è¯„ä»·ï¼ˆç»ˆæ€ï¼‰
-  CANCELLED       = 'CANCELLED',         // å·²å–æ¶ˆï¼ˆç»ˆæ€ï¼‰
+  PENDING_ASSIGN  = 'PENDING_ASSIGN',   // å¾?æ´¾å?
+  ASSIGNED        = 'ASSIGNED',          // å·²æ´¾å?
+  ACCEPTED        = 'ACCEPTED',          // å·²æ?¥å?
+  IN_SERVICE      = 'IN_SERVICE',        // æ?å?¡ä¸­
+  PENDING_REVIEW  = 'PENDING_REVIEW',    // å¾?è¯?ä»·
+  REVIEWED        = 'REVIEWED',          // å·²è¯?ä»·ï¼?ç»?æ?ï¼?
+  CANCELLED       = 'CANCELLED',         // å·²å?æ¶?ï¼?ç»?æ?ï¼?
 }
 ```
 
-### 8.2 åˆæ³•çŠ¶æ€è½¬ç§»è§„åˆ™
+### 8.2 å?æ³?ç?¶æ?è½¬ç§»è§?å??
 
-| å½“å‰çŠ¶æ€ | å…è®¸è½¬å…¥ | è§¦å‘åŠ¨ä½œ | æ“ä½œæ–¹ |
+| å½?å?ç?¶æ? | å?è®¸è½¬å?¥ | è§¦å?å?¨ä½? | æ?ä½?æ?¹ |
 |---|---|---|---|
-| `PENDING_ASSIGN` | `ASSIGNED` | è¿è¥åˆ†é…å‘˜å·¥ | Admin |
-| `PENDING_ASSIGN` | `CANCELLED` | å±…æ°‘ä¸»åŠ¨å–æ¶ˆ | Resident |
-| `ASSIGNED` | `ACCEPTED` | å‘˜å·¥æ¥å• | Worker |
-| `ACCEPTED` | `IN_SERVICE` | å‘˜å·¥å¼€å§‹æœåŠ¡ï¼ˆå« GPSï¼‰ | Worker |
-| `IN_SERVICE` | `PENDING_REVIEW` | å‘˜å·¥å®ŒæˆæœåŠ¡ | Worker |
-| `PENDING_REVIEW` | `REVIEWED` | å±…æ°‘æäº¤è¯„ä»· | Resident |
+| `PENDING_ASSIGN` | `ASSIGNED` | è¿è¥å??é?å??å·¥ | Admin |
+| `PENDING_ASSIGN` | `CANCELLED` | å±?æ°?ä¸»å?¨å?æ¶? | Resident |
+| `ASSIGNED` | `ACCEPTED` | å??å·¥æ?¥å? | Worker |
+| `ACCEPTED` | `IN_SERVICE` | å??å·¥å¼?å§?æ?å?¡ï¼?å« GPSï¼? | Worker |
+| `IN_SERVICE` | `PENDING_REVIEW` | å??å·¥å®?æ?æ?å?¡ | Worker |
+| `PENDING_REVIEW` | `REVIEWED` | å±?æ°?æäº¤è¯?ä»· | Resident |
 
-> **å–æ¶ˆè§„åˆ™**ï¼š`CANCELLED` ä»…å…è®¸ä» `PENDING_ASSIGN` è½¬å…¥ã€‚å…¶ä½™çŠ¶æ€è½¬å…¥ `CANCELLED` å‡åº”æŠ›å‡ºå¼‚å¸¸ï¼ˆHTTP 400ï¼Œ`message: "å½“å‰è®¢å•çŠ¶æ€ä¸å…è®¸å–æ¶ˆï¼Œè¯·è”ç³»å®¢æœ"`ï¼‰ã€‚  
-> **éæ³•è½¬ç§»**ï¼šä¸Šè¡¨ä»¥å¤–çš„æ‰€æœ‰è½¬ç§»å‡ä¸ºéæ³•ï¼ŒæŠ›å‡º HTTP 400 å¹¶è¯´æ˜å½“å‰çŠ¶æ€ä¸ç›®æ ‡çŠ¶æ€ã€‚
+> **å?æ¶?è§?å??**ï¼?`CANCELLED` ä»?å?è®¸ä»? `PENDING_ASSIGN` è½¬å?¥ã??å?¶ä½?ç?¶æ?è½¬å?¥ `CANCELLED` å?åº?æ??å?ºå¼?å¸¸ï¼?HTTP 400ï¼?`message: "å½?å?è®¢å?ç?¶æ?ä¸å?è®¸å?æ¶?ï¼?è¯·è?ç³»å®¢æ?"`ï¼?ã??  
+> **é?æ³?è½¬ç§»**ï¼?ä¸?è¡¨ä»¥å¤?ç??æ??æ??è½¬ç§»å?ä¸ºé?æ³?ï¼?æ??å?º HTTP 400 å¹¶è¯´æ??å½?å?ç?¶æ?ä¸?ç?®æ ?ç?¶æ?ã??
 
-### 8.3 ä¸‰ç«¯çŠ¶æ€æ˜¾ç¤ºåæ˜ å°„
+### 8.3 ä¸?ç«¯ç?¶æ?æ?¾ç¤ºåæ? å°?
 
-> å‰ç«¯æŒ‰æ­¤è¡¨è¿›è¡Œæšä¸¾å€¼ â†’ æ˜¾ç¤ºæ–‡å­—çš„æ˜ å°„ï¼Œ**ä¸åœ¨åç«¯å¤„ç†æ˜¾ç¤ºå**ã€‚
+> å?ç«¯æ??æ­¤è¡¨è¿?è¡?æ??ä¸¾å?¼ â?? æ?¾ç¤ºæ??å­?ç??æ? å°?ï¼?**ä¸å?¨å?ç«¯å¤?ç?æ?¾ç¤ºå**ã??
 
-| æšä¸¾å€¼ | å±…æ°‘ç«¯ | å‘˜å·¥ç«¯ | åå° |
+| æ??ä¸¾å?¼ | å±?æ°?ç«¯ | å??å·¥ç«¯ | å?å° |
 |---|---|---|---|
-| `PENDING_ASSIGN` | å¾…æ´¾å• | â€”ï¼ˆä¸å¯è§ï¼‰ | å¾…æ´¾å• |
-| `ASSIGNED` | å·²æ´¾å• | **å¾…æ¥å•** | å·²æ´¾å• |
-| `ACCEPTED` | å·²æ¥å• | å·²æ¥å• | å·²æ¥å• |
-| `IN_SERVICE` | æœåŠ¡ä¸­ | æœåŠ¡ä¸­ | æœåŠ¡ä¸­ |
-| `PENDING_REVIEW` | å¾…è¯„ä»· | å¾…è¯„ä»· | å¾…è¯„ä»· |
-| `REVIEWED` | å·²è¯„ä»· | å·²è¯„ä»· | å·²è¯„ä»· |
-| `CANCELLED` | å·²å–æ¶ˆ | å·²å–æ¶ˆ | å·²å–æ¶ˆ |
+| `PENDING_ASSIGN` | å¾?æ´¾å? | â??ï¼?ä¸å¯è§ï¼? | å¾?æ´¾å? |
+| `ASSIGNED` | å·²æ´¾å? | **å¾?æ?¥å?** | å·²æ´¾å? |
+| `ACCEPTED` | å·²æ?¥å? | å·²æ?¥å? | å·²æ?¥å? |
+| `IN_SERVICE` | æ?å?¡ä¸­ | æ?å?¡ä¸­ | æ?å?¡ä¸­ |
+| `PENDING_REVIEW` | å¾?è¯?ä»· | å¾?è¯?ä»· | å¾?è¯?ä»· |
+| `REVIEWED` | å·²è¯?ä»· | å·²è¯?ä»· | å·²è¯?ä»· |
+| `CANCELLED` | å·²å?æ¶? | å·²å?æ¶? | å·²å?æ¶? |
 
-### 8.4 åºŸå“è®¢å•çŠ¶æ€ï¼ˆä¸ä¿æ´ä¸€è‡´ï¼‰
+### 8.4 åº?å?è®¢å?ç?¶æ?ï¼?ä¸?ä¿æ´ä¸?è?´ï¼?
 
-åºŸå“è®¢å•ï¼ˆ`RecyclingOrder`ï¼‰çŠ¶æ€æšä¸¾ä¸ä¿æ´å®Œå…¨ä¸€è‡´ï¼Œç›´æ¥å¤ç”¨ Â§8.1 æšä¸¾å®šä¹‰ï¼Œ**æ— é¢å¤–çŠ¶æ€**ã€‚
+åº?å?è®¢å?ï¼?`RecyclingOrder`ï¼?ç?¶æ?æ??ä¸¾ä¸?ä¿æ´å®?å?¨ä¸?è?´ï¼?ç?´æ?¥å¤ç?¨ Â§8.1 æ??ä¸¾å®?ä¹?ï¼?**æ? é¢å¤?ç?¶æ?**ã??
 
-çŠ¶æ€è½¬ç§»è§„åˆ™ä¸ Â§8.2 ä¿æ´è®¢å•å®Œå…¨ç›¸åŒï¼š`IN_SERVICE` â†’ `PENDING_REVIEW`ï¼ˆå‘˜å·¥å®ŒæˆæœåŠ¡å¹¶ä¸Šä¼ ç…§ç‰‡åç›´æ¥æµè½¬ï¼‰ã€‚
+ç?¶æ?è½¬ç§»è§?å??ä¸? Â§8.2 ä¿æ´è®¢å?å®?å?¨ç?¸å?ï¼?`IN_SERVICE` â?? `PENDING_REVIEW`ï¼?å??å·¥å®?æ?æ?å?¡å¹¶ä¸?ä¼ ç?§ç??å?ç?´æ?¥æµè½¬ï¼?ã??
 
-> **è°ƒæ•´è¯´æ˜ï¼ˆ2026-06-08ï¼‰**ï¼šåºŸå“å›æ”¶é¢„çº¦ä»…å¡«å†™é¢„ä¼°é‡é‡ä¾›å‘˜å·¥ç¡®è®¤æ¬è¿å·¥å…·ï¼Œä¸æ¶‰åŠè®¡ä»·ï¼›åºŸå“æµç¨‹æ— éªŒæ”¶èŠ‚ç‚¹ï¼Œ`PENDING_ACCEPTANCE` æšä¸¾**ä¸å®ç°**ã€‚
+> **è°?æ?´è¯´æ??ï¼?2026-06-08ï¼?**ï¼?åº?å?å??æ?¶é¢?çº¦ä»?å¡«å??é¢?ä¼°é?é?ä¾?å??å·¥ç¡®è®¤æ¬è¿å·¥å?·ï¼?ä¸æ¶?å?è®¡ä»·ï¼?åº?å?æµç¨?æ? éª?æ?¶è??ç?¹ï¼?`PENDING_ACCEPTANCE` æ??ä¸¾**ä¸å®?ç?°**ã??
 
-### 8.5 ä¸å®ç°é¡¹ï¼ˆä¸€æœŸæ’é™¤ï¼‰
+### 8.5 ä¸å®?ç?°é¡¹ï¼?ä¸?æ??æ??é?¤ï¼?
 
-| é¡¹ç›® | è¯´æ˜ |
+| é¡¹ç?® | è¯´æ?? |
 |---|---|
-| `paymentStatus` å­—æ®µ | çº¿ä¸‹æ”¶æ¬¾ç•™ç—•ä¸åšï¼Œæ•°æ®æ¨¡å‹ä¸­ä¸å«æ­¤å­—æ®µ |
-| "å·²æ”¶æ¬¾"æŒ‰é’® | å‘˜å·¥ç«¯ä¸å®ç° |
-| `payment_status_log` | ä¸å®ç° |
-| å±…æ°‘å–æ¶ˆï¼ˆéå¾…æ´¾å•ï¼‰ | ç³»ç»Ÿå±‚é¢ç›´æ¥æ‹’ç»ï¼Œä¸æä¾›æ¥å£å…¥å£ |
-| `PENDING_ACCEPTANCE` æšä¸¾ | åºŸå“æ— éªŒæ”¶èŠ‚ç‚¹ï¼Œä¸å®ç° |
-| `actual_weight` å­—æ®µ | åºŸå“æ— å®é™…ç§°é‡ï¼Œæ•°æ®æ¨¡å‹ä¸­ä¸å«æ­¤å­—æ®µ |
-| `final_amount` å­—æ®µ | åºŸå“ä¸æ ¸å®šé‡‘é¢ï¼Œæ•°æ®æ¨¡å‹ä¸­ä¸å«æ­¤å­—æ®µ |
-| åºŸå“ `reference_amount` | åºŸå“ä¸å±•ç¤ºä»·æ ¼ï¼ŒåºŸå“åˆ›å»ºæ¥å£æ— æ­¤å­—æ®µ |
+| `paymentStatus` å­?æ®µ | çº¿ä¸?æ?¶æ¬¾ç??ç??ä¸å?ï¼?æ?°æ®æ¨¡å??ä¸­ä¸å«æ­¤å­?æ®µ |
+| "å·²æ?¶æ¬¾"æ??é?® | å??å·¥ç«¯ä¸å®?ç?° |
+| `payment_status_log` | ä¸å®?ç?° |
+| å±?æ°?å?æ¶?ï¼?é?å¾?æ´¾å?ï¼? | ç³»ç»?å±?é¢ç?´æ?¥æ??ç»ï¼?ä¸æä¾?æ?¥å£å?¥å£ |
+| `PENDING_ACCEPTANCE` æ??ä¸¾ | åº?å?æ? éª?æ?¶è??ç?¹ï¼?ä¸å®?ç?° |
+| `actual_weight` å­?æ®µ | åº?å?æ? å®?é??ç§°é?ï¼?æ?°æ®æ¨¡å??ä¸­ä¸å«æ­¤å­?æ®µ |
+| `final_amount` å­?æ®µ | åº?å?ä¸æ ¸å®?é??é¢ï¼?æ?°æ®æ¨¡å??ä¸­ä¸å«æ­¤å­?æ®µ |
+| åº?å? `reference_amount` | åº?å?ä¸å±?ç¤ºä»·æ ¼ï¼?åº?å?å??å»ºæ?¥å£æ? æ­¤å­?æ®µ |
 
-### 8.6 order_status_log å®¡è®¡æ—¥å¿—
+### 8.6 order_status_log å®¡è®¡æ?¥å¿?
 
-æ¯æ¬¡çŠ¶æ€å˜æ›´å¿…é¡»å†™å…¥ `order_status_log` è¡¨ï¼Œå­—æ®µï¼š
+æ¯æ¬¡ç?¶æ?å?æ?´å¿?é¡»å??å?¥ `order_status_log` è¡¨ï¼?å­?æ®µï¼?
 
-| å­—æ®µ | ç±»å‹ | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | è¯´æ?? |
 |---|---|---|
-| `orderId` | number | å…³è”è®¢å• ID |
+| `orderId` | number | å?³è?è®¢å? ID |
 | `orderType` | string | `CLEANING` / `RECYCLING` |
-| `fromStatus` | string | å˜æ›´å‰çŠ¶æ€ |
-| `toStatus` | string | å˜æ›´åçŠ¶æ€ |
-| `operatorId` | number | æ“ä½œäºº ID |
+| `fromStatus` | string | å?æ?´å?ç?¶æ? |
+| `toStatus` | string | å?æ?´å?ç?¶æ? |
+| `operatorId` | number | æ?ä½?äºº ID |
 | `operatorType` | string | `RESIDENT` / `WORKER` / `ADMIN` |
-| `remark` | string \| null | å¤‡æ³¨ï¼ˆå¦‚å–æ¶ˆåŸå› ã€GPS è¶…è·è¯´æ˜ï¼‰ |
-| `createdAt` | DateTime | æ“ä½œæ—¶é—´æˆ³ |
+| `remark` | string \| null | å¤?æ³¨ï¼?å¦?å?æ¶?å??å? ã?GPS è¶?è·è¯´æ??ï¼? |
+| `createdAt` | DateTime | æ?ä½?æ?¶é?´æ?³ |
 
 ---
 
-## 9. P2.5c æ“ä½œæ¥å£ï¼ˆCleaningOrder è¯­ä¹‰åŒ–æ“ä½œï¼Œ2026-06-07ï¼‰
+## 9. P2.5c æ?ä½?æ?¥å£ï¼?CleaningOrder è¯­ä¹?å??æ?ä½?ï¼?2026-06-07ï¼?
 
-> åŸºäº P2.5b çŠ¶æ€æœºï¼Œä¸ºä¿æ´è®¢å•æ–°å¢ 5 ä¸ªè¯­ä¹‰åŒ–æ“ä½œç«¯ç‚¹ã€‚å„ç«¯ç‚¹å†…éƒ¨è°ƒç”¨ `OrderStateMachineService.transition()`ï¼ŒçŠ¶æ€æœºæ ¡éªŒéæ³•è½¬ç§»å¹¶æŠ›å‡º HTTP 400ã€‚
+> å?ºäº? P2.5b ç?¶æ?æ?ºï¼?ä¸ºä¿æ´è®¢å?æ?°å¢? 5 ä¸ªè¯­ä¹?å??æ?ä½?ç«¯ç?¹ã??å?ç«¯ç?¹å??é?¨è°?ç?¨ `OrderStateMachineService.transition()`ï¼?ç?¶æ?æ?ºæ ¡éª?é?æ³?è½¬ç§»å¹¶æ??å?º HTTP 400ã??
 
-**Base path**ï¼š`/cleaning-orders/:id`
+**Base path**ï¼?`/cleaning-orders/:id`
 
-**é‰´æƒ**ï¼šå…¬å¼€ï¼ˆç®¡ç†ç«¯/å‘˜å·¥ç«¯é‰´æƒç•™åç»­é˜¶æ®µï¼‰
+**é?´æ?**ï¼?å?¬å¼?ï¼?ç®¡ç?ç«¯/å??å·¥ç«¯é?´æ?ç??å?ç»­é?¶æ®µï¼?
 
 ---
 
-### 9.1 POST `/cleaning-orders/:id/assign` â€” æ´¾å•
+### 9.1 POST `/cleaning-orders/:id/assign` â?? æ´¾å?
 
-ç®¡ç†å‘˜åˆ†é…å‘˜å·¥ï¼Œå°†è®¢å•ä» `PENDING_ASSIGN` å˜æ›´ä¸º `ASSIGNED`ï¼ŒåŒæ—¶å†™å…¥ `workerId`ã€‚
+ç®¡ç?å??å??é?å??å·¥ï¼?å°?è®¢å?ä»? `PENDING_ASSIGN` å?æ?´ä¸º `ASSIGNED`ï¼?å?æ?¶å??å?¥ `workerId`ã??
 
 **Request Body**
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | å¿?å¡« | è¯´æ?? |
 |---|---|---|---|
-| `workerId` | number | âœ… | åˆ†é…çš„å‘˜å·¥ IDï¼ˆä¸å­˜åœ¨è¿”å› 404ï¼‰ |
-| `operatorId` | number | âœ… | æ“ä½œç®¡ç†å‘˜ ID |
+| `workerId` | number | â?? | å??é?ç??å??å·¥ IDï¼?ä¸å­?å?¨è¿?å?? 404ï¼? |
+| `operatorId` | number | â?? | æ?ä½?ç®¡ç?å?? ID |
 
-**Response `data`**ï¼š`CleaningOrderDto`ï¼ˆ`workerId` å’Œ `status: ASSIGNED` å·²æ›´æ–°ï¼‰
+**Response `data`**ï¼?`CleaningOrderDto`ï¼?`workerId` å?? `status: ASSIGNED` å·²æ?´æ?°ï¼?
 
-**é”™è¯¯**ï¼š
+**é??è¯¯**ï¼?
 
-| çŠ¶æ€ç  | åœºæ™¯ |
+| ç?¶æ?ç  | å?ºæ?¯ |
 |---|---|
-| 400 | è®¢å•å½“å‰çŠ¶æ€é `PENDING_ASSIGN`ï¼ˆçŠ¶æ€æœºæ‹’ç»ï¼‰ |
-| 404 | è®¢å•ä¸å­˜åœ¨ / `workerId` å¯¹åº”å‘˜å·¥ä¸å­˜åœ¨ |
+| 400 | è®¢å?å½?å?ç?¶æ?é? `PENDING_ASSIGN`ï¼?ç?¶æ?æ?ºæ??ç»ï¼? |
+| 404 | è®¢å?ä¸å­?å?¨ / `workerId` å¯¹åº?å??å·¥ä¸å­?å?¨ |
 
 ---
 
-### 9.2 POST `/cleaning-orders/:id/accept` â€” æ¥å•
+### 9.2 POST `/cleaning-orders/:id/accept` â?? æ?¥å?
 
-å‘˜å·¥ç¡®è®¤æ¥å—æ´¾å•ï¼ŒçŠ¶æ€ `ASSIGNED â†’ ACCEPTED`ã€‚
+å??å·¥ç¡®è®¤æ?¥å?æ´¾å?ï¼?ç?¶æ? `ASSIGNED â?? ACCEPTED`ã??
 
 **Request Body**
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | å¿?å¡« | è¯´æ?? |
 |---|---|---|---|
-| `operatorId` | number | âœ… | æ“ä½œå‘˜å·¥ ID |
+| `operatorId` | number | â?? | æ?ä½?å??å·¥ ID |
 
-**Response `data`**ï¼š`CleaningOrderDto`ï¼ˆ`status: ACCEPTED`ï¼‰
+**Response `data`**ï¼?`CleaningOrderDto`ï¼?`status: ACCEPTED`ï¼?
 
-**é”™è¯¯**ï¼š400ï¼ˆå½“å‰çŠ¶æ€é `ASSIGNED`ï¼‰ã€404ï¼ˆè®¢å•ä¸å­˜åœ¨ï¼‰
+**é??è¯¯**ï¼?400ï¼?å½?å?ç?¶æ?é? `ASSIGNED`ï¼?ã?404ï¼?è®¢å?ä¸å­?å?¨ï¼?
 
 ---
 
-### 9.3 POST `/cleaning-orders/:id/gps-checkin` â€” GPS ç­¾åˆ°
+### 9.3 POST `/cleaning-orders/:id/gps-checkin` â?? GPS ç­¾å?°
 
-å‘˜å·¥åˆ°è¾¾ç°åœºä¸Šä¼ ä½ç½®ï¼Œç³»ç»Ÿç”¨ Haversine å…¬å¼è®¡ç®—ä¸è®¢å•åœ°å€åæ ‡çš„è·ç¦»ã€‚çŠ¶æ€ `ACCEPTED â†’ IN_SERVICE`ã€‚
+å??å·¥å?°è¾¾ç?°å?ºä¸?ä¼ ä½ç½®ï¼?ç³»ç»?ç?¨ Haversine å?¬å¼è®¡ç®?ä¸?è®¢å?å?°å?åæ ?ç??è·ç¦»ã??ç?¶æ? `ACCEPTED â?? IN_SERVICE`ã??
 
 **Request Body**
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | å¿?å¡« | è¯´æ?? |
 |---|---|---|---|
-| `lat` | number | âœ… | ç­¾åˆ°çº¬åº¦ï¼ˆ-90 ~ 90ï¼‰ |
-| `lng` | number | âœ… | ç­¾åˆ°ç»åº¦ï¼ˆ-180 ~ 180ï¼‰ |
-| `operatorId` | number | âœ… | æ“ä½œå‘˜å·¥ ID |
+| `lat` | number | â?? | ç­¾å?°çº¬åº¦ï¼?-90 ~ 90ï¼? |
+| `lng` | number | â?? | ç­¾å?°ç»åº¦ï¼?-180 ~ 180ï¼? |
+| `operatorId` | number | â?? | æ?ä½?å??å·¥ ID |
 
-**GPS è¶…è·è§„åˆ™**
+**GPS è¶?è·è§?å??**
 
-| æ¡ä»¶ | è¡Œä¸º |
+| æ¡ä»¶ | è¡?ä¸º |
 |---|---|
-| è®¢å•åœ°å€å«åæ ‡ä¸”è·ç¦» â‰¤ 200m | æ­£å¸¸ç­¾åˆ°ï¼Œ`gpsRemark: null` |
-| è®¢å•åœ°å€å«åæ ‡ä¸”è·ç¦» > 200m | ç­¾åˆ°æˆåŠŸä½†æ ‡è®° `gpsRemark: "è¶…è·ç­¾åˆ°ï¼Œè·ç¦»Xm"` |
-| è®¢å•åœ°å€æ— åæ ‡ | ç­¾åˆ°æˆåŠŸï¼Œ`gpsRemark: "åœ°å€æ— åæ ‡ï¼Œè·³è¿‡è·ç¦»æ ¡éªŒ"` |
+| è®¢å?å?°å?å«åæ ?ä¸?è·ç¦» â?¤ 200m | æ­£å¸¸ç­¾å?°ï¼?`gpsRemark: null` |
+| è®¢å?å?°å?å«åæ ?ä¸?è·ç¦» > 200m | ç­¾å?°æ?å??ä½?æ ?è®° `gpsRemark: "è¶?è·ç­¾å?°ï¼?è·ç¦»Xm"` |
+| è®¢å?å?°å?æ? åæ ? | ç­¾å?°æ?å??ï¼?`gpsRemark: "å?°å?æ? åæ ?ï¼?è·³è¿?è·ç¦»æ ¡éª?"` |
 
-**Response `data`**ï¼š`CleaningOrderDto`ï¼ˆå« `gpsLat`ã€`gpsLng`ã€`gpsCheckinAt`ã€`gpsDistance`ã€`gpsRemark`ï¼‰
+**Response `data`**ï¼?`CleaningOrderDto`ï¼?å« `gpsLat`ã?`gpsLng`ã?`gpsCheckinAt`ã?`gpsDistance`ã?`gpsRemark`ï¼?
 
-**é”™è¯¯**ï¼š400ï¼ˆå½“å‰çŠ¶æ€é `ACCEPTED`ï¼‰ã€404ï¼ˆè®¢å•ä¸å­˜åœ¨ï¼‰
+**é??è¯¯**ï¼?400ï¼?å½?å?ç?¶æ?é? `ACCEPTED`ï¼?ã?404ï¼?è®¢å?ä¸å­?å?¨ï¼?
 
 ---
 
-### 9.4 POST `/cleaning-orders/:id/complete` â€” å®ŒæˆæœåŠ¡
+### 9.4 POST `/cleaning-orders/:id/complete` â?? å®?æ?æ?å?¡
 
-å‘˜å·¥ä¸Šä¼ å®Œå·¥ç…§ç‰‡ï¼Œç³»ç»Ÿå†™å…¥ `work_photos` è¡¨ï¼ŒçŠ¶æ€ `IN_SERVICE â†’ PENDING_REVIEW`ã€‚
+å??å·¥ä¸?ä¼ å®?å·¥ç?§ç??ï¼?ç³»ç»?å??å?¥ `work_photos` è¡¨ï¼?ç?¶æ? `IN_SERVICE â?? PENDING_REVIEW`ã??
 
 **Request Body**
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | å¿?å¡« | è¯´æ?? |
 |---|---|---|---|
-| `photoUrls` | string[] | âœ… | å®Œå·¥ç…§ç‰‡ URL åˆ—è¡¨ï¼ˆè‡³å°‘ 1 å¼ ï¼‰ |
-| `operatorId` | number | âœ… | æ“ä½œå‘˜å·¥ ID |
+| `photoUrls` | string[] | â?? | å®?å·¥ç?§ç?? URL å??è¡¨ï¼?è?³å°? 1 å¼ ï¼? |
+| `operatorId` | number | â?? | æ?ä½?å??å·¥ ID |
 
-**å†™å…¥ `work_photos`**ï¼šæ¯ä¸ª URL ç”Ÿæˆä¸€æ¡è®°å½•ï¼Œ`photoType: AFTER`ï¼Œ`orderType: CLEANING`ï¼Œ`uploadedBy: operatorId`ã€‚
+**å??å?¥ `work_photos`**ï¼?æ¯ä¸ª URL ç??æ?ä¸?æ¡è®°å½?ï¼?`photoType: AFTER`ï¼?`orderType: CLEANING`ï¼?`uploadedBy: operatorId`ã??
 
-**Response `data`**ï¼š`CleaningOrderDto`ï¼ˆ`status: PENDING_REVIEW`ï¼‰
+**Response `data`**ï¼?`CleaningOrderDto`ï¼?`status: PENDING_REVIEW`ï¼?
 
-**é”™è¯¯**ï¼š400ï¼ˆå½“å‰çŠ¶æ€é `IN_SERVICE` / `photoUrls` ä¸ºç©ºï¼‰ã€404ï¼ˆè®¢å•ä¸å­˜åœ¨ï¼‰
+**é??è¯¯**ï¼?400ï¼?å½?å?ç?¶æ?é? `IN_SERVICE` / `photoUrls` ä¸ºç©ºï¼?ã?404ï¼?è®¢å?ä¸å­?å?¨ï¼?
 
 ---
 
-### 9.5 POST `/cleaning-orders/:id/cancel` â€” å–æ¶ˆè®¢å•
+### 9.5 POST `/cleaning-orders/:id/cancel` â?? å?æ¶?è®¢å?
 
-ä»…å…è®¸åœ¨ `PENDING_ASSIGN` çŠ¶æ€ä¸‹å–æ¶ˆï¼Œå…¶ä½™çŠ¶æ€è¿”å› HTTP 400ï¼ˆ`"å½“å‰è®¢å•çŠ¶æ€ä¸å…è®¸å–æ¶ˆï¼Œè¯·è”ç³»å®¢æœ"`ï¼‰ã€‚
+ä»?å?è®¸å?¨ `PENDING_ASSIGN` ç?¶æ?ä¸?å?æ¶?ï¼?å?¶ä½?ç?¶æ?è¿?å?? HTTP 400ï¼?`"å½?å?è®¢å?ç?¶æ?ä¸å?è®¸å?æ¶?ï¼?è¯·è?ç³»å®¢æ?"`ï¼?ã??
 
 **Request Body**
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | å¿?å¡« | è¯´æ?? |
 |---|---|---|---|
-| `operatorId` | number | âœ… | æ“ä½œäºº ID |
-| `operatorType` | enum | âœ… | `RESIDENT` / `ADMIN` |
-| `remark` | string | | å–æ¶ˆåŸå› ï¼ˆæœ€é•¿ 512 å­—ç¬¦ï¼‰ |
+| `operatorId` | number | â?? | æ?ä½?äºº ID |
+| `operatorType` | enum | â?? | `RESIDENT` / `ADMIN` |
+| `remark` | string | | å?æ¶?å??å? ï¼?æ??é?¿ 512 å­?ç¬¦ï¼? |
 
-**Response `data`**ï¼š`CleaningOrderDto`ï¼ˆ`status: CANCELLED`ï¼‰
+**Response `data`**ï¼?`CleaningOrderDto`ï¼?`status: CANCELLED`ï¼?
 
-**é”™è¯¯**ï¼š400ï¼ˆå½“å‰çŠ¶æ€é `PENDING_ASSIGN`ï¼‰ã€404ï¼ˆè®¢å•ä¸å­˜åœ¨ï¼‰
+**é??è¯¯**ï¼?400ï¼?å½?å?ç?¶æ?é? `PENDING_ASSIGN`ï¼?ã?404ï¼?è®¢å?ä¸å­?å?¨ï¼?
 
 ---
 
-### 9.6 å…¨é“¾è·¯ç«¯åˆ°ç«¯éªŒæ”¶æµç¨‹
+### 9.6 å?¨é?¾è·¯ç«¯å?°ç«¯éª?æ?¶æµç¨?
 
 ```
-POST /cleaning-orders          â†’ åˆ›å»ºè®¢å•ï¼ˆstatus: PENDING_ASSIGNï¼‰
-POST /cleaning-orders/:id/assign   â†’ æ´¾å•ï¼ˆstatus: ASSIGNEDï¼ŒworkerId å¡«å……ï¼‰
-POST /cleaning-orders/:id/accept   â†’ æ¥å•ï¼ˆstatus: ACCEPTEDï¼‰
-POST /cleaning-orders/:id/gps-checkin â†’ GPSç­¾åˆ°ï¼ˆstatus: IN_SERVICEï¼‰
-POST /cleaning-orders/:id/complete â†’ å®Œæˆï¼ˆstatus: PENDING_REVIEWï¼‰
+POST /cleaning-orders          â?? å??å»ºè®¢å?ï¼?status: PENDING_ASSIGNï¼?
+POST /cleaning-orders/:id/assign   â?? æ´¾å?ï¼?status: ASSIGNEDï¼?workerId å¡«å??ï¼?
+POST /cleaning-orders/:id/accept   â?? æ?¥å?ï¼?status: ACCEPTEDï¼?
+POST /cleaning-orders/:id/gps-checkin â?? GPSç­¾å?°ï¼?status: IN_SERVICEï¼?
+POST /cleaning-orders/:id/complete â?? å®?æ?ï¼?status: PENDING_REVIEWï¼?
 ```
 
-**è¶…è·ç­¾åˆ°éªŒæ”¶**ï¼šä¼ å…¥è·ç¦»è®¢å•åœ°å€ > 200m çš„åæ ‡ï¼Œ`gpsRemark` åº”åŒ…å« `"è¶…è·ç­¾åˆ°"` å­—æ ·ï¼Œè®¢å•çŠ¶æ€ä»æ­£å¸¸å˜æ›´ä¸º `IN_SERVICE`ã€‚
+**è¶?è·ç­¾å?°éª?æ?¶**ï¼?ä¼ å?¥è·ç¦»è®¢å?å?°å? > 200m ç??åæ ?ï¼?`gpsRemark` åº?å??å« `"è¶?è·ç­¾å?°"` å­?æ ·ï¼?è®¢å?ç?¶æ?ä»æ­£å¸¸å?æ?´ä¸º `IN_SERVICE`ã??
 
 ---
 
-## 10. P2.6a å£å¾„æ›´æ–°ï¼ˆRecyclingOrderï¼Œ2026-06-08 ç¡®è®¤ï¼‰
+## 10. P2.6a å£å¾?æ?´æ?°ï¼?RecyclingOrderï¼?2026-06-08 ç¡®è®¤ï¼?
 
-> **è°ƒæ•´èƒŒæ™¯**ï¼šåºŸå“å›æ”¶é¢„çº¦ä»…å¡«å†™é¢„ä¼°é‡é‡ä¾›å‘˜å·¥ç¡®è®¤æ¬è¿å·¥å…·ï¼Œæµç¨‹ä¸ä¿æ´å®Œå…¨ä¸€è‡´ï¼Œæ— éªŒæ”¶èŠ‚ç‚¹ä¸ä»·æ ¼å­—æ®µã€‚
+> **è°?æ?´è??æ?¯**ï¼?åº?å?å??æ?¶é¢?çº¦ä»?å¡«å??é¢?ä¼°é?é?ä¾?å??å·¥ç¡®è®¤æ¬è¿å·¥å?·ï¼?æµç¨?ä¸?ä¿æ´å®?å?¨ä¸?è?´ï¼?æ? éª?æ?¶è??ç?¹ä¸?ä»·æ ¼å­?æ®µã??
 
-### 10.1 åºŸå“è®¢å•æ“ä½œæ¥å£ï¼ˆä¸ä¿æ´å¯¹ç§°ï¼‰
+### 10.1 åº?å?è®¢å?æ?ä½?æ?¥å£ï¼?ä¸?ä¿æ´å¯¹ç§°ï¼?
 
-**Base path**ï¼š`/recycling-orders/:id`
+**Base path**ï¼?`/recycling-orders/:id`
 
-æ“ä½œæ¥å£ä¸ä¿æ´è®¢å•å®Œå…¨å¯¹ç§°ï¼Œæ— é¢å¤–æ¥å£ï¼š
+æ?ä½?æ?¥å£ä¸?ä¿æ´è®¢å?å®?å?¨å¯¹ç§°ï¼?æ? é¢å¤?æ?¥å£ï¼?
 
-| æ¥å£ | è¯´æ˜ | çŠ¶æ€è½¬ç§» |
+| æ?¥å£ | è¯´æ?? | ç?¶æ?è½¬ç§» |
 |---|---|---|
-| `POST /recycling-orders/:id/assign` | æ´¾å• | `PENDING_ASSIGN â†’ ASSIGNED` |
-| `POST /recycling-orders/:id/accept` | æ¥å• | `ASSIGNED â†’ ACCEPTED` |
-| `POST /recycling-orders/:id/gps-checkin` | GPS ç­¾åˆ° | `ACCEPTED â†’ IN_SERVICE` |
-| `POST /recycling-orders/:id/complete` | å®ŒæˆæœåŠ¡ | `IN_SERVICE â†’ PENDING_REVIEW` |
-| `POST /recycling-orders/:id/cancel` | å–æ¶ˆ | `PENDING_ASSIGN â†’ CANCELLED` |
+| `POST /recycling-orders/:id/assign` | æ´¾å? | `PENDING_ASSIGN â?? ASSIGNED` |
+| `POST /recycling-orders/:id/accept` | æ?¥å? | `ASSIGNED â?? ACCEPTED` |
+| `POST /recycling-orders/:id/gps-checkin` | GPS ç­¾å?° | `ACCEPTED â?? IN_SERVICE` |
+| `POST /recycling-orders/:id/complete` | å®?æ?æ?å?¡ | `IN_SERVICE â?? PENDING_REVIEW` |
+| `POST /recycling-orders/:id/cancel` | å?æ¶? | `PENDING_ASSIGN â?? CANCELLED` |
 
-**ä»¥ä¸‹æ¥å£ä¸å®ç°**ï¼ˆåŸè®¡åˆ’ï¼Œç°å–æ¶ˆï¼‰ï¼š
-- ~~`POST /recycling-orders/:id/record-weight`~~ï¼ˆå®é™…é‡é‡å½•å…¥ï¼‰
-- ~~`POST /recycling-orders/:id/accept-by-resident`~~ï¼ˆå±…æ°‘éªŒæ”¶ï¼‰
+**ä»¥ä¸?æ?¥å£ä¸å®?ç?°**ï¼?å??è®¡å??ï¼?ç?°å?æ¶?ï¼?ï¼?
+- ~~`POST /recycling-orders/:id/record-weight`~~ï¼?å®?é??é?é?å½?å?¥ï¼?
+- ~~`POST /recycling-orders/:id/accept-by-resident`~~ï¼?å±?æ°?éª?æ?¶ï¼?
 
 ---
 
-### 10.2 åºŸå“è®¢å•åˆ›å»ºæ¥å£å…³é”®å­—æ®µï¼ˆç¡®è®¤ç‰ˆï¼‰
+### 10.2 åº?å?è®¢å?å??å»ºæ?¥å£å?³é?®å­?æ®µï¼?ç¡®è®¤ç??ï¼?
 
 **`POST /recycling-orders`**
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | å¿?å¡« | è¯´æ?? |
 |---|---|---|---|
-| `residentId` | number | âœ… | åˆ›å»ºè¯·æ±‚ä½“æ˜¾å¼ä¼ å…¥ |
-| `serviceItem` | string | âœ… | `å¤§ä»¶ç±»` / `å°ä»¶ç±»` |
-| `estimatedWeight` | number | âœ… | é¢„ä¼°é‡é‡ï¼ˆkgï¼‰ï¼Œä¾›å‘˜å·¥ç¡®è®¤æ¬è¿å·¥å…· |
-| `appointDate` | string | âœ… | é¢„çº¦æ—¥æœŸ |
-| `appointTimeSlot` | string | âœ… | é¢„çº¦æ—¶æ®µ |
-| `addressId` | number | âœ… | åœ°å€ ID |
-| `contactName` | string | âœ… | è”ç³»äºº |
-| `contactPhone` | string | âœ… | è”ç³»ç”µè¯ |
-| `remark` | string | | å¤‡æ³¨ |
+| `residentId` | number | â?? | å??å»ºè¯·æ±?ä½?æ?¾å¼ä¼ å?¥ |
+| `serviceItem` | string | â?? | `å¤§ä»¶ç±»` / `å°ä»¶ç±»` |
+| `estimatedWeight` | number | â?? | é¢?ä¼°é?é?ï¼?kgï¼?ï¼?ä¾?å??å·¥ç¡®è®¤æ¬è¿å·¥å?· |
+| `appointDate` | string | â?? | é¢?çº¦æ?¥æ?? |
+| `appointTimeSlot` | string | â?? | é¢?çº¦æ?¶æ®µ |
+| `addressId` | number | â?? | å?°å? ID |
+| `contactName` | string | â?? | è?ç³»äºº |
+| `contactPhone` | string | â?? | è?ç³»ç?µè¯ |
+| `remark` | string | | å¤?æ³¨ |
 
-**æ— ä»¥ä¸‹å­—æ®µ**ï¼š`referenceAmount`ï¼ˆåºŸå“ä¸å±•ç¤ºä»·æ ¼ï¼‰ã€`actualWeight`ï¼ˆä¸ç§°é‡ï¼‰ã€`finalAmount`ï¼ˆä¸æ ¸å®šï¼‰ã€‚
+**æ? ä»¥ä¸?å­?æ®µ**ï¼?`referenceAmount`ï¼?åº?å?ä¸å±?ç¤ºä»·æ ¼ï¼?ã?`actualWeight`ï¼?ä¸ç§°é?ï¼?ã?`finalAmount`ï¼?ä¸æ ¸å®?ï¼?ã??
 
 ---
 
-## 11. P2.7 ConsultOrder å’¨è¯¢å•ï¼ˆ2026-06-08 ç¡®è®¤ï¼‰
+## 11. P2.7 ConsultOrder å?¨è¯¢å?ï¼?2026-06-08 ç¡®è®¤ï¼?
 
-> **ä¸šåŠ¡è¯´æ˜**ï¼šå®¶æ”¿å’¨è¯¢å•ï¼Œæ— å‘˜å·¥æ´¾å•/GPS/æ‹ç…§æµç¨‹ï¼Œä»…ä¸‰æ€æµè½¬ï¼ˆç®¡ç†å‘˜æ“ä½œï¼‰ã€‚
-> `residentId` å¯é€‰ï¼ˆæ”¯æŒåŒ¿åå’¨è¯¢ï¼‰ï¼Œ`order_status_logs` è®°å½•æ‰€æœ‰çŠ¶æ€å˜æ›´ã€‚
+> **ä¸?å?¡è¯´æ??**ï¼?å®¶æ?¿å?¨è¯¢å?ï¼?æ? å??å·¥æ´¾å?/GPS/æ?ç?§æµç¨?ï¼?ä»?ä¸?æ?æµè½¬ï¼?ç®¡ç?å??æ?ä½?ï¼?ã??
+> `residentId` å¯é??ï¼?æ?¯æ?å?¿åå?¨è¯¢ï¼?ï¼?`order_status_logs` è®°å½?æ??æ??ç?¶æ?å?æ?´ã??
 
-**Base path**ï¼š`/consult-orders`
+**Base path**ï¼?`/consult-orders`
 
-**é‰´æƒ**ï¼šå…¬å¼€ï¼ˆç®¡ç†ç«¯é‰´æƒç•™åç»­é˜¶æ®µï¼‰
+**é?´æ?**ï¼?å?¬å¼?ï¼?ç®¡ç?ç«¯é?´æ?ç??å?ç»­é?¶æ®µï¼?
 
-### 11.1 çŠ¶æ€æœºè§„åˆ™
+### 11.1 ç?¶æ?æ?ºè§?å??
 
 ```
-FOLLOW_UPï¼ˆå¾…è·Ÿè¿›ï¼‰â†’ FOLLOWINGï¼ˆè·Ÿè¿›ä¸­ï¼‰â†’ COMPLETEDï¼ˆå·²å®Œæˆï¼‰
+FOLLOW_UPï¼?å¾?è·?è¿?ï¼?â?? FOLLOWINGï¼?è·?è¿?ä¸­ï¼?â?? COMPLETEDï¼?å·²å®?æ?ï¼?
 ```
 
-> **v2.0 å˜æ›´ï¼ˆP2.12ï¼‰**ï¼š`PENDING` æ”¹åä¸º `FOLLOW_UP`ï¼Œ`FOLLOWING_UP` æ”¹åä¸º `FOLLOWING`
+> **v2.0 å?æ?´ï¼?P2.12ï¼?**ï¼?`PENDING` æ?¹åä¸º `FOLLOW_UP`ï¼?`FOLLOWING_UP` æ?¹åä¸º `FOLLOWING`
 
-- å•å‘ä¸å¯é€†ï¼Œæ— å–æ¶ˆæ€
-- éæ³•è½¬ç§»ï¼ˆåŒ…æ‹¬è·³æ­¥ï¼‰è¿”å› HTTP 400
-- æ¯æ¬¡å˜æ›´å†™å…¥ `order_status_logs`ï¼ˆ`orderType: 'CONSULT'`, `operatorType: 'ADMIN'`ï¼‰
+- å?å?ä¸å¯é??ï¼?æ? å?æ¶?æ?
+- é?æ³?è½¬ç§»ï¼?å??æ?¬è·³æ­¥ï¼?è¿?å?? HTTP 400
+- æ¯æ¬¡å?æ?´å??å?¥ `order_status_logs`ï¼?`orderType: 'CONSULT'`, `operatorType: 'ADMIN'`ï¼?
 
-### 11.2 POST `/consult-orders` â€” åˆ›å»ºå’¨è¯¢å•
+### 11.2 POST `/consult-orders` â?? å??å»ºå?¨è¯¢å?
 
 **Request Body**
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | å¿?å¡« | è¯´æ?? |
 |------|------|------|------|
-| `serviceType` | string | âœ… | å’¨è¯¢ç±»å‹ï¼ˆæœ€é•¿ 32 å­—ç¬¦ï¼‰ |
-| `contactName` | string | âœ… | è”ç³»äººå§“åï¼ˆåŸ `name`ï¼Œæœ€é•¿ 32 å­—ç¬¦ï¼‰ |
-| `contactPhone` | string | âœ… | è”ç³»ç”µè¯ï¼ˆåŸ `phone`ï¼Œæœ€é•¿ 20 å­—ç¬¦ï¼‰ |
-| `requirementDesc` | string | âœ… | éœ€æ±‚æè¿°ï¼ˆåŸ `description`ï¼Œæœ€é•¿ 1000 å­—ç¬¦ï¼‰ |
-| `residentId` | number | | å±…æ°‘ IDï¼ˆå¯é€‰ï¼Œä¸ä¼ è¡¨ç¤ºåŒ¿åå’¨è¯¢ï¼‰ |
+| `serviceType` | string | â?? | å?¨è¯¢ç±»å??ï¼?æ??é?¿ 32 å­?ç¬¦ï¼? |
+| `contactName` | string | â?? | è?ç³»äººå§?åï¼?å?? `name`ï¼?æ??é?¿ 32 å­?ç¬¦ï¼? |
+| `contactPhone` | string | â?? | è?ç³»ç?µè¯ï¼?å?? `phone`ï¼?æ??é?¿ 20 å­?ç¬¦ï¼? |
+| `requirementDesc` | string | â?? | é??æ±?æè¿°ï¼?å?? `description`ï¼?æ??é?¿ 1000 å­?ç¬¦ï¼? |
+| `residentId` | number | | å±?æ°? IDï¼?å¯é??ï¼?ä¸ä¼ è¡¨ç¤ºå?¿åå?¨è¯¢ï¼? |
 
-**Response `data`**ï¼š`ConsultOrderDto`ï¼ˆ`orderNo` æ ¼å¼ï¼š`CNS + yyyyMMdd + 6ä½åºå·`ï¼Œé»˜è®¤ `status: FOLLOW_UP`ï¼‰
+**Response `data`**ï¼?`ConsultOrderDto`ï¼?`orderNo` æ ¼å¼ï¼?`CNS + yyyyMMdd + 6ä½åºå·`ï¼?é»?è®¤ `status: FOLLOW_UP`ï¼?
 
 ---
 
-### 11.3 GET `/consult-orders` â€” åˆ†é¡µåˆ—è¡¨
+### 11.3 GET `/consult-orders` â?? å??é¡µå??è¡¨
 
 **Query**
 
-| å­—æ®µ | ç±»å‹ | é»˜è®¤ | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | é»?è®¤ | è¯´æ?? |
 |------|------|------|------|
 | `page` | number | 1 | é¡µç  |
-| `pageSize` | number | 10 | æ¯é¡µæ•°é‡ |
+| `pageSize` | number | 10 | æ¯é¡µæ?°é? |
 | `status` | enum | | `FOLLOW_UP` / `FOLLOWING` / `COMPLETED` |
-| `serviceType` | string | | æ¨¡ç³ŠåŒ¹é…æœåŠ¡ç±»å‹ |
-| `keyword` | string | | æ¨¡ç³ŠåŒ¹é…è®¢å•å· / è”ç³»äººå§“å / æ‰‹æœºå· |
+| `serviceType` | string | | æ¨¡ç³?å?¹é?æ?å?¡ç±»å?? |
+| `keyword` | string | | æ¨¡ç³?å?¹é?è®¢å?å· / è?ç³»äººå§?å / æ??æ?ºå· |
 
-**Response `data`**ï¼š`{ items: ConsultOrderDto[], total, page, pageSize }`
-
----
-
-### 11.4 GET `/consult-orders/:id` â€” è¯¦æƒ…
-
-**Response `data`**ï¼š`ConsultOrderDto`ï¼ˆ404 = ä¸å­˜åœ¨ï¼‰
+**Response `data`**ï¼?`{ items: ConsultOrderDto[], total, page, pageSize }`
 
 ---
 
-### 11.5 PATCH `/consult-orders/:id/status` â€” æ›´æ–°çŠ¶æ€
+### 11.4 GET `/consult-orders/:id` â?? è¯¦æ??
+
+**Response `data`**ï¼?`ConsultOrderDto`ï¼?404 = ä¸å­?å?¨ï¼?
+
+---
+
+### 11.5 PATCH `/consult-orders/:id/status` â?? æ?´æ?°ç?¶æ?
 
 **Request Body**
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | å¿?å¡« | è¯´æ?? |
 |------|------|------|------|
-| `status` | enum | âœ… | ç›®æ ‡çŠ¶æ€ï¼š`FOLLOWING` æˆ– `COMPLETED` |
-| `operatorId` | number | âœ… | æ“ä½œç®¡ç†å‘˜ ID |
-| `remark` | string | | è·Ÿè¿›å¤‡æ³¨ï¼ˆæœ€é•¿ 512 å­—ç¬¦ï¼‰ |
+| `status` | enum | â?? | ç?®æ ?ç?¶æ?ï¼?`FOLLOWING` æ?? `COMPLETED` |
+| `operatorId` | number | â?? | æ?ä½?ç®¡ç?å?? ID |
+| `remark` | string | | è·?è¿?å¤?æ³¨ï¼?æ??é?¿ 512 å­?ç¬¦ï¼? |
 
-**é”™è¯¯**ï¼š
+**é??è¯¯**ï¼?
 
-| çŠ¶æ€ç  | åœºæ™¯ |
+| ç?¶æ?ç  | å?ºæ?¯ |
 |--------|------|
-| 400 | éæ³•è½¬ç§»ï¼ˆå«è·³æ­¥ã€ç»ˆæ€å†å˜æ›´ï¼‰ |
-| 404 | å’¨è¯¢å•ä¸å­˜åœ¨ |
+| 400 | é?æ³?è½¬ç§»ï¼?å«è·³æ­¥ã?ç»?æ?å?å?æ?´ï¼? |
+| 404 | å?¨è¯¢å?ä¸å­?å?¨ |
 
-**Response `data`**ï¼š`ConsultOrderDto`ï¼ˆ`status` å·²æ›´æ–°ï¼‰
+**Response `data`**ï¼?`ConsultOrderDto`ï¼?`status` å·²æ?´æ?°ï¼?
 
 ---
 
-### 11.6 ConsultOrderDto å­—æ®µå®šä¹‰
+### 11.6 ConsultOrderDto å­?æ®µå®?ä¹?
 
-| å­—æ®µ | ç±»å‹ | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | è¯´æ?? |
 |------|------|------|
-| `id` | number | ä¸»é”® |
+| `id` | number | ä¸»é?® |
 | `orderNo` | string | `CNS + yyyyMMdd + 6ä½åºå·` |
-| `residentId` | number \| undefined | å…³è”å±…æ°‘ï¼ˆå¯é€‰ï¼‰ |
-| `serviceType` | string | å’¨è¯¢ç±»å‹ |
-| `contactName` | string | è”ç³»äººå§“åï¼ˆåŸ `name`ï¼‰ |
-| `contactPhone` | string | è”ç³»ç”µè¯ï¼ˆåŸ `phone`ï¼‰ |
-| `requirementDesc` | string | éœ€æ±‚æè¿°ï¼ˆåŸ `description`ï¼‰ |
-| `status` | `FOLLOW_UP` \| `FOLLOWING` \| `COMPLETED` | å½“å‰çŠ¶æ€ |
+| `residentId` | number \| undefined | å?³è?å±?æ°?ï¼?å¯é??ï¼? |
+| `serviceType` | string | å?¨è¯¢ç±»å?? |
+| `contactName` | string | è?ç³»äººå§?åï¼?å?? `name`ï¼? |
+| `contactPhone` | string | è?ç³»ç?µè¯ï¼?å?? `phone`ï¼? |
+| `requirementDesc` | string | é??æ±?æè¿°ï¼?å?? `description`ï¼? |
+| `status` | `FOLLOW_UP` \| `FOLLOWING` \| `COMPLETED` | å½?å?ç?¶æ? |
 | `createdAt` | string | ISO 8601 |
 | `updatedAt` | string | ISO 8601 |
 
 ---
 
-### 11.7 å…¨é“¾è·¯éªŒæ”¶æµç¨‹
+### 11.7 å?¨é?¾è·¯éª?æ?¶æµç¨?
 
 ```
-POST /consult-orders                          â†’ åˆ›å»ºï¼ˆstatus: FOLLOW_UPï¼ŒorderNo: CNS...ï¼‰
-PATCH /consult-orders/:id/status {FOLLOWING}  â†’ è·Ÿè¿›ä¸­ï¼ˆstatus: FOLLOWINGï¼‰
-PATCH /consult-orders/:id/status {COMPLETED}  â†’ å·²å®Œæˆï¼ˆstatus: COMPLETEDï¼‰
-PATCH /consult-orders/:id/status {FOLLOWING}  â†’ HTTP 400ï¼ˆç»ˆæ€ä¿æŠ¤ï¼‰
+POST /consult-orders                          â?? å??å»ºï¼?status: FOLLOW_UPï¼?orderNo: CNS...ï¼?
+PATCH /consult-orders/:id/status {FOLLOWING}  â?? è·?è¿?ä¸­ï¼?status: FOLLOWINGï¼?
+PATCH /consult-orders/:id/status {COMPLETED}  â?? å·²å®?æ?ï¼?status: COMPLETEDï¼?
+PATCH /consult-orders/:id/status {FOLLOWING}  â?? HTTP 400ï¼?ç»?æ?ä¿æ?¤ï¼?
 ```
 
-**éæ³•è½¬ç§»éªŒæ”¶**ï¼š`FOLLOW_UP â†’ COMPLETED`ï¼ˆè·³æ­¥ï¼‰åº”è¿”å› HTTP 400ï¼Œ`message` å« "éæ³•çŠ¶æ€è½¬ç§»"ã€‚
+**é?æ³?è½¬ç§»éª?æ?¶**ï¼?`FOLLOW_UP â?? COMPLETED`ï¼?è·³æ­¥ï¼?åº?è¿?å?? HTTP 400ï¼?`message` å« "é?æ³?ç?¶æ?è½¬ç§»"ã??
 
-### 11.8 P2.15 v2.0 è¡¥å……ï¼ˆ2026-06-15ï¼‰
+### 11.8 P2.15 v2.0 è¡¥å??ï¼?2026-06-15ï¼?
 
-**æ–°å¢æ¥å£**ï¼š
-- `POST /consult-orders/:id/follow-ups` â€” æ–°å¢è·Ÿè¿›è®°å½•ï¼ˆBody: `handlerName: string`ï¼Œ`content: string`ï¼‰
-- `GET /consult-orders/:id/follow-ups` â€” åˆ†é¡µæŸ¥è¯¢è·Ÿè¿›è®°å½•ï¼ˆQuery: `page`ï¼Œ`pageSize`ï¼›æŒ‰ `createdAt` å‡åºï¼‰
+**æ?°å¢?æ?¥å£**ï¼?
+- `POST /consult-orders/:id/follow-ups` â?? æ?°å¢?è·?è¿?è®°å½?ï¼?Body: `handlerName: string`ï¼?`content: string`ï¼?
+- `GET /consult-orders/:id/follow-ups` â?? å??é¡µæ?¥è¯¢è·?è¿?è®°å½?ï¼?Query: `page`ï¼?`pageSize`ï¼?æ?? `createdAt` å?åºï¼?
 
-**ConsultOrder v2.0 æ–°å¢å­—æ®µ**ï¼ˆå‡å¯é€‰ï¼Œä»£ä¸‹å•æ—¶ `serviceContactName` å¿…å¡«ï¼‰ï¼š
+**ConsultOrder v2.0 æ?°å¢?å­?æ®µ**ï¼?å?å¯é??ï¼?ä»£ä¸?å?æ?¶ `serviceContactName` å¿?å¡«ï¼?ï¼?
 
-| å­—æ®µ | ç±»å‹ | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | è¯´æ?? |
 |------|------|------|
-| `isProxyOrder` | `boolean` | æ˜¯å¦ä»£ä¸‹å• |
-| `serviceContactName` | `string \| null` | æœåŠ¡è”ç³»äººå§“åï¼ˆä»£ä¸‹å•å¿…å¡«ï¼‰ |
-| `serviceContactPhone` | `string \| null` | æœåŠ¡è”ç³»äººç”µè¯ |
-| `serviceAddress` | `string \| null` | æœåŠ¡åœ°å€ï¼ˆä»£ä¸‹å•å¯æŒ‡å®šï¼‰ |
-| `source` | `'MINIPROGRAM' \| 'PHONE'` | æ¥æºæ¸ é“ |
-| `remark` | `string \| null` | å¤‡æ³¨ |
+| `isProxyOrder` | `boolean` | æ?¯å¦ä»£ä¸?å? |
+| `serviceContactName` | `string \| null` | æ?å?¡è?ç³»äººå§?åï¼?ä»£ä¸?å?å¿?å¡«ï¼? |
+| `serviceContactPhone` | `string \| null` | æ?å?¡è?ç³»äººç?µè¯ |
+| `serviceAddress` | `string \| null` | æ?å?¡å?°å?ï¼?ä»£ä¸?å?å¯æ??å®?ï¼? |
+| `source` | `'MINIPROGRAM' \| 'PHONE'` | æ¥æºæ¸ é? |
+| `remark` | `string \| null` | å¤?æ³¨ |
 
-**åºŸå“æµç¨‹ç¡®è®¤**ï¼š`/resident-accept` æ¥å£**æœªå®ç°**ï¼ˆä¸ Â§10.1 åŸå§‹è®¾è®¡ä¸€è‡´ï¼‰ï¼›åºŸå“ `IN_SERVICEâ†’PENDING_REVIEW` ç”±å‘˜å·¥ç«¯ã€Œå®ŒæˆæœåŠ¡ã€è§¦å‘ï¼ˆ`POST /recycling-orders/:id/complete`ï¼‰ï¼Œä¸ä¿æ´è®¢å•å®Œå…¨å¯¹ç§°ã€‚
+**åº?å?æµç¨?ç¡®è®¤**ï¼?`/resident-accept` æ?¥å£**æ?ªå®?ç?°**ï¼?ä¸? Â§10.1 å??å§?è®¾è®¡ä¸?è?´ï¼?ï¼?åº?å? `IN_SERVICEâ??PENDING_REVIEW` ç?±å??å·¥ç«¯ã??å®?æ?æ?å?¡ã?è§¦å?ï¼?`POST /recycling-orders/:id/complete`ï¼?ï¼?ä¸?ä¿æ´è®¢å?å®?å?¨å¯¹ç§°ã??
 
-### 11.9 P2.15 å…¨é“¾è·¯éªŒæ”¶ç»“æœï¼ˆ2026-06-15ï¼‰
+### 11.9 P2.15 å?¨é?¾è·¯éª?æ?¶ç»?æ??ï¼?2026-06-15ï¼?
 
-| éªŒæ”¶é¡¹ | æ“ä½œ | é¢„æœŸ | ç»“æœ |
+| éª?æ?¶é¡¹ | æ?ä½? | é¢?æ?? | ç»?æ?? |
 |--------|------|------|------|
-| ConsultFollowUp CRUD | `POST /consult-orders/1/follow-ups` Ã— 3 æ¡ï¼ˆé—´éš”1sï¼‰ | æ¯æ¬¡è¿”å›å« `id/consultId/handlerName/content/createdAt` | âœ… é€šè¿‡ |
-| è·Ÿè¿›è®°å½•æ—¶åº | `GET /consult-orders/1/follow-ups?page=1&pageSize=20` | `total=3`ï¼Œ`createdAt` ä¸¥æ ¼å‡åº | âœ… é€šè¿‡ |
-| åºŸå“è®¢å•å…¨é“¾è·¯ | åˆ›å»ºâ†’æ´¾å•â†’æ¥å•â†’GPSç­¾åˆ°ï¼ˆ14.6mï¼‰â†’`/complete` | æœ€ç»ˆçŠ¶æ€ `PENDING_REVIEW`ï¼ŒorderNo=`RCY20260615000001` | âœ… é€šè¿‡ |
-| ä¿æ´è®¢å•å›å½’ | åˆ›å»ºâ†’æ´¾å•â†’æ¥å•â†’GPSç­¾åˆ°ï¼ˆ14.6mï¼‰â†’`/complete` | æœ€ç»ˆçŠ¶æ€ `PENDING_REVIEW`ï¼ŒorderNo=`CLN20260615000001` | âœ… é€šè¿‡ |
-| å•å…ƒæµ‹è¯• | `npx jest "recycling-order.spec" --no-coverage` | 25 tests passedï¼Œ0 failed | âœ… é€šè¿‡ |
+| ConsultFollowUp CRUD | `POST /consult-orders/1/follow-ups` Ã? 3 æ¡ï¼?é?´é??1sï¼? | æ¯æ¬¡è¿?å??å« `id/consultId/handlerName/content/createdAt` | â?? é??è¿? |
+| è·?è¿?è®°å½?æ?¶åº | `GET /consult-orders/1/follow-ups?page=1&pageSize=20` | `total=3`ï¼?`createdAt` ä¸¥æ ¼å?åº | â?? é??è¿? |
+| åº?å?è®¢å?å?¨é?¾è·¯ | å??å»ºâ??æ´¾å?â??æ?¥å?â??GPSç­¾å?°ï¼?14.6mï¼?â??`/complete` | æ??ç»?ç?¶æ? `PENDING_REVIEW`ï¼?orderNo=`RCY20260615000001` | â?? é??è¿? |
+| ä¿æ´è®¢å?å??å½? | å??å»ºâ??æ´¾å?â??æ?¥å?â??GPSç­¾å?°ï¼?14.6mï¼?â??`/complete` | æ??ç»?ç?¶æ? `PENDING_REVIEW`ï¼?orderNo=`CLN20260615000001` | â?? é??è¿? |
+| å?å??æµ?è¯? | `npx jest "recycling-order.spec" --no-coverage` | 25 tests passedï¼?0 failed | â?? é??è¿? |
 
-**éªŒæ”¶ç»“è®º**ï¼šP2.15 å…¨éƒ¨éªŒæ”¶é€šè¿‡ï¼ˆ2026-06-15 14:06ï¼‰ï¼ŒP2 é˜¶æ®µï¼ˆå« v2.0 è¡¥å……å•å…ƒï¼‰å…¨éƒ¨å®Œæˆã€‚
+**éª?æ?¶ç»?è®º**ï¼?P2.15 å?¨é?¨éª?æ?¶é??è¿?ï¼?2026-06-15 14:06ï¼?ï¼?P2 é?¶æ®µï¼?å« v2.0 è¡¥å??å?å??ï¼?å?¨é?¨å®?æ?ã??
 
 ---
 
-## 12. P2.8 GeoService GPS ç­¾åˆ°æ ¡éªŒï¼ˆ2026-06-08 ç¡®è®¤ï¼‰
+## 12. P2.8 GeoService GPS ç­¾å?°æ ¡éª?ï¼?2026-06-08 ç¡®è®¤ï¼?
 
-> **èƒŒæ™¯**ï¼šP2.5c / P2.6a ä¸­ä¿æ´å’ŒåºŸå“ä¸¤ä¸ªè®¢å•æ¨¡å—å„è‡ªå†…åµŒäº†ç›¸åŒçš„ Haversine è·ç¦»è®¡ç®—é€»è¾‘ã€‚P2.8 å°†å…¶æŠ½å–ä¸ºç‹¬ç«‹çš„ `GeoService`ï¼Œä¾›æ‰€æœ‰è®¢å•æ¨¡å—å¤ç”¨ã€‚
+> **è??æ?¯**ï¼?P2.5c / P2.6a ä¸­ä¿æ´å??åº?å?ä¸¤ä¸ªè®¢å?æ¨¡å?å?è?ªå??åµ?äº?ç?¸å?ç?? Haversine è·ç¦»è®¡ç®?é?»è¾?ã??P2.8 å°?å?¶æ?½å?ä¸ºç?¬ç«?ç?? `GeoService`ï¼?ä¾?æ??æ??è®¢å?æ¨¡å?å¤ç?¨ã??
 
-**æ–‡ä»¶è·¯å¾„**ï¼š`apps/server/src/common/geo/geo.service.ts`
+**æ??ä»¶è·¯å¾?**ï¼?`apps/server/src/common/geo/geo.service.ts`
 
-### 12.1 GpsCheckinResult æ¥å£
+### 12.1 GpsCheckinResult æ?¥å£
 
 ```typescript
 export interface GpsCheckinResult {
-  distance: number | null;   // ç­¾åˆ°ç‚¹ä¸æœåŠ¡åœ°å€è·ç¦»ï¼ˆç±³ï¼Œä¿ç•™1ä½å°æ•°ï¼‰ï¼›åœ°å€æ— åæ ‡æ—¶ä¸º null
-  remark: string | null;     // å¼‚å¸¸è¯´æ˜ï¼ˆè¶…è·æˆ–æ— åæ ‡æ—¶æœ‰å€¼ï¼Œæ­£å¸¸èŒƒå›´å†…ä¸º nullï¼‰
-  outOfRange: boolean;       // æ˜¯å¦è¶…å‡ºå…è®¸è·ç¦»é˜ˆå€¼
+  distance: number | null;   // ç­¾å?°ç?¹ä¸?æ?å?¡å?°å?è·ç¦»ï¼?ç±³ï¼?ä¿ç??1ä½å°æ?°ï¼?ï¼?å?°å?æ? åæ ?æ?¶ä¸º null
+  remark: string | null;     // å¼?å¸¸è¯´æ??ï¼?è¶?è·æ??æ? åæ ?æ?¶æ??å?¼ï¼?æ­£å¸¸è??å?´å??ä¸º nullï¼?
+  outOfRange: boolean;       // æ?¯å¦è¶?å?ºå?è®¸è·ç¦»é??å?¼
 }
 ```
 
-### 12.2 GeoService æ–¹æ³•
+### 12.2 GeoService æ?¹æ³?
 
-| æ–¹æ³• | ç­¾å | è¯´æ˜ |
+| æ?¹æ³? | ç­¾å | è¯´æ?? |
 |------|------|------|
-| `haversineMeters` | `(lat1, lng1, lat2, lng2): number` | Haversine çƒé¢è·ç¦»è®¡ç®—ï¼Œè¿”å›ç±³ |
-| `validateCheckin` | `(addressLat, addressLng, workerLat, workerLng, thresholdM=200): GpsCheckinResult` | ç»¼åˆæ ¡éªŒï¼Œè¿”å›ç»“æ„åŒ–ç»“æœ |
+| `haversineMeters` | `(lat1, lng1, lat2, lng2): number` | Haversine ç?é¢è·ç¦»è®¡ç®?ï¼?è¿?å??ç±³ |
+| `validateCheckin` | `(addressLat, addressLng, workerLat, workerLng, thresholdM=200): GpsCheckinResult` | ç»¼å?æ ¡éª?ï¼?è¿?å??ç»?æ??å??ç»?æ?? |
 
-### 12.3 ä¸‰ç§æ ¡éªŒç»“æœ
+### 12.3 ä¸?ç§æ ¡éª?ç»?æ??
 
-| æƒ…å†µ | distance | remark | outOfRange |
+| æ??å?µ | distance | remark | outOfRange |
 |------|----------|--------|------------|
-| åœ¨é˜ˆå€¼å†…ï¼ˆâ‰¤200mï¼‰ | å®é™…è·ç¦»å€¼ | `null` | `false` |
-| è¶…è·ï¼ˆ>200mï¼‰ | å®é™…è·ç¦»å€¼ | `"è¶…è·ç­¾åˆ°ï¼Œè·ç¦»XXXm"` | `true` |
-| åœ°å€æ— åæ ‡ | `null` | `"åœ°å€æ— åæ ‡ï¼Œè·³è¿‡è·ç¦»æ ¡éªŒ"` | `false` |
+| å?¨é??å?¼å??ï¼?â?¤200mï¼? | å®?é??è·ç¦»å?¼ | `null` | `false` |
+| è¶?è·ï¼?>200mï¼? | å®?é??è·ç¦»å?¼ | `"è¶?è·ç­¾å?°ï¼?è·ç¦»XXXm"` | `true` |
+| å?°å?æ? åæ ? | `null` | `"å?°å?æ? åæ ?ï¼?è·³è¿?è·ç¦»æ ¡éª?"` | `false` |
 
-> **è¶…è·ä¸é˜»æ–­**ï¼šç­¾åˆ°ä»æˆåŠŸï¼Œ`gpsRemark` å­—æ®µç•™å­˜è®°å½•ä¾›ç®¡ç†å‘˜æŸ¥çœ‹ã€‚
+> **è¶?è·ä¸é?»æ?­**ï¼?ç­¾å?°ä»æ?å??ï¼?`gpsRemark` å­?æ®µç??å­?è®°å½?ä¾?ç®¡ç?å??æ?¥ç??ã??
 
-### 12.4 æ¨¡å—ä¾èµ–å…³ç³»
+### 12.4 æ¨¡å?ä¾èµ?å?³ç³»
 
 ```
 GeoModule (exports GeoService)
-  â”œâ”€â”€ CleaningOrderModule (imports GeoModule)
-  â””â”€â”€ RecyclingOrderModule (imports GeoModule)
+  â??â??â?? CleaningOrderModule (imports GeoModule)
+  â??â??â?? RecyclingOrderModule (imports GeoModule)
 ```
 
-### 12.5 ä½¿ç”¨æ–¹å¼ï¼ˆè®¢å• Service å†…ï¼‰
+### 12.5 ä½¿ç?¨æ?¹å¼ï¼?è®¢å? Service å??ï¼?
 
 ```typescript
 const { distance: gpsDistance, remark: gpsRemark } = this.geoService.validateCheckin(
-  snapshot?.lat,   // æœåŠ¡åœ°å€çº¬åº¦
-  snapshot?.lng,   // æœåŠ¡åœ°å€ç»åº¦
-  dto.lat,         // å‘˜å·¥ç­¾åˆ°çº¬åº¦
-  dto.lng,         // å‘˜å·¥ç­¾åˆ°ç»åº¦
+  snapshot?.lat,   // æ?å?¡å?°å?çº¬åº¦
+  snapshot?.lng,   // æ?å?¡å?°å?ç»åº¦
+  dto.lat,         // å??å·¥ç­¾å?°çº¬åº¦
+  dto.lng,         // å??å·¥ç­¾å?°ç»åº¦
 );
 ```
 
-## 13. P2.9 æ–‡ä»¶ä¸Šä¼  + æ°´å°ï¼ˆ2026-06-08 ç¡®è®¤ï¼‰
+## 13. P2.9 æ??ä»¶ä¸?ä¼  + æ°´å°ï¼?2026-06-08 ç¡®è®¤ï¼?
 
-> **åŠŸèƒ½è¯´æ˜**ï¼šå‘˜å·¥æ‹æ‘„çš„æœåŠ¡ç…§ç‰‡ä¸Šä¼ æ¥å£ï¼Œä½¿ç”¨ sharp SVG composite åœ¨å›¾ç‰‡å³ä¸‹è§’å åŠ æ°´å°ï¼ˆè®¢å•å· + æ—¶é—´æˆ³ï¼‰ã€‚å­˜å‚¨å±‚é‡‡ç”¨ Strategy æ¨¡å¼ï¼Œå¼€å‘æœŸä½¿ç”¨æœ¬åœ° `/uploads` ç›®å½•ï¼Œéƒ¨ç½²å‰é€šè¿‡ `STORAGE_PROVIDER` ç¯å¢ƒå˜é‡ä¸€é”®åˆ‡æ¢è‡³è…¾è®¯äº‘ COSã€‚
+> **å??è?½è¯´æ??**ï¼?å??å·¥æ?æ??ç??æ?å?¡ç?§ç??ä¸?ä¼ æ?¥å£ï¼?ä½¿ç?¨ sharp SVG composite å?¨å?¾ç??å³ä¸?è§?å å? æ°´å°ï¼?è®¢å?å· + æ?¶é?´æ?³ï¼?ã??å­?å?¨å±?é??ç?¨ Strategy æ¨¡å¼ï¼?å¼?å?æ??ä½¿ç?¨æ?¬å?° `/uploads` ç?®å½?ï¼?é?¨ç½²å?é??è¿? `STORAGE_PROVIDER` ç?¯å¢?å?é?ä¸?é?®å??æ¢è?³è?¾è®¯äº? COSã??
 
-**æ–‡ä»¶è·¯å¾„**ï¼š`apps/server/src/modules/upload/upload.controller.ts`  
-**å­˜å‚¨æ¨¡å—**ï¼š`apps/server/src/common/storage/`
+**æ??ä»¶è·¯å¾?**ï¼?`apps/server/src/modules/upload/upload.controller.ts`  
+**å­?å?¨æ¨¡å?**ï¼?`apps/server/src/common/storage/`
 
-### 13.1 POST `/upload/image` â€” ä¸Šä¼ å›¾ç‰‡
+### 13.1 POST `/upload/image` â?? ä¸?ä¼ å?¾ç??
 
-**é‰´æƒ**ï¼šå…¬å¼€ï¼ˆç®¡ç†ç«¯/å‘˜å·¥ç«¯é‰´æƒç•™åç»­é˜¶æ®µï¼‰
+**é?´æ?**ï¼?å?¬å¼?ï¼?ç®¡ç?ç«¯/å??å·¥ç«¯é?´æ?ç??å?ç»­é?¶æ®µï¼?
 
-**Content-Type**ï¼š`multipart/form-data`
+**Content-Type**ï¼?`multipart/form-data`
 
-**è¯·æ±‚å­—æ®µ**
+**è¯·æ±?å­?æ®µ**
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | å¿?å¡« | è¯´æ?? |
 |------|------|------|------|
-| `file` | binary | âœ… | å›¾ç‰‡æ–‡ä»¶ï¼ˆJPEG / PNG / WebPï¼Œâ‰¤10MBï¼‰ |
-| `orderNo` | stringï¼ˆQueryï¼‰ | | è®¢å•å·ï¼ˆå¯é€‰ï¼‰ï¼Œå†™å…¥æ°´å°ï¼›ç¼ºçœæ—¶æ°´å°ä»…å«æ—¶é—´æˆ³ï¼Œæ–‡ä»¶åå‰ç¼€é™çº§ä¸º `IMG` |
+| `file` | binary | â?? | å?¾ç??æ??ä»¶ï¼?JPEG / PNG / WebPï¼?â?¤10MBï¼? |
+| `orderNo` | stringï¼?Queryï¼? | | è®¢å?å·ï¼?å¯é??ï¼?ï¼?å??å?¥æ°´å°ï¼?ç¼ºç?æ?¶æ°´å°ä»?å«æ?¶é?´æ?³ï¼?æ??ä»¶åå?ç¼?é?çº§ä¸º `IMG` |
 
-**æ°´å°è§„åˆ™**
+**æ°´å°è§?å??**
 
-| åœºæ™¯ | æ°´å°å†…å®¹ | æ–‡ä»¶åå‰ç¼€ |
+| å?ºæ?¯ | æ°´å°å??å®¹ | æ??ä»¶åå?ç¼? |
 |------|----------|-----------|
-| ä¼ å…¥ `orderNo` | `{orderNo} YYYY/MM/DD HH:mm:ss` | `{orderNo}_` |
-| æœªä¼  `orderNo` | `YYYY/MM/DD HH:mm:ss` | `IMG_` |
+| ä¼ å?¥ `orderNo` | `{orderNo} YYYY/MM/DD HH:mm:ss` | `{orderNo}_` |
+| æ?ªä¼  `orderNo` | `YYYY/MM/DD HH:mm:ss` | `IMG_` |
 
-**æ–‡ä»¶å‘½å**ï¼š`{prefix}_{timestamp}_{random6ä½}.jpg`
+**æ??ä»¶å?½å**ï¼?`{prefix}_{timestamp}_{random6ä½}.jpg`
 
 **Response `data`**
 
 ```typescript
 {
-  url: string;       // å›¾ç‰‡è®¿é—® URLï¼ˆæœ¬åœ°ï¼šhttp://localhost:3000/uploads/xxx.jpgï¼‰
-  filename: string;  // å­˜å‚¨æ–‡ä»¶å
+  url: string;       // å?¾ç??è®¿é?® URLï¼?æ?¬å?°ï¼?http://localhost:3000/uploads/xxx.jpgï¼?
+  filename: string;  // å­?å?¨æ??ä»¶å
 }
 ```
 
-**é”™è¯¯**
+**é??è¯¯**
 
-| çŠ¶æ€ç  | åœºæ™¯ |
+| ç?¶æ?ç  | å?ºæ?¯ |
 |--------|------|
-| 400 | æœªä¼  `file` å­—æ®µ |
-| 400 | æ–‡ä»¶ç±»å‹ä¸æ”¯æŒï¼ˆé JPEG/PNG/WebPï¼‰ |
+| 400 | æ?ªä¼  `file` å­?æ®µ |
+| 400 | æ??ä»¶ç±»å??ä¸æ?¯æ?ï¼?é? JPEG/PNG/WebPï¼? |
 
-### 13.2 å­˜å‚¨ç­–ç•¥åˆ‡æ¢
+### 13.2 å­?å?¨ç­?ç?¥å??æ¢
 
-**é…ç½®æ–‡ä»¶**ï¼š`apps/server/.env`
+**é?ç½®æ??ä»¶**ï¼?`apps/server/.env`
 
 ```dotenv
-# åˆ‡æ¢æ–¹å¼ï¼šæ”¹ä¸º cos å¹¶å¡«å†™ä¸‹æ–¹å¯†é’¥å³å¯ï¼Œæ— éœ€ä¿®æ”¹ä»£ç 
+# å??æ¢æ?¹å¼ï¼?æ?¹ä¸º cos å¹¶å¡«å??ä¸?æ?¹å¯?é?¥å³å¯ï¼?æ? é??ä¿®æ?¹ä»£ç 
 STORAGE_PROVIDER=local
 
 COS_SECRET_ID=
@@ -943,80 +943,80 @@ COS_BUCKET=
 COS_REGION=ap-guangzhou
 ```
 
-**ç­–ç•¥è¯´æ˜**
+**ç­?ç?¥è¯´æ??**
 
-| `STORAGE_PROVIDER` | å®ç°ç±» | è¿”å› URL æ ¼å¼ |
+| `STORAGE_PROVIDER` | å®?ç?°ç±» | è¿?å?? URL æ ¼å¼ |
 |--------------------|--------|--------------|
-| `local`ï¼ˆé»˜è®¤ï¼‰ | `LocalStorageStrategy` | `http://localhost:3000/uploads/{filename}` |
-| `cos` | `CosStorageStrategy` | COS ä¸´æ—¶ç­¾å URLï¼ˆéƒ¨ç½²å‰å®ç°ï¼‰ |
+| `local`ï¼?é»?è®¤ï¼? | `LocalStorageStrategy` | `http://localhost:3000/uploads/{filename}` |
+| `cos` | `CosStorageStrategy` | COS ä¸´æ?¶ç­¾å URLï¼?é?¨ç½²å?å®?ç?°ï¼? |
 
-### 13.3 é™æ€èµ„æºæœåŠ¡
+### 13.3 é?æ?èµ?æºæ?å?¡
 
-`main.ts` å·²é…ç½® `useStaticAssets`ï¼Œæœ¬åœ°å¼€å‘æ—¶ `/uploads/*` è·¯ç”±ç›´æ¥æ˜ å°„è‡³ `apps/server/uploads/` ç›®å½•ï¼Œæ— éœ€é¢å¤– Nginx é…ç½®ã€‚
+`main.ts` å·²é?ç½® `useStaticAssets`ï¼?æ?¬å?°å¼?å?æ?¶ `/uploads/*` è·¯ç?±ç?´æ?¥æ? å°?è?³ `apps/server/uploads/` ç?®å½?ï¼?æ? é??é¢å¤? Nginx é?ç½®ã??
 
-### 13.4 å…¨é“¾è·¯éªŒæ”¶ç»“æœï¼ˆ2026-06-08ï¼‰
+### 13.4 å?¨é?¾è·¯éª?æ?¶ç»?æ??ï¼?2026-06-08ï¼?
 
-| # | åœºæ™¯ | ç»“æœ |
+| # | å?ºæ?¯ | ç»?æ?? |
 |---|------|------|
-| 1 | ä¸Šä¼ å›¾ç‰‡ + `orderNo=CLN20260608000001` | âœ… è¿”å› CLN å‰ç¼€ URLï¼Œæ°´å°å«è®¢å•å·+æ—¶é—´ |
-| 2 | ä¸Šä¼ å›¾ç‰‡ + `orderNo=RCY20260608000002` | âœ… è¿”å› RCY å‰ç¼€ URLï¼Œæ°´å°å«è®¢å•å·+æ—¶é—´ |
-| 3 | ä¸Šä¼ å›¾ç‰‡ï¼Œä¸ä¼  `orderNo` | âœ… è¿”å› IMG å‰ç¼€ URLï¼Œæ°´å°ä»…å«æ—¶é—´ |
-| 4 | ä¸Šä¼  `.txt` æ–‡æœ¬æ–‡ä»¶ | âœ… è¿”å› 400ï¼Œ"ä¸æ”¯æŒçš„æ–‡ä»¶ç±»å‹" |
-| 5 | è¯·æ±‚ç¼ºå°‘ `file` å­—æ®µ | âœ… è¿”å› 400ï¼Œ"æœªæ¥æ”¶åˆ°æ–‡ä»¶" |
+| 1 | ä¸?ä¼ å?¾ç?? + `orderNo=CLN20260608000001` | â?? è¿?å?? CLN å?ç¼? URLï¼?æ°´å°å«è®¢å?å·+æ?¶é?´ |
+| 2 | ä¸?ä¼ å?¾ç?? + `orderNo=RCY20260608000002` | â?? è¿?å?? RCY å?ç¼? URLï¼?æ°´å°å«è®¢å?å·+æ?¶é?´ |
+| 3 | ä¸?ä¼ å?¾ç??ï¼?ä¸ä¼  `orderNo` | â?? è¿?å?? IMG å?ç¼? URLï¼?æ°´å°ä»?å«æ?¶é?´ |
+| 4 | ä¸?ä¼  `.txt` æ??æ?¬æ??ä»¶ | â?? è¿?å?? 400ï¼?"ä¸æ?¯æ?ç??æ??ä»¶ç±»å??" |
+| 5 | è¯·æ±?ç¼ºå°? `file` å­?æ®µ | â?? è¿?å?? 400ï¼?"æ?ªæ?¥æ?¶å?°æ??ä»¶" |
 
 ---
 
-## 14. P2.10 Review è¯„ä»·æ¨¡å—ï¼ˆ2026-06-08 ç¡®è®¤ï¼‰
+## 14. P2.10 Review è¯?ä»·æ¨¡å?ï¼?2026-06-08 ç¡®è®¤ï¼?
 
-> **åŠŸèƒ½è¯´æ˜**ï¼šå±…æ°‘å¯¹å·²å®ŒæˆæœåŠ¡ï¼ˆ`PENDING_REVIEW` çŠ¶æ€ï¼‰æäº¤æ˜Ÿçº§/æ ‡ç­¾/æ–‡å­—/å›¾ç‰‡è¯„ä»·ã€‚è¯„ä»·æäº¤æˆåŠŸåï¼Œè®¢å•çŠ¶æ€è‡ªåŠ¨æµè½¬è‡³ `REVIEWED`ï¼ˆå†™å…¥å®¡è®¡æ—¥å¿—ï¼‰ã€‚
+> **å??è?½è¯´æ??**ï¼?å±?æ°?å¯¹å·²å®?æ?æ?å?¡ï¼?`PENDING_REVIEW` ç?¶æ?ï¼?æäº¤æ??çº§/æ ?ç­¾/æ??å­?/å?¾ç??è¯?ä»·ã??è¯?ä»·æäº¤æ?å??å?ï¼?è®¢å?ç?¶æ?è?ªå?¨æµè½¬è?³ `REVIEWED`ï¼?å??å?¥å®¡è®¡æ?¥å¿?ï¼?ã??
 
-**Base path**ï¼š`/reviews`
+**Base path**ï¼?`/reviews`
 
-**é‰´æƒ**ï¼šå…¬å¼€ï¼ˆç®¡ç†ç«¯/å±…æ°‘ç«¯é‰´æƒç•™åç»­é˜¶æ®µï¼‰
+**é?´æ?**ï¼?å?¬å¼?ï¼?ç®¡ç?ç«¯/å±?æ°?ç«¯é?´æ?ç??å?ç»­é?¶æ®µï¼?
 
-### 14.1 POST `/reviews` â€” æäº¤è¯„ä»·
+### 14.1 POST `/reviews` â?? æäº¤è¯?ä»·
 
 **Request Body**
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | å¿?å¡« | è¯´æ?? |
 |------|------|------|------|
-| `orderType` | `CLEANING` \| `RECYCLING` | âœ… | è®¢å•ç±»å‹ |
-| `orderId` | number | âœ… | è®¢å• ID |
-| `residentId` | number | âœ… | æ“ä½œå±…æ°‘ IDï¼ˆç”¨äºå®¡è®¡æ—¥å¿—ï¼‰ |
-| `rating` | number | âœ… | æ˜Ÿçº§ï¼ˆ1â€“5ï¼‰ |
-| `tags` | string[] | âœ… | æ ‡ç­¾æ•°ç»„ï¼ˆå¦‚ `["å‡†æ—¶","å¹²å‡€"]`ï¼‰ |
-| `content` | string | | æ–‡å­—è¯„è¯­ï¼ˆæœ€é•¿ 1000 å­—ç¬¦ï¼‰ |
-| `images` | string[] | | è¯„ä»·å›¾ç‰‡ URL åˆ—è¡¨ |
+| `orderType` | `CLEANING` \| `RECYCLING` | â?? | è®¢å?ç±»å?? |
+| `orderId` | number | â?? | è®¢å? ID |
+| `residentId` | number | â?? | æ?ä½?å±?æ°? IDï¼?ç?¨äº?å®¡è®¡æ?¥å¿?ï¼? |
+| `rating` | number | â?? | æ??çº§ï¼?1â??5ï¼? |
+| `tags` | string[] | â?? | æ ?ç­¾æ?°ç»?ï¼?å¦? `["å??æ?¶","å¹²å??"]`ï¼? |
+| `content` | string | | æ??å­?è¯?è¯­ï¼?æ??é?¿ 1000 å­?ç¬¦ï¼? |
+| `images` | string[] | | è¯?ä»·å?¾ç?? URL å??è¡¨ |
 
-**ä¸šåŠ¡è§„åˆ™**ï¼šè®¢å•çŠ¶æ€å¿…é¡»ä¸º PENDING_REVIEWï¼›åŒä¸€è®¢å•ä¸å¯é‡å¤è¯„ä»·ï¼›è¯„ä»·æˆåŠŸåè®¢å•æµè½¬è‡³ REVIEWED å¹¶å†™å…¥ order_status_logsã€‚
+**ä¸?å?¡è§?å??**ï¼?è®¢å?ç?¶æ?å¿?é¡»ä¸º PENDING_REVIEWï¼?å?ä¸?è®¢å?ä¸å¯é?å¤è¯?ä»·ï¼?è¯?ä»·æ?å??å?è®¢å?æµè½¬è?³ REVIEWED å¹¶å??å?¥ order_status_logsã??
 
-**Response `data`**ï¼š`ReviewDto`ï¼ˆ400 = é PENDING_REVIEW æˆ–é‡å¤è¯„ä»·ï¼›404 = è®¢å•ä¸å­˜åœ¨ï¼‰
-
----
-
-### 14.2 GET `/reviews` â€” åˆ†é¡µæŸ¥è¯¢è¯„ä»·åˆ—è¡¨
-
-**Query**ï¼š`orderType?` / `orderId?` / `page`ï¼ˆé»˜è®¤ 1ï¼‰/ `pageSize`ï¼ˆé»˜è®¤ 10ï¼‰
-
-**Response `data`**ï¼š`{ items: ReviewDto[], total, page, pageSize }`
+**Response `data`**ï¼?`ReviewDto`ï¼?400 = é? PENDING_REVIEW æ??é?å¤è¯?ä»·ï¼?404 = è®¢å?ä¸å­?å?¨ï¼?
 
 ---
 
-### 14.3 GET `/reviews/:id` â€” è¯„ä»·è¯¦æƒ…
+### 14.2 GET `/reviews` â?? å??é¡µæ?¥è¯¢è¯?ä»·å??è¡¨
 
-**Response `data`**ï¼š`ReviewDto`ï¼ˆ404 = ä¸å­˜åœ¨ï¼‰
+**Query**ï¼?`orderType?` / `orderId?` / `page`ï¼?é»?è®¤ 1ï¼?/ `pageSize`ï¼?é»?è®¤ 10ï¼?
+
+**Response `data`**ï¼?`{ items: ReviewDto[], total, page, pageSize }`
 
 ---
 
-### 14.4 ReviewDto å­—æ®µ
+### 14.3 GET `/reviews/:id` â?? è¯?ä»·è¯¦æ??
 
-| å­—æ®µ | ç±»å‹ |
+**Response `data`**ï¼?`ReviewDto`ï¼?404 = ä¸å­?å?¨ï¼?
+
+---
+
+### 14.4 ReviewDto å­?æ®µ
+
+| å­?æ®µ | ç±»å?? |
 |------|------|
 | `id` | number |
 | `cleaningOrderId` | number \| null |
 | `recyclingOrderId` | number \| null |
 | `orderType` | `CLEANING` \| `RECYCLING` |
-| `rating` | numberï¼ˆ1â€“5ï¼‰ |
+| `rating` | numberï¼?1â??5ï¼? |
 | `tags` | string[] |
 | `content` | string \| null |
 | `images` | string[] \| null |
@@ -1024,203 +1024,203 @@ COS_REGION=ap-guangzhou
 
 ---
 
-## 15. P2.10 Complaint æŠ•è¯‰æ¨¡å—ï¼ˆ2026-06-08 ç¡®è®¤ï¼‰
+## 15. P2.10 Complaint æ??è¯?æ¨¡å?ï¼?2026-06-08 ç¡®è®¤ï¼?
 
-> **åŠŸèƒ½è¯´æ˜**ï¼šå±…æ°‘å¯¹ä¿æ´/åºŸå“/å’¨è¯¢ä¸‰ç±»è®¢å•æäº¤æŠ•è¯‰ï¼Œç®¡ç†å‘˜å¤„ç†å¹¶æ·»åŠ è·Ÿè¿›è®°å½•ï¼Œæœ€ç»ˆç»“æ¡ˆã€‚
+> **å??è?½è¯´æ??**ï¼?å±?æ°?å¯¹ä¿æ´/åº?å?/å?¨è¯¢ä¸?ç±»è®¢å?æäº¤æ??è¯?ï¼?ç®¡ç?å??å¤?ç?å¹¶æ·»å? è·?è¿?è®°å½?ï¼?æ??ç»?ç»?æ¡?ã??
 
-**Base path**ï¼š`/complaints`
+**Base path**ï¼?`/complaints`
 
-**é‰´æƒ**ï¼šå…¬å¼€ï¼ˆç®¡ç†ç«¯/å±…æ°‘ç«¯é‰´æƒç•™åç»­é˜¶æ®µï¼‰
+**é?´æ?**ï¼?å?¬å¼?ï¼?ç®¡ç?ç«¯/å±?æ°?ç«¯é?´æ?ç??å?ç»­é?¶æ®µï¼?
 
-### 15.1 POST `/complaints` â€” æäº¤æŠ•è¯‰
+### 15.1 POST `/complaints` â?? æäº¤æ??è¯?
 
-| å­—æ®µ | ç±»å‹ | å¿…å¡« | è¯´æ˜ |
+| å­?æ®µ | ç±»å?? | å¿?å¡« | è¯´æ?? |
 |------|------|------|------|
-| `orderType` | `CLEANING` \| `RECYCLING` \| `CONSULT` | âœ… | è®¢å•ç±»å‹ |
-| `orderId` | number | âœ… | è®¢å• ID |
-| `reason` | ComplaintReason | âœ… | `POOR_ATTITUDE`/`NOT_CLEAN`/`NOT_ON_TIME`/`ITEM_DAMAGED`/`EXTRA_CHARGE`/`OTHER` |
-| `description` | string | âœ… | æŠ•è¯‰æè¿°ï¼ˆæœ€é•¿ 1000 å­—ç¬¦ï¼‰ |
-| `evidenceImages` | string[] | | å‡­è¯å›¾ç‰‡ URL åˆ—è¡¨ |
+| `orderType` | `CLEANING` \| `RECYCLING` \| `CONSULT` | â?? | è®¢å?ç±»å?? |
+| `orderId` | number | â?? | è®¢å? ID |
+| `reason` | ComplaintReason | â?? | `POOR_ATTITUDE`/`NOT_CLEAN`/`NOT_ON_TIME`/`ITEM_DAMAGED`/`EXTRA_CHARGE`/`OTHER` |
+| `description` | string | â?? | æ??è¯?æè¿°ï¼?æ??é?¿ 1000 å­?ç¬¦ï¼? |
+| `evidenceImages` | string[] | | å?­è¯å?¾ç?? URL å??è¡¨ |
 
-**Response `data`**ï¼š`ComplaintDto`ï¼ˆåˆå§‹ `status: PENDING`ï¼›404 = è®¢å•ä¸å­˜åœ¨ï¼‰
-
----
-
-### 15.2 GET `/complaints` â€” åˆ†é¡µæŸ¥è¯¢æŠ•è¯‰åˆ—è¡¨
-
-**Query**ï¼š`status?`ï¼ˆPENDING/PROCESSING/COMPLETEDï¼‰/ `orderType?` / `page` / `pageSize`
-
-**Response `data`**ï¼š`{ items: ComplaintDto[], total, page, pageSize }`ï¼ˆä¸å« followUpsï¼‰
+**Response `data`**ï¼?`ComplaintDto`ï¼?å?å§? `status: PENDING`ï¼?404 = è®¢å?ä¸å­?å?¨ï¼?
 
 ---
 
-### 15.3 GET `/complaints/:id` â€” æŠ•è¯‰è¯¦æƒ…ï¼ˆå«è·Ÿè¿›è®°å½•ï¼‰
+### 15.2 GET `/complaints` â?? å??é¡µæ?¥è¯¢æ??è¯?å??è¡¨
 
-**Response `data`**ï¼š`ComplaintDto & { followUps: ComplaintFollowUpDto[] }`ï¼ˆ404 = ä¸å­˜åœ¨ï¼‰
+**Query**ï¼?`status?`ï¼?PENDING/PROCESSING/COMPLETEDï¼?/ `orderType?` / `page` / `pageSize`
 
----
-
-### 15.4 PATCH `/complaints/:id/status` â€” æ›´æ–°æŠ•è¯‰çŠ¶æ€
-
-**Body**ï¼š`status`ï¼ˆPROCESSING/COMPLETEDï¼‰ã€`operatorName`ã€`remark?`
-
-**çŠ¶æ€æœº**ï¼š`PENDING â†’ PROCESSING â†’ COMPLETED`ï¼ˆå•å‘ä¸å¯é€†ï¼›ç»ˆæ€ COMPLETED ä¸å¯å†å˜æ›´ï¼Œè¿”å› 400ï¼‰
+**Response `data`**ï¼?`{ items: ComplaintDto[], total, page, pageSize }`ï¼?ä¸å« followUpsï¼?
 
 ---
 
-### 15.5 POST `/complaints/:id/follow-ups` â€” æ·»åŠ è·Ÿè¿›è®°å½•
+### 15.3 GET `/complaints/:id` â?? æ??è¯?è¯¦æ??ï¼?å«è·?è¿?è®°å½?ï¼?
 
-**Body**ï¼š`handlerName`ï¼ˆæœ€é•¿ 32 å­—ç¬¦ï¼‰ã€`content`ï¼ˆæœ€é•¿ 2000 å­—ç¬¦ï¼‰
-
-**Response `data`**ï¼š`ComplaintFollowUpDto`ï¼ˆ404 = æŠ•è¯‰ä¸å­˜åœ¨ï¼‰
+**Response `data`**ï¼?`ComplaintDto & { followUps: ComplaintFollowUpDto[] }`ï¼?404 = ä¸å­?å?¨ï¼?
 
 ---
 
-### 15.6 å…¨é“¾è·¯éªŒæ”¶æµç¨‹
+### 15.4 PATCH `/complaints/:id/status` â?? æ?´æ?°æ??è¯?ç?¶æ?
+
+**Body**ï¼?`status`ï¼?PROCESSING/COMPLETEDï¼?ã?`operatorName`ã?`remark?`
+
+**ç?¶æ?æ?º**ï¼?`PENDING â?? PROCESSING â?? COMPLETED`ï¼?å?å?ä¸å¯é??ï¼?ç»?æ? COMPLETED ä¸å¯å?å?æ?´ï¼?è¿?å?? 400ï¼?
+
+---
+
+### 15.5 POST `/complaints/:id/follow-ups` â?? æ·»å? è·?è¿?è®°å½?
+
+**Body**ï¼?`handlerName`ï¼?æ??é?¿ 32 å­?ç¬¦ï¼?ã?`content`ï¼?æ??é?¿ 2000 å­?ç¬¦ï¼?
+
+**Response `data`**ï¼?`ComplaintFollowUpDto`ï¼?404 = æ??è¯?ä¸å­?å?¨ï¼?
+
+---
+
+### 15.6 å?¨é?¾è·¯éª?æ?¶æµç¨?
 
 ```
-POST /complaints                          â†’ åˆ›å»ºï¼ˆstatus: PENDINGï¼‰
-PATCH /complaints/:id/status {PROCESSING} â†’ å¤„ç†ä¸­
-POST  /complaints/:id/follow-ups          â†’ æ·»åŠ è·Ÿè¿›è®°å½•
-PATCH /complaints/:id/status {COMPLETED}  â†’ å·²ç»“æ¡ˆ
-PATCH /complaints/:id/status {PROCESSING} â†’ HTTP 400ï¼ˆç»ˆæ€ä¿æŠ¤ï¼‰
-GET   /complaints/:id                     â†’ è¯¦æƒ…å« followUps åˆ—è¡¨
+POST /complaints                          â?? å??å»ºï¼?status: PENDINGï¼?
+PATCH /complaints/:id/status {PROCESSING} â?? å¤?ç?ä¸­
+POST  /complaints/:id/follow-ups          â?? æ·»å? è·?è¿?è®°å½?
+PATCH /complaints/:id/status {COMPLETED}  â?? å·²ç»?æ¡?
+PATCH /complaints/:id/status {PROCESSING} â?? HTTP 400ï¼?ç»?æ?ä¿æ?¤ï¼?
+GET   /complaints/:id                     â?? è¯¦æ??å« followUps å??è¡¨
 ```
 
-### 14.5 å…¨é“¾è·¯éªŒæ”¶ç»“æœï¼ˆ2026-06-08ï¼‰
+### 14.5 å?¨é?¾è·¯éª?æ?¶ç»?æ??ï¼?2026-06-08ï¼?
 
-| # | åœºæ™¯ | ç»“æœ |
+| # | å?ºæ?¯ | ç»?æ?? |
 |---|------|------|
-| 1 | ä¿æ´è®¢å•èµ°å®Œå…¨é“¾è·¯è‡³ PENDING_REVIEWï¼ŒPOST /reviews æäº¤ rating=5 + tags | âœ… reviewId=1ï¼Œrating=5ï¼Œtags=[å‡†æ—¶,å¹²å‡€,ä¸“ä¸š] |
-| 2 | è¯„ä»·æäº¤å GET cleaning-orders/:id | âœ… status = REVIEWED |
-| 3 | é‡å¤è¯„ä»·åŒä¸€è®¢å• | âœ… HTTP 400ï¼Œæ¶ˆæ¯å«ã€Œé‡å¤ã€ |
-| 4 | å¯¹é PENDING_REVIEW çŠ¶æ€è®¢å•æäº¤è¯„ä»· | âœ… HTTP 400ï¼Œæ¶ˆæ¯å«è®¢å•çŠ¶æ€ |
+| 1 | ä¿æ´è®¢å?èµ°å®?å?¨é?¾è·¯è?³ PENDING_REVIEWï¼?POST /reviews æäº¤ rating=5 + tags | â?? reviewId=1ï¼?rating=5ï¼?tags=[å??æ?¶,å¹²å??,ä¸?ä¸?] |
+| 2 | è¯?ä»·æäº¤å? GET cleaning-orders/:id | â?? status = REVIEWED |
+| 3 | é?å¤è¯?ä»·å?ä¸?è®¢å? | â?? HTTP 400ï¼?æ¶?æ¯å«ã??é?å¤ã? |
+| 4 | å¯¹é? PENDING_REVIEW ç?¶æ?è®¢å?æäº¤è¯?ä»· | â?? HTTP 400ï¼?æ¶?æ¯å«è®¢å?ç?¶æ? |
 
 ---
 
-### 15.7 å…¨é“¾è·¯éªŒæ”¶ç»“æœï¼ˆ2026-06-08ï¼‰
+### 15.7 å?¨é?¾è·¯éª?æ?¶ç»?æ??ï¼?2026-06-08ï¼?
 
-| # | åœºæ™¯ | ç»“æœ |
+| # | å?ºæ?¯ | ç»?æ?? |
 |---|------|------|
-| 1 | POST /complaintsï¼Œreason=NOT_CLEANï¼Œå«å‡­è¯å›¾ç‰‡ | âœ… status=PENDINGï¼ŒevidenceImages æ­£ç¡®ä¿å­˜ |
-| 2 | PATCH status {PROCESSING} | âœ… status=PROCESSING |
-| 3 | POST /follow-upsï¼ŒhandlerName + content | âœ… followUpId=1ï¼Œå­—æ®µæ­£ç¡® |
-| 4 | PATCH status {COMPLETED} | âœ… status=COMPLETED |
-| 5 | PATCH status {PROCESSING}ï¼ˆç»ˆæ€ä¿æŠ¤ï¼‰ | âœ… HTTP 400ï¼Œ"æŠ•è¯‰å·²å¤„äºç»ˆæ€ï¼ˆCOMPLETEDï¼‰ï¼Œä¸å¯å†å˜æ›´çŠ¶æ€" |
-| 6 | GET /complaints/:id | âœ… status=COMPLETEDï¼ŒfollowUps æ•°ç»„å« 1 æ¡è®°å½• |
+| 1 | POST /complaintsï¼?reason=NOT_CLEANï¼?å«å?­è¯å?¾ç?? | â?? status=PENDINGï¼?evidenceImages æ­£ç¡®ä¿å­? |
+| 2 | PATCH status {PROCESSING} | â?? status=PROCESSING |
+| 3 | POST /follow-upsï¼?handlerName + content | â?? followUpId=1ï¼?å­?æ®µæ­£ç¡® |
+| 4 | PATCH status {COMPLETED} | â?? status=COMPLETED |
+| 5 | PATCH status {PROCESSING}ï¼?ç»?æ?ä¿æ?¤ï¼? | â?? HTTP 400ï¼?"æ??è¯?å·²å¤?äº?ç»?æ?ï¼?COMPLETEDï¼?ï¼?ä¸å¯å?å?æ?´ç?¶æ?" |
+| 6 | GET /complaints/:id | â?? status=COMPLETEDï¼?followUps æ?°ç»?å« 1 æ¡è®°å½? |
 
 ---
 
-## 16. P2.11 Dashboard æ•°æ®çœ‹æ¿èšåˆ APIï¼ˆ2026-06-08 ç¡®è®¤ï¼‰
+## 16. P2.11 Dashboard æ?°æ®ç??æ¿è?å? APIï¼?2026-06-08 ç¡®è®¤ï¼?
 
-> **åŠŸèƒ½è¯´æ˜**ï¼šä¸ºç®¡ç†åå°æ•°æ®çœ‹æ¿æä¾› 6 ä¸ªèšåˆç»Ÿè®¡æ¥å£ï¼Œè¿”å›æ ¼å¼ç›´æ¥é€‚é… ECharts å„å›¾è¡¨ç»„ä»¶å…¥å‚ã€‚æ”¯æŒ `startDate`/`endDate` æ—¶é—´èŒƒå›´ç­›é€‰ã€‚
+> **å??è?½è¯´æ??**ï¼?ä¸ºç®¡ç?å?å°æ?°æ®ç??æ¿æä¾? 6 ä¸ªè?å?ç»?è®¡æ?¥å£ï¼?è¿?å??æ ¼å¼ç?´æ?¥é??é? ECharts å?å?¾è¡¨ç»?ä»¶å?¥å?ã??æ?¯æ? `startDate`/`endDate` æ?¶é?´è??å?´ç­?é??ã??
 
-**Base path**ï¼š`/dashboard`
+**Base path**ï¼?`/dashboard`
 
-**é‰´æƒ**ï¼šå…¬å¼€ï¼ˆç®¡ç†ç«¯é‰´æƒç•™ P5 é˜¶æ®µå®ç°ï¼‰
+**é?´æ?**ï¼?å?¬å¼?ï¼?ç®¡ç?ç«¯é?´æ?ç?? P5 é?¶æ®µå®?ç?°ï¼?
 
-### 16.1 å…¬å…±æŸ¥è¯¢å‚æ•°ï¼ˆæ‰€æœ‰æ¥å£é€‚ç”¨ï¼‰
+### 16.1 å?¬å?±æ?¥è¯¢å?æ?°ï¼?æ??æ??æ?¥å£é??ç?¨ï¼?
 
-| å‚æ•° | ç±»å‹ | å¿…å¡« | è¯´æ˜ |
+| å?æ?° | ç±»å?? | å¿?å¡« | è¯´æ?? |
 |------|------|------|------|
-| `startDate` | stringï¼ˆISO æ—¥æœŸï¼‰ | | ç»Ÿè®¡èµ·å§‹æ—¥æœŸï¼Œå¦‚ `2026-06-01`ï¼Œç¼ºçœè§å„æ¥å£é»˜è®¤èŒƒå›´ |
-| `endDate` | stringï¼ˆISO æ—¥æœŸï¼‰ | | ç»Ÿè®¡ç»“æŸæ—¥æœŸï¼Œå¦‚ `2026-06-08`ï¼Œç¼ºçœè§å„æ¥å£é»˜è®¤èŒƒå›´ |
+| `startDate` | stringï¼?ISO æ?¥æ??ï¼? | | ç»?è®¡èµ·å§?æ?¥æ??ï¼?å¦? `2026-06-01`ï¼?ç¼ºç?è§å?æ?¥å£é»?è®¤è??å?´ |
+| `endDate` | stringï¼?ISO æ?¥æ??ï¼? | | ç»?è®¡ç»?æ?æ?¥æ??ï¼?å¦? `2026-06-08`ï¼?ç¼ºç?è§å?æ?¥å£é»?è®¤è??å?´ |
 
 ---
 
-### 16.2 GET `/dashboard/summary` â€” ç»Ÿè®¡å¡
+### 16.2 GET `/dashboard/summary` â?? ç»?è®¡å¡
 
-**é‰´æƒ**ï¼šå…¬å¼€ï¼ˆä¸å— startDate/endDate æ§åˆ¶ï¼Œå§‹ç»ˆåæ˜ å›ºå®šæ—¶æ®µå®æ—¶å€¼ï¼‰
+**é?´æ?**ï¼?å?¬å¼?ï¼?ä¸å? startDate/endDate æ?§å?¶ï¼?å§?ç»?åæ? å?ºå®?æ?¶æ®µå®?æ?¶å?¼ï¼?
 
 **Response `data`**
 ```typescript
 {
-  todayOrders: number;      // ä»Šæ—¥ä¸‰ç±»è®¢å•åˆè®¡
-  weekOrders: number;       // æœ¬å‘¨ä¸‰ç±»è®¢å•åˆè®¡
-  activeWorkers: number;    // status=IDLE|BUSY çš„å‘˜å·¥æ•°
-  avgRating: number;        // å…¨é‡è¯„ä»·å¹³å‡æ˜Ÿçº§ï¼ˆä¿ç•™ 1 ä½å°æ•°ï¼‰
+  todayOrders: number;      // ä»?æ?¥ä¸?ç±»è®¢å?å?è®¡
+  weekOrders: number;       // æ?¬å?¨ä¸?ç±»è®¢å?å?è®¡
+  activeWorkers: number;    // status=IDLE|BUSY ç??å??å·¥æ?°
+  avgRating: number;        // å?¨é?è¯?ä»·å¹³å?æ??çº§ï¼?ä¿ç?? 1 ä½å°æ?°ï¼?
 }
 ```
 
-**éªŒæ”¶ç»“æœï¼ˆ2026-06-08ï¼‰**ï¼š`{ todayOrders: 8, weekOrders: 8, activeWorkers: 3, avgRating: 5 }` âœ…
+**éª?æ?¶ç»?æ??ï¼?2026-06-08ï¼?**ï¼?`{ todayOrders: 8, weekOrders: 8, activeWorkers: 3, avgRating: 5 }` â??
 
 ---
 
-### 16.3 GET `/dashboard/order-trend` â€” è®¢å•è¶‹åŠ¿ï¼ˆECharts æŠ˜çº¿å›¾ï¼‰
+### 16.3 GET `/dashboard/order-trend` â?? è®¢å?è¶?å?¿ï¼?ECharts æ??çº¿å?¾ï¼?
 
-**é»˜è®¤èŒƒå›´**ï¼šè¿‘ 7 å¤©
+**é»?è®¤è??å?´**ï¼?è¿? 7 å¤©
 
 **Response `data`**
 ```typescript
 {
-  dates: string[];      // ["2026-06-02", ..., "2026-06-08"]ï¼ˆxAxis.dataï¼‰
-  cleaning: number[];   // æ¯å¤©ä¿æ´è®¢å•æ•°ï¼ˆseries[0].dataï¼Œä¸ dates ç­‰é•¿ï¼‰
-  recycling: number[];  // æ¯å¤©åºŸå“è®¢å•æ•°ï¼ˆseries[1].dataï¼Œä¸ dates ç­‰é•¿ï¼‰
-  consult: number[];    // æ¯å¤©å’¨è¯¢è®¢å•æ•°ï¼ˆseries[2].dataï¼Œä¸ dates ç­‰é•¿ï¼‰
+  dates: string[];      // ["2026-06-02", ..., "2026-06-08"]ï¼?xAxis.dataï¼?
+  cleaning: number[];   // æ¯å¤©ä¿æ´è®¢å?æ?°ï¼?series[0].dataï¼?ä¸? dates ç­?é?¿ï¼?
+  recycling: number[];  // æ¯å¤©åº?å?è®¢å?æ?°ï¼?series[1].dataï¼?ä¸? dates ç­?é?¿ï¼?
+  consult: number[];    // æ¯å¤©å?¨è¯¢è®¢å?æ?°ï¼?series[2].dataï¼?ä¸? dates ç­?é?¿ï¼?
 }
 ```
 
-**ECharts å¯¹æ¥**ï¼š`xAxis.data = dates`ï¼Œ`series[N].data = cleaning/recycling/consult` âœ…
+**ECharts å¯¹æ?¥**ï¼?`xAxis.data = dates`ï¼?`series[N].data = cleaning/recycling/consult` â??
 
 ---
 
-### 16.4 GET `/dashboard/service-type-distribution` â€” æœåŠ¡ç±»å‹åˆ†å¸ƒï¼ˆECharts ç¯å½¢å›¾ï¼‰
+### 16.4 GET `/dashboard/service-type-distribution` â?? æ?å?¡ç±»å??å??å¸?ï¼?ECharts ç?¯å½¢å?¾ï¼?
 
-**é»˜è®¤èŒƒå›´**ï¼šè¿‘ 30 å¤©
+**é»?è®¤è??å?´**ï¼?è¿? 30 å¤©
 
 **Response `data`**
 ```typescript
 {
   data: [
     { name: "ä¿æ´",     value: number },
-    { name: "åºŸå“å›æ”¶", value: number },
-    { name: "å®¶æ”¿å’¨è¯¢", value: number },
-  ]  // ç›´æ¥èµ‹ç»™ series.dataï¼Œç¬¦åˆ ECharts é¥¼å›¾æ ‡å‡†æ ¼å¼
+    { name: "åº?å?å??æ?¶", value: number },
+    { name: "å®¶æ?¿å?¨è¯¢", value: number },
+  ]  // ç?´æ?¥èµ?ç»? series.dataï¼?ç¬¦å? ECharts é¥¼å?¾æ ?å??æ ¼å¼
 }
 ```
 
-**éªŒæ”¶ç»“æœï¼ˆ2026-06-08ï¼‰**ï¼š`[ä¿æ´:8, åºŸå“å›æ”¶:2, å®¶æ”¿å’¨è¯¢:3]`ï¼Œåˆè®¡=13 âœ…
+**éª?æ?¶ç»?æ??ï¼?2026-06-08ï¼?**ï¼?`[ä¿æ´:8, åº?å?å??æ?¶:2, å®¶æ?¿å?¨è¯¢:3]`ï¼?å?è®¡=13 â??
 
 ---
 
-### 16.5 GET `/dashboard/rating-distribution` â€” æ»¡æ„åº¦åˆ†å¸ƒï¼ˆECharts ç¯å½¢å›¾ï¼‰
+### 16.5 GET `/dashboard/rating-distribution` â?? æ»¡æ?åº¦å??å¸?ï¼?ECharts ç?¯å½¢å?¾ï¼?
 
-**é»˜è®¤èŒƒå›´**ï¼šè¿‘ 30 å¤©
+**é»?è®¤è??å?´**ï¼?è¿? 30 å¤©
 
 **Response `data`**
 ```typescript
 {
   data: [
-    { name: "5æ˜Ÿ", value: number },
-    { name: "4æ˜Ÿ", value: number },
-    { name: "3æ˜Ÿ", value: number },
-    { name: "2æ˜Ÿ", value: number },
-    { name: "1æ˜Ÿ", value: number },
-  ]  // 5â†’1 å€’åºï¼›é›¶å€¼é¡¹ä¿ç•™ï¼ˆé¿å… ECharts ç©ºæ•°æ®æŠ¥é”™ï¼‰
+    { name: "5æ??", value: number },
+    { name: "4æ??", value: number },
+    { name: "3æ??", value: number },
+    { name: "2æ??", value: number },
+    { name: "1æ??", value: number },
+  ]  // 5â??1 å??åºï¼?é?¶å?¼é¡¹ä¿ç??ï¼?é¿å? ECharts ç©ºæ?°æ®æ?¥é??ï¼?
 }
 ```
 
 ---
 
-### 16.6 GET `/dashboard/hourly-distribution` â€” æ—¶æ®µåˆ†å¸ƒï¼ˆECharts æŸ±çŠ¶å›¾ï¼‰
+### 16.6 GET `/dashboard/hourly-distribution` â?? æ?¶æ®µå??å¸?ï¼?ECharts æ?±ç?¶å?¾ï¼?
 
-**é»˜è®¤èŒƒå›´**ï¼šè¿‘ 30 å¤©
+**é»?è®¤è??å?´**ï¼?è¿? 30 å¤©
 
 **Response `data`**
 ```typescript
 {
-  hours: string[];   // ["00:00", "01:00", ..., "23:00"]ï¼ˆå›ºå®š 24 é¡¹ï¼ŒxAxis.dataï¼‰
-  counts: number[];  // æ¯å°æ—¶è®¢å•æ•°ä¸‰ç±»åˆè®¡ï¼ˆå›ºå®š 24 é¡¹ï¼Œä¸ hours ç­‰é•¿ï¼Œseries.dataï¼‰
+  hours: string[];   // ["00:00", "01:00", ..., "23:00"]ï¼?å?ºå®? 24 é¡¹ï¼?xAxis.dataï¼?
+  counts: number[];  // æ¯å°æ?¶è®¢å?æ?°ä¸?ç±»å?è®¡ï¼?å?ºå®? 24 é¡¹ï¼?ä¸? hours ç­?é?¿ï¼?series.dataï¼?
 }
 ```
 
-> ä¿æ´/åºŸå“æŒ‰ `appointTimeSlot` è§£æé¦–ä¸ªå°æ—¶ï¼ˆæ”¯æŒ "09:00-11:00" æ•°å­—æ ¼å¼åŠ"ä¸Šåˆ/ä¸‹åˆ/æ™šä¸Š"ä¸­æ–‡æ ¼å¼ï¼‰ï¼›å’¨è¯¢å•æŒ‰ `createdAt` å°æ—¶ç»Ÿè®¡ã€‚
+> ä¿æ´/åº?å?æ?? `appointTimeSlot` è§£æ?é¦?ä¸ªå°æ?¶ï¼?æ?¯æ? "09:00-11:00" æ?°å­?æ ¼å¼å?"ä¸?å?/ä¸?å?/æ??ä¸?"ä¸­æ??æ ¼å¼ï¼?ï¼?å?¨è¯¢å?æ?? `createdAt` å°æ?¶ç»?è®¡ã??
 
 ---
 
-### 16.7 GET `/dashboard/worker-performance` â€” å‘˜å·¥ç»©æ•ˆæ’å
+### 16.7 GET `/dashboard/worker-performance` â?? å??å·¥ç»©æ??æ??å
 
-**é»˜è®¤èŒƒå›´**ï¼šè¿‘ 30 å¤©
+**é»?è®¤è??å?´**ï¼?è¿? 30 å¤©
 
 **Response `data`**
 ```typescript
@@ -1229,376 +1229,519 @@ GET   /complaints/:id                     â†’ è¯¦æƒ…å« followUps åˆ—è¡¨
     workerId: number;
     name: string;
     employeeNo: string;
-    totalOrders: number;       // ç´¯è®¡å®Œæˆå•æ•°ï¼ˆWorker.totalOrders å­—æ®µï¼‰
-    completedInRange: number;  // æ—¶é—´æ®µå†… REVIEWED çŠ¶æ€å•æ•°ï¼ˆæ¸…æ´+åºŸå“åˆè®¡ï¼‰
-    rating: number;            // å¹³å‡è¯„åˆ†ï¼ˆä¿ç•™ 1 ä½å°æ•°ï¼‰
+    totalOrders: number;       // ç´¯è®¡å®?æ?å?æ?°ï¼?Worker.totalOrders å­?æ®µï¼?
+    completedInRange: number;  // æ?¶é?´æ®µå?? REVIEWED ç?¶æ?å?æ?°ï¼?æ¸?æ´+åº?å?å?è®¡ï¼?
+    rating: number;            // å¹³å?è¯?å??ï¼?ä¿ç?? 1 ä½å°æ?°ï¼?
     status: string;            // IDLE / BUSY
   }>
-  // æŒ‰ completedInRange å€’åºæ’åˆ—ï¼ŒåŒå€¼å†æŒ‰ totalOrders å€’åº
+  // æ?? completedInRange å??åºæ??å??ï¼?å?å?¼å?æ?? totalOrders å??åº
 }
 ```
 
 ---
 
-### 16.8 å…¨é“¾è·¯éªŒæ”¶ç»“æœï¼ˆ2026-06-08ï¼‰
+### 16.8 å?¨é?¾è·¯éª?æ?¶ç»?æ??ï¼?2026-06-08ï¼?
 
-| # | æ¥å£ | éªŒæ”¶é¡¹ | ç»“æœ |
+| # | æ?¥å£ | éª?æ?¶é¡¹ | ç»?æ?? |
 |---|------|--------|------|
-| 1 | `/summary` | ä»Šæ—¥è®¢å•=8ï¼Œæœ¬å‘¨=8ï¼Œå‘˜å·¥=3ï¼Œè¯„åˆ†=5.0 | âœ… æ•°å­—ä¸æµ‹è¯•æ•°æ®ä¸€è‡´ |
-| 2 | `/order-trend` | 7ä¸ªæ—¥æœŸï¼Œä¸‰ç»„æ•°ç»„ç­‰é•¿ï¼Œæ•°æ®é›†ä¸­åœ¨6/7å’Œ6/8 | âœ… EChartsæŠ˜çº¿å›¾æ ¼å¼æ ¡éªŒé€šè¿‡ |
-| 3 | `/service-type-distribution` | `{name,value}[]` ç»“æ„ï¼Œåˆè®¡=13 | âœ… EChartsé¥¼å›¾æ ¼å¼æ ¡éªŒé€šè¿‡ |
-| 4 | `/rating-distribution` | 5é¡¹å›ºå®šï¼ˆ5â†’1æ˜Ÿï¼‰ï¼Œå«é›¶å€¼å ä½ | âœ… EChartsé¥¼å›¾æ ¼å¼æ ¡éªŒé€šè¿‡ |
-| 5 | `/hourly-distribution` | 24é¡¹å›ºå®šï¼Œhours/countsç­‰é•¿ï¼Œ09:00å’Œ14:00æœ‰å³°å€¼ | âœ… EChartsæŸ±çŠ¶å›¾æ ¼å¼æ ¡éªŒé€šè¿‡ |
-| 6 | `/worker-performance` | 3åå‘˜å·¥ï¼ŒæŒ‰completedInRangeå€’åºæ’åˆ— | âœ… el-tableæ ¼å¼æ ¡éªŒé€šè¿‡ |
-| 7 | æ—¶é—´èŒƒå›´ç­›é€‰ | `?startDate=2026-06-01&endDate=2026-06-05` è¿”å›5å¤©æ•°æ® | âœ… èŒƒå›´è®¡ç®—æ­£ç¡® |
-| 8 | Jest å•å…ƒæµ‹è¯• | æ–°å¢20é¡¹ï¼ˆå…¨å¥—å›å½’182é¡¹ï¼‰ | âœ… å…¨éƒ¨é€šè¿‡ |
-| 9 | `npm run build` | å…¨é“¾è·¯ç¼–è¯‘ | âœ… æ— æŠ¥é”™ |
+| 1 | `/summary` | ä»?æ?¥è®¢å?=8ï¼?æ?¬å?¨=8ï¼?å??å·¥=3ï¼?è¯?å??=5.0 | â?? æ?°å­?ä¸?æµ?è¯?æ?°æ®ä¸?è?´ |
+| 2 | `/order-trend` | 7ä¸ªæ?¥æ??ï¼?ä¸?ç»?æ?°ç»?ç­?é?¿ï¼?æ?°æ®é??ä¸­å?¨6/7å??6/8 | â?? EChartsæ??çº¿å?¾æ ¼å¼æ ¡éª?é??è¿? |
+| 3 | `/service-type-distribution` | `{name,value}[]` ç»?æ??ï¼?å?è®¡=13 | â?? EChartsé¥¼å?¾æ ¼å¼æ ¡éª?é??è¿? |
+| 4 | `/rating-distribution` | 5é¡¹å?ºå®?ï¼?5â??1æ??ï¼?ï¼?å«é?¶å?¼å ä½ | â?? EChartsé¥¼å?¾æ ¼å¼æ ¡éª?é??è¿? |
+| 5 | `/hourly-distribution` | 24é¡¹å?ºå®?ï¼?hours/countsç­?é?¿ï¼?09:00å??14:00æ??å³°å?¼ | â?? EChartsæ?±ç?¶å?¾æ ¼å¼æ ¡éª?é??è¿? |
+| 6 | `/worker-performance` | 3åå??å·¥ï¼?æ??completedInRangeå??åºæ??å?? | â?? el-tableæ ¼å¼æ ¡éª?é??è¿? |
+| 7 | æ?¶é?´è??å?´ç­?é?? | `?startDate=2026-06-01&endDate=2026-06-05` è¿?å??5å¤©æ?°æ® | â?? è??å?´è®¡ç®?æ­£ç¡® |
+| 8 | Jest å?å??æµ?è¯? | æ?°å¢?20é¡¹ï¼?å?¨å¥?å??å½?182é¡¹ï¼? | â?? å?¨é?¨é??è¿? |
+| 9 | `npm run build` | å?¨é?¾è·¯ç¼?è¯? | â?? æ? æ?¥é?? |
 
 ---
 
-## 17. P3.1 å±…æ°‘ç«¯éª¨æ¶å¯¹æ¥å¥‘çº¦ï¼ˆ2026-06-17 ç¡®è®¤ï¼‰
+## 17. P3.1 å±?æ°?ç«¯éª¨æ?¶å¯¹æ?¥å¥?çº¦ï¼?2026-06-17 ç¡®è®¤ï¼?
 
-> **èƒŒæ™¯**ï¼šP3.1 å®ç°å±…æ°‘ç«¯å°ç¨‹åº `apps/miniapp-customer` çš„åº”ç”¨éª¨æ¶ã€å¾®ä¿¡ç™»å½•æˆæƒåŠé¦–æ¬¡ä¸‹å•æ‰‹æœºå·å¿«é€Ÿè¡¥å…¨æµç¨‹ã€‚æœ¬èŠ‚è®°å½•å‰ç«¯å¯¹æ¥ Auth æ¨¡å—çš„å…³é”®çº¦å®šã€‚
+> **è??æ?¯**ï¼?P3.1 å®?ç?°å±?æ°?ç«¯å°ç¨?åº `apps/miniapp-customer` ç??åº?ç?¨éª¨æ?¶ã?å¾®ä¿¡ç?»å½?æ??æ?å?é¦?æ¬¡ä¸?å?æ??æ?ºå·å¿«é??è¡¥å?¨æµç¨?ã??æ?¬è??è®°å½?å?ç«¯å¯¹æ?¥ Auth æ¨¡å?ç??å?³é?®çº¦å®?ã??
 
-### 17.1 å¾®ä¿¡ç™»å½•æµç¨‹
+### 17.1 å¾®ä¿¡ç?»å½?æµç¨?
 
 ```
-wx.login() è·å– code
-  â†’ POST /auth/wechat-login { code }
-  â†’ åç«¯ mock openid â†’ æŸ¥æ‰¾æˆ–åˆ›å»º Resident â†’ ç­¾å‘ JWT
-  â†’ å‰ç«¯æŒä¹…åŒ– { accessToken, refreshToken, residentId, residentName, residentPhone }
+wx.login() è?·å? code
+  â?? POST /auth/wechat-login { code }
+  â?? å?ç«¯ mock openid â?? æ?¥æ?¾æ??å??å»º Resident â?? ç­¾å? JWT
+  â?? å?ç«¯æ?ä¹?å?? { accessToken, refreshToken, residentId, residentName, residentPhone }
 ```
 
-**å…³é”®çº¦å®š**ï¼š
-- `accessToken` æœ‰æ•ˆæœŸ 2hï¼›è¶…æœŸè°ƒ `POST /auth/refresh` è‡ªåŠ¨ç»­æœŸ
-- æ‰€æœ‰éœ€é‰´æƒçš„åç»­è¯·æ±‚éœ€åœ¨ Header æ·»åŠ ï¼š`Authorization: Bearer {accessToken}`
-- Pinia `authStore` å­˜å‚¨ç™»å½•æ€ï¼Œä½¿ç”¨ `uni.setStorageSync` æŒä¹…åŒ–
+**å?³é?®çº¦å®?**ï¼?
+- `accessToken` æ??æ??æ?? 2hï¼?è¶?æ??è°? `POST /auth/refresh` è?ªå?¨ç»­æ??
+- æ??æ??é??é?´æ?ç??å?ç»­è¯·æ±?é??å?¨ Header æ·»å? ï¼?`Authorization: Bearer {accessToken}`
+- Pinia `authStore` å­?å?¨ç?»å½?æ?ï¼?ä½¿ç?¨ `uni.setStorageSync` æ?ä¹?å??
 
-### 17.2 é¦–æ¬¡ä¸‹å•èº«ä»½è¡¥å…¨å¼¹çª—
+### 17.2 é¦?æ¬¡ä¸?å?èº«ä»½è¡¥å?¨å¼¹çª?
 
-**è§¦å‘æ—¶æœº**ï¼šå±…æ°‘ç‚¹å‡»"ç¡®å®šé¢„çº¦"å‰ï¼Œæ£€æµ‹ `resident.name` æˆ– `resident.phone` ä¸ºç©ºæ—¶å¼¹å‡º `ProfileCompleteModal`ã€‚
+**è§¦å?æ?¶æ?º**ï¼?å±?æ°?ç?¹å?»"ç¡®å®?é¢?çº¦"å?ï¼?æ£?æµ? `resident.name` æ?? `resident.phone` ä¸ºç©ºæ?¶å¼¹å?º `ProfileCompleteModal`ã??
 
-**è¡¥å…¨æ–¹å¼**ï¼ˆäºŒé€‰ä¸€ï¼‰ï¼š
-1. å¾®ä¿¡å¿«é€Ÿæˆæƒï¼š`<button open-type="getPhoneNumber">` â†’ è·å–åŠ å¯†æ‰‹æœºå· â†’ è°ƒåç«¯è§£å¯†ï¼ˆåç«¯æ¥å£å¾… P3.3 å¯¹æ¥å®ç°ï¼‰
-2. æ‰‹åŠ¨è¾“å…¥ï¼šç›´æ¥å¡«å†™å§“å + æ‰‹æœºå· â†’ è°ƒ `PUT /residents/:id` æ›´æ–° Resident ä¿¡æ¯
+**è¡¥å?¨æ?¹å¼**ï¼?äº?é??ä¸?ï¼?ï¼?
+1. å¾®ä¿¡å¿«é??æ??æ?ï¼?`<button open-type="getPhoneNumber">` â?? è?·å?å? å¯?æ??æ?ºå· â?? è°?å?ç«¯è§£å¯?ï¼?å?ç«¯æ?¥å£å¾? P3.3 å¯¹æ?¥å®?ç?°ï¼?
+2. æ??å?¨è¾?å?¥ï¼?ç?´æ?¥å¡«å??å§?å + æ??æ?ºå· â?? è°? `PUT /residents/:id` æ?´æ?° Resident ä¿¡æ¯
 
-**è¡¥å…¨å**ï¼šå°†å§“å/æ‰‹æœºå·å›å¡«åˆ°è®¢å•åˆ›å»ºè¡¨å•çš„ `contactName` / `contactPhone` å­—æ®µã€‚
+**è¡¥å?¨å?**ï¼?å°?å§?å/æ??æ?ºå·å??å¡«å?°è®¢å?å??å»ºè¡¨å?ç?? `contactName` / `contactPhone` å­?æ®µã??
 
-### 17.3 è·¯ç”±å®ˆå«è§„åˆ™
+### 17.3 è·¯ç?±å®?å«è§?å??
 
-| é¡µé¢è·¯å¾„ | éœ€è¦ç™»å½• | æœªç™»å½•å¤„ç† |
+| é¡µé¢è·¯å¾? | é??è¦ç?»å½? | æ?ªç?»å½?å¤?ç? |
 |---------|---------|-----------|
-| `/pages/index/index` | æ— éœ€ | ç›´æ¥è®¿é—® |
-| `/pages/orders/index` | éœ€è¦ | å¼¹çª—æç¤ºå¹¶å¼•å¯¼ç™»å½• |
-| `/pages/mine/index` | éœ€è¦ | å¼¹çª—æç¤ºå¹¶å¼•å¯¼ç™»å½• |
+| `/pages/index/index` | æ? é?? | ç?´æ?¥è®¿é?® |
+| `/pages/orders/index` | é??è¦ | å¼¹çª?æç¤ºå¹¶å¼?å¯¼ç?»å½? |
+| `/pages/mine/index` | é??è¦ | å¼¹çª?æç¤ºå¹¶å¼?å¯¼ç?»å½? |
 
-å®ç°æ–‡ä»¶ï¼š`apps/miniapp-customer/src/composables/useRouteGuard.ts`
+å®?ç?°æ??ä»¶ï¼?`apps/miniapp-customer/src/composables/useRouteGuard.ts`
 
-### 17.4 æ–°å¢æºç æ–‡ä»¶ï¼ˆP3.1ï¼‰
+### 17.4 æ?°å¢?æºç æ??ä»¶ï¼?P3.1ï¼?
 
-| æ–‡ä»¶ | è¯´æ˜ |
+| æ??ä»¶ | è¯´æ?? |
 |------|------|
-| `apps/miniapp-customer/src/App.vue` | åº”ç”¨å…¥å£ï¼ŒæŒ‚è½½éšç§åè®®å¼¹çª—ä¸ç™»å½•åˆå§‹åŒ– |
-| `apps/miniapp-customer/src/store/auth.ts` | Pinia auth storeï¼ˆç™»å½•æ€ã€tokenã€residentInfoï¼‰ |
-| `apps/miniapp-customer/src/api/auth.ts` | å°è£… `/auth/wechat-login` å’Œ `/auth/refresh` è¯·æ±‚ |
-| `apps/miniapp-customer/src/api/request.ts` | uni.request å°è£…ï¼ˆè‡ªåŠ¨æºå¸¦ tokenã€401 è‡ªåŠ¨åˆ·æ–°ï¼‰ |
-| `apps/miniapp-customer/src/components/PrivacyModal.vue` | éšç§åè®®å¼¹çª—ï¼ˆé¦–æ¬¡å¯åŠ¨å¿…å¼¹ï¼ŒåŒæ„åå†™ storage æ ‡è®°ï¼‰ |
-| `apps/miniapp-customer/src/components/ProfileCompleteModal.vue` | èº«ä»½è¡¥å…¨å¼¹çª—ï¼ˆæ”¯æŒ getPhoneNumber å¿«é€Ÿæˆæƒæˆ–æ‰‹åŠ¨è¾“å…¥ï¼‰ |
-| `apps/miniapp-customer/src/composables/useRouteGuard.ts` | è·¯ç”±å®ˆå« composableï¼ˆonLoad å‰æ ¡éªŒç™»å½•æ€ï¼‰ |
+| `apps/miniapp-customer/src/App.vue` | åº?ç?¨å?¥å£ï¼?æ??è½½é?ç§åè®®å¼¹çª?ä¸?ç?»å½?å?å§?å?? |
+| `apps/miniapp-customer/src/store/auth.ts` | Pinia auth storeï¼?ç?»å½?æ?ã?tokenã?residentInfoï¼? |
+| `apps/miniapp-customer/src/api/auth.ts` | å°è£? `/auth/wechat-login` å?? `/auth/refresh` è¯·æ±? |
+| `apps/miniapp-customer/src/api/request.ts` | uni.request å°è£?ï¼?è?ªå?¨æºå¸¦ tokenã?401 è?ªå?¨å?·æ?°ï¼? |
+| `apps/miniapp-customer/src/components/PrivacyModal.vue` | é?ç§åè®®å¼¹çª?ï¼?é¦?æ¬¡å¯å?¨å¿?å¼¹ï¼?å?æ?å?å?? storage æ ?è®°ï¼? |
+| `apps/miniapp-customer/src/components/ProfileCompleteModal.vue` | èº«ä»½è¡¥å?¨å¼¹çª?ï¼?æ?¯æ? getPhoneNumber å¿«é??æ??æ?æ??æ??å?¨è¾?å?¥ï¼? |
+| `apps/miniapp-customer/src/composables/useRouteGuard.ts` | è·¯ç?±å®?å« composableï¼?onLoad å?æ ¡éª?ç?»å½?æ?ï¼? |
 
-### 17.5 P3.1 éªŒæ”¶ç»“è®ºï¼ˆ2026-06-17ï¼‰
+### 17.5 P3.1 éª?æ?¶ç»?è®ºï¼?2026-06-17ï¼?
 
-| éªŒæ”¶é¡¹ | ç»“æœ |
+| éª?æ?¶é¡¹ | ç»?æ?? |
 |--------|------|
-| é¦–æ¬¡å¯åŠ¨å¼¹å‡ºéšç§åè®®å¼¹çª—ï¼ŒåŒæ„åå¾®ä¿¡ç™»å½•æˆåŠŸ | âœ… é€šè¿‡ |
-| å†æ¬¡å¯åŠ¨ä¸å¼¹éšç§åè®®ï¼Œç›´æ¥å®Œæˆé™é»˜ç™»å½• | âœ… é€šè¿‡ |
-| æœªç™»å½•è®¿é—®ã€Œè®¢å•ã€ã€Œæˆ‘çš„ã€Tab å¼¹å‡ºç™»å½•æç¤º | âœ… é€šè¿‡ |
-| ProfileCompleteModal å¼¹çª—æ”¯æŒæ‰‹åŠ¨å¡«å†™æ‰‹æœºå· | âœ… é€šè¿‡ |
-| `npm run build` å…¨é“¾è·¯ç¼–è¯‘æ— æŠ¥é”™ | âœ… é€šè¿‡ |
+| é¦?æ¬¡å¯å?¨å¼¹å?ºé?ç§åè®®å¼¹çª?ï¼?å?æ?å?å¾®ä¿¡ç?»å½?æ?å?? | â?? é??è¿? |
+| å?æ¬¡å¯å?¨ä¸å¼¹é?ç§åè®®ï¼?ç?´æ?¥å®?æ?é?é»?ç?»å½? | â?? é??è¿? |
+| æ?ªç?»å½?è®¿é?®ã??è®¢å?ã?ã??æ??ç??ã?Tab å¼¹å?ºç?»å½?æç¤º | â?? é??è¿? |
+| ProfileCompleteModal å¼¹çª?æ?¯æ?æ??å?¨å¡«å??æ??æ?ºå· | â?? é??è¿? |
+| `npm run build` å?¨é?¾è·¯ç¼?è¯?æ? æ?¥é?? | â?? é??è¿? |
 
 ---
 
-## 18. P3.2 å±…æ°‘ç«¯é¦–é¡µå¯¹æ¥å¥‘çº¦ï¼ˆ2026-06-20 ç¡®è®¤ï¼‰
+## 18. P3.2 å±?æ°?ç«¯é¦?é¡µå¯¹æ?¥å¥?çº¦ï¼?2026-06-20 ç¡®è®¤ï¼?
 
-> **èƒŒæ™¯**ï¼šP3.2 å®ç°å±…æ°‘ç«¯å°ç¨‹åºé¦–é¡µåŠ¨æ€åŒ–ä¸æœåŠ¡è¯¦æƒ…é¡µï¼Œå¯¹æ¥ P2.14 å·²å®ç°çš„ Banner / Operator å…¬å¼€æŸ¥è¯¢æ¥å£ã€‚
+> **è??æ?¯**ï¼?P3.2 å®?ç?°å±?æ°?ç«¯å°ç¨?åºé¦?é¡µå?¨æ?å??ä¸?æ?å?¡è¯¦æ??é¡µï¼?å¯¹æ?¥ P2.14 å·²å®?ç?°ç?? Banner / Operator å?¬å¼?æ?¥è¯¢æ?¥å£ã??
 
-### 18.1 é¦–é¡µåŠ¨æ€æ•°æ®åŠ è½½
+### 18.1 é¦?é¡µå?¨æ?æ?°æ®å? è½½
 
-**å¹¶å‘è¯·æ±‚**ï¼ˆ`onShow` æ—¶è§¦å‘ï¼Œ`Promise.allSettled` é™é»˜å®¹é”™ï¼‰ï¼š
+**å¹¶å?è¯·æ±?**ï¼?`onShow` æ?¶è§¦å?ï¼?`Promise.allSettled` é?é»?å®¹é??ï¼?ï¼?
 
-| æ¥å£ | å‰ç«¯å°è£… | ç”¨é€” |
+| æ?¥å£ | å?ç«¯å°è£? | ç?¨é?? |
 |------|---------|------|
-| `GET /banners/active?displayTarget=RESIDENT` | `fetchActiveBanners()` | è½®æ’­å›¾åˆ—è¡¨ï¼ŒæŒ‰ `sortOrder` å‡åº |
-| `GET /operators/contact` | `fetchContactOperator()` | æ¥å•è¿è¥äººå‘˜ï¼ˆ`purpose='æ¥å•'` ç¬¬ä¸€æ¡ï¼‰ |
+| `GET /banners/active?displayTarget=RESIDENT` | `fetchActiveBanners()` | è½®æ?­å?¾å??è¡¨ï¼?æ?? `sortOrder` å?åº |
+| `GET /operators/contact` | `fetchContactOperator()` | æ?¥å?è¿è¥äººå??ï¼?`purpose='æ?¥å?'` ç¬¬ä¸?æ¡ï¼? |
 
-**Banner å±•ç¤ºè§„åˆ™**ï¼š
-- æœ‰æ•°æ®ï¼šswiper è½®æ’­ï¼Œ`imageUrl` å¡«å……ï¼Œ`title` å¯é€‰å åŠ 
-- æ— æ•°æ®/è¯·æ±‚å¤±è´¥ï¼šå±•ç¤ºå“ç‰Œé»˜è®¤å ä½å¡ã€Œå¤§æ´‹äº‘æ´Â·æ™ºäº«ç¤¾åŒºã€
+**Banner å±?ç¤ºè§?å??**ï¼?
+- æ??æ?°æ®ï¼?swiper è½®æ?­ï¼?`imageUrl` å¡«å??ï¼?`title` å¯é??å å? 
+- æ? æ?°æ®/è¯·æ±?å¤±è´¥ï¼?å±?ç¤ºå?ç??é»?è®¤å ä½å¡ã??å¤§æ´?äº?æ´Â·æ?ºäº«ç¤¾å?ºã?
 
-**Banner è·³è½¬è§„åˆ™**ï¼ˆ`linkType`ï¼‰ï¼š
+**Banner è·³è½¬è§?å??**ï¼?`linkType`ï¼?ï¼?
 
-| linkType | è¡Œä¸º |
+| linkType | è¡?ä¸º |
 |----------|------|
-| `NONE` | æ— è·³è½¬ |
+| `NONE` | æ? è·³è½¬ |
 | `PAGE` | `uni.navigateTo({ url: linkTarget })` |
-| `URL` | è·³è½¬ webview é¡µï¼ˆå¤–é“¾ï¼‰ |
+| `URL` | è·³è½¬ webview é¡µï¼?å¤?é?¾ï¼? |
 
-**å®¢æœç”µè¯è§„åˆ™**ï¼š
-- æˆåŠŸï¼š`contactName = operator.name`ï¼Œ`contactPhone = operator.phone`
-- å¤±è´¥/æ— è®°å½•ï¼šå…œåº• `400-123-4567`ï¼Œç‚¹å‡» `uni.makePhoneCall`
+**å®¢æ?ç?µè¯è§?å??**ï¼?
+- æ?å??ï¼?`contactName = operator.name`ï¼?`contactPhone = operator.phone`
+- å¤±è´¥/æ? è®°å½?ï¼?å??åº? `400-123-4567`ï¼?ç?¹å?» `uni.makePhoneCall`
 
-### 18.2 æœåŠ¡è¯¦æƒ…é¡µ
+### 18.2 æ?å?¡è¯¦æ??é¡µ
 
-**è·¯ç”±**ï¼š`/pages/service-detail/index?type={cleaning|recycling|consult}`
+**è·¯ç?±**ï¼?`/pages/service-detail/index?type={cleaning|recycling|consult}`
 
-**é¡µé¢å†…å®¹**ï¼š
-- å¤´éƒ¨ï¼šæœåŠ¡åç§° + å‰¯æ ‡é¢˜ + å›¾æ ‡ï¼ˆæŒ‰ type é…è‰²ï¼‰
-- æœåŠ¡è¯´æ˜ï¼šå„ç±»å‹ 5 æ¡å›ºå®šè¯´æ˜æ–‡æ¡ˆ
-- Â§1.6 è¾¹ç•Œå£°æ˜ï¼šé«˜ç©ºå¤–çª— / é¡½å›ºæ±¡æ¸ / è´µé‡ç‰©å“ / ä¸Šé—¨ç¡®è®¤ï¼ˆå››ç§æœåŠ¡å…±ç”¨ï¼‰
-- åº•éƒ¨ã€Œç«‹å³é¢„çº¦ã€ï¼š
-  - `cleaning` â†’ `/pages/booking-cleaning/index`
-  - `recycling` â†’ `/pages/booking-recycling/index`
-  - `consult` â†’ `/pages/booking-consult/index`ï¼ˆâœ… P3.5 å·²å®ç°ï¼‰
+**é¡µé¢å??å®¹**ï¼?
+- å¤´é?¨ï¼?æ?å?¡åç§° + å?¯æ ?é¢? + å?¾æ ?ï¼?æ?? type é?è?²ï¼?
+- æ?å?¡è¯´æ??ï¼?å?ç±»å?? 5 æ¡å?ºå®?è¯´æ??æ??æ¡?
+- Â§1.6 è¾¹ç??å£°æ??ï¼?é«?ç©ºå¤?çª? / é¡½å?ºæ±¡æ¸ / è´µé?ç?©å? / ä¸?é?¨ç¡®è®¤ï¼?å??ç§æ?å?¡å?±ç?¨ï¼?
+- åº?é?¨ã??ç«?å³é¢?çº¦ã?ï¼?
+  - `cleaning` â?? `/pages/booking-cleaning/index`
+  - `recycling` â?? `/pages/booking-recycling/index`
+  - `consult` â?? `/pages/booking-consult/index`ï¼?â?? P3.5 å·²å®?ç?°ï¼?
 
-### 18.3 API Base URL åŒç«¯é…ç½®
+### 18.3 API Base URL å?ç«¯é?ç½®
 
-| å¹³å° | BASE_URL | è¯´æ˜ |
+| å¹³å° | BASE_URL | è¯´æ?? |
 |------|----------|------|
-| H5 | `/api/v1` | Vite dev proxy â†’ `http://127.0.0.1:3000` |
-| mp-weixin | `VITE_API_BASE` æˆ– `http://127.0.0.1:3000/api/v1` | å°ç¨‹åºæ— ä»£ç†ï¼Œé¡»ç»å¯¹ URL |
+| H5 | `/api/v1` | Vite dev proxy â?? `http://127.0.0.1:3000` |
+| mp-weixin | `VITE_API_BASE` æ?? `http://127.0.0.1:3000/api/v1` | å°ç¨?åºæ? ä»£ç?ï¼?é¡»ç»å¯¹ URL |
 
-é…ç½®æ–‡ä»¶ï¼š`apps/miniapp-customer/.env.development` / `.env.production`
+é?ç½®æ??ä»¶ï¼?`apps/miniapp-customer/.env.development` / `.env.production`
 
-### 18.4 è·¯ç”±å®ˆå«æ›´æ–°ï¼ˆP3.2ï¼‰
+### 18.4 è·¯ç?±å®?å«æ?´æ?°ï¼?P3.2ï¼?
 
-å…¬å¼€é¡µï¼ˆæ— éœ€ç™»å½•ï¼‰æ‰©å±•ä¸ºï¼š
+å?¬å¼?é¡µï¼?æ? é??ç?»å½?ï¼?æ?©å±?ä¸ºï¼?
 
-| é¡µé¢ | è¯´æ˜ |
+| é¡µé¢ | è¯´æ?? |
 |------|------|
-| `pages/index/index` | é¦–é¡µæµè§ˆ |
-| `pages/service-detail/index` | æœåŠ¡è¯¦æƒ…æµè§ˆ |
+| `pages/index/index` | é¦?é¡µæµè§? |
+| `pages/service-detail/index` | æ?å?¡è¯¦æ??æµè§? |
 
-ä¸‹å•/é¢„çº¦é¡µä»å—ç™»å½•ä¿æŠ¤ã€‚
+ä¸?å?/é¢?çº¦é¡µä»å?ç?»å½?ä¿æ?¤ã??
 
-### 18.5 æ–°å¢æºç æ–‡ä»¶ï¼ˆP3.2ï¼‰
+### 18.5 æ?°å¢?æºç æ??ä»¶ï¼?P3.2ï¼?
 
-| æ–‡ä»¶ | è¯´æ˜ |
+| æ??ä»¶ | è¯´æ?? |
 |------|------|
-| `apps/miniapp-customer/src/api/banner.ts` | Banner API å°è£… |
-| `apps/miniapp-customer/src/api/operator.ts` | Operator è”ç³»ä¿¡æ¯ API å°è£… |
-| `apps/miniapp-customer/src/pages/index/index.vue` | é¦–é¡µï¼ˆåŠ¨æ€ Banner + æœåŠ¡å…¥å£ + å®¢æœæ¡ï¼‰ |
-| `apps/miniapp-customer/src/pages/service-detail/index.vue` | æœåŠ¡è¯¦æƒ…é¡µ |
-| `apps/miniapp-customer/vite.config.ts` | H5 `/api` åå‘ä»£ç† |
-| `apps/miniapp-customer/.env.development` | å°ç¨‹åºå¼€å‘ API åœ°å€ |
-| `apps/miniapp-customer/.env.production` | ç”Ÿäº§ API åœ°å€å ä½ |
+| `apps/miniapp-customer/src/api/banner.ts` | Banner API å°è£? |
+| `apps/miniapp-customer/src/api/operator.ts` | Operator è?ç³»ä¿¡æ¯ API å°è£? |
+| `apps/miniapp-customer/src/pages/index/index.vue` | é¦?é¡µï¼?å?¨æ? Banner + æ?å?¡å?¥å£ + å®¢æ?æ¡ï¼? |
+| `apps/miniapp-customer/src/pages/service-detail/index.vue` | æ?å?¡è¯¦æ??é¡µ |
+| `apps/miniapp-customer/vite.config.ts` | H5 `/api` åå?ä»£ç? |
+| `apps/miniapp-customer/.env.development` | å°ç¨?åºå¼?å? API å?°å? |
+| `apps/miniapp-customer/.env.production` | ç??äº§ API å?°å?å ä½ |
 
-### 18.6 P3.2 éªŒæ”¶ç»“è®ºï¼ˆ2026-06-20ï¼‰
+### 18.6 P3.2 éª?æ?¶ç»?è®ºï¼?2026-06-20ï¼?
 
-| éªŒæ”¶é¡¹ | ç»“æœ |
+| éª?æ?¶é¡¹ | ç»?æ?? |
 |--------|------|
-| Banner ä» API åŠ¨æ€åŠ è½½ï¼Œåå°é…ç½®åé¦–é¡µå®æ—¶æ›´æ–° | âœ… é€šè¿‡ |
-| æœåŠ¡å¡ç‰‡ â†’ è¯¦æƒ…é¡µ â†’ ç«‹å³é¢„çº¦ â†’ ä¸‰æ­¥å‘å¯¼è·³è½¬ | âœ… é€šè¿‡ |
-| å®¢æœç”µè¯ä» `/operators/contact` åŠ¨æ€è·å–å¹¶å¯æ‹¨æ‰“ | âœ… é€šè¿‡ |
-| H5 Vite ä»£ç† + å°ç¨‹åºç»å¯¹ URL åŒç«¯è¯·æ±‚æ­£å¸¸ | âœ… é€šè¿‡ |
-| `npm run build` å…¨é“¾è·¯ç¼–è¯‘æ— æŠ¥é”™ | âœ… é€šè¿‡ |
+| Banner ä»? API å?¨æ?å? è½½ï¼?å?å°é?ç½®å?é¦?é¡µå®?æ?¶æ?´æ?° | â?? é??è¿? |
+| æ?å?¡å¡ç?? â?? è¯¦æ??é¡µ â?? ç«?å³é¢?çº¦ â?? ä¸?æ­¥å?å¯¼è·³è½¬ | â?? é??è¿? |
+| å®¢æ?ç?µè¯ä»? `/operators/contact` å?¨æ?è?·å?å¹¶å¯æ?¨æ?? | â?? é??è¿? |
+| H5 Vite ä»£ç? + å°ç¨?åºç»å¯¹ URL å?ç«¯è¯·æ±?æ­£å¸¸ | â?? é??è¿? |
+| `npm run build` å?¨é?¾è·¯ç¼?è¯?æ? æ?¥é?? | â?? é??è¿? |
 
 ---
 
-## 19. P3.3 ä¿æ´é¢„çº¦ä¸‰æ­¥å‘å¯¼å¯¹æ¥å¥‘çº¦ï¼ˆ2026-06-20 ç¡®è®¤ï¼‰
+## 19. P3.3 ä¿æ´é¢?çº¦ä¸?æ­¥å?å¯¼å¯¹æ?¥å¥?çº¦ï¼?2026-06-20 ç¡®è®¤ï¼?
 
-> **èƒŒæ™¯**ï¼šP3.3 å®ç°å±…æ°‘ç«¯ä¿æ´é¢„çº¦ä¸‰æ­¥å‘å¯¼ï¼Œå¯¹æ¥æœåŠ¡ç›®å½•ã€åœ°å€ç®¡ç†ä¸ä¿æ´è®¢å•åˆ›å»ºæ¥å£ã€‚
+> **è??æ?¯**ï¼?P3.3 å®?ç?°å±?æ°?ç«¯ä¿æ´é¢?çº¦ä¸?æ­¥å?å¯¼ï¼?å¯¹æ?¥æ?å?¡ç?®å½?ã?å?°å?ç®¡ç?ä¸?ä¿æ´è®¢å?å??å»ºæ?¥å£ã??
 
-### 19.1 ä¸‰æ­¥å‘å¯¼æµç¨‹
+### 19.1 ä¸?æ­¥å?å¯¼æµç¨?
 
 ```
-Step 1 é€‰æ‹©æœåŠ¡
-  GET /service-catalogs?bizType=CLEANING&isEnabled=true  â†’ åŠ¨æ€æœåŠ¡ç±»å‹å¡ç‰‡
-  æ—¶é•¿æ­¥è¿›å™¨ï¼ˆ1â€“8 å°æ—¶ï¼Œé»˜è®¤ 2 å°æ—¶ï¼‰ï¼Œæ— ä»·æ ¼å±•ç¤º
+Step 1 é??æ?©æ?å?¡
+  GET /service-catalogs?bizType=CLEANING&isEnabled=true  â?? å?¨æ?æ?å?¡ç±»å??å¡ç??
+  æ?¶é?¿æ­¥è¿?å?¨ï¼?1â??8 å°æ?¶ï¼?é»?è®¤ 2 å°æ?¶ï¼?ï¼?æ? ä»·æ ¼å±?ç¤º
 
-Step 2 é¢„çº¦æ—¶é—´
-  å…¬å†+å†œå†æ—¥å†ï¼ˆä¸å¯é€‰è¿‡å»æ—¥æœŸï¼‰
-  æ—¶æ®µï¼š08:00 / 09:00 / 10:00 / 11:00 / 14:00 / 15:00 / 16:00 / 17:00
-  æœåŠ¡åœ°å€ï¼šå±•ç¤ºé»˜è®¤åœ°å€ + è„±æ•æ‰‹æœºå· â†’ è·³è½¬åœ°å€é€‰æ‹©é¡µ
-  ã€Œä¸ºå®¶äººä»£ä¸‹å•ã€å‹¾é€‰æ¡†ï¼ˆæ­¥éª¤ 2 åº•éƒ¨ï¼‰
+Step 2 é¢?çº¦æ?¶é?´
+  å?¬å??+å??å??æ?¥å??ï¼?ä¸å¯é??è¿?å?»æ?¥æ??ï¼?
+  æ?¶æ®µï¼?08:00 / 09:00 / 10:00 / 11:00 / 14:00 / 15:00 / 16:00 / 17:00
+  æ?å?¡å?°å?ï¼?å±?ç¤ºé»?è®¤å?°å? + è?±æ?æ??æ?ºå· â?? è·³è½¬å?°å?é??æ?©é¡µ
+  ã??ä¸ºå®¶äººä»£ä¸?å?ã?å?¾é??æ¡?ï¼?æ­¥éª¤ 2 åº?é?¨ï¼?
 
-Step 3 ç¡®è®¤è®¢å•
-  ä¿¡æ¯æ±‡æ€» + ä»£ä¸‹å•ä¿¡æ¯åŒºï¼ˆå‹¾é€‰æ—¶å±•ç¤ºï¼‰+ å¤‡æ³¨ + æœåŠ¡é¡»çŸ¥
-  POST /cleaning-orders â†’ æˆåŠŸ Toast å±•ç¤º CLN å‰ç¼€è®¢å•å· â†’ è·³è½¬è®¢å• Tab
+Step 3 ç¡®è®¤è®¢å?
+  ä¿¡æ¯æ±?æ?» + ä»£ä¸?å?ä¿¡æ¯å?ºï¼?å?¾é??æ?¶å±?ç¤ºï¼?+ å¤?æ³¨ + æ?å?¡é¡»ç?¥
+  POST /cleaning-orders â?? æ?å?? Toast å±?ç¤º CLN å?ç¼?è®¢å?å· â?? è·³è½¬è®¢å? Tab
 ```
 
-### 19.2 åˆ›å»ºè®¢å•è¯·æ±‚æ˜ å°„
+### 19.2 å??å»ºè®¢å?è¯·æ±?æ? å°?
 
 **`POST /cleaning-orders`**
 
-| å‰ç«¯å­—æ®µ | åç«¯å­—æ®µ | è¯´æ˜ |
+| å?ç«¯å­?æ®µ | å?ç«¯å­?æ®µ | è¯´æ?? |
 |---------|---------|------|
-| `authStore.resident.id` | `residentId` | ç™»å½•å±…æ°‘ ID |
-| `selectedCatalog.name` | `serviceItem` | æœåŠ¡ç±»å‹åç§° |
-| `duration` | `serviceDuration` | æœåŠ¡æ—¶é•¿ï¼ˆå°æ—¶ï¼‰ |
-| `selectedDate` | `appointDate` | é¢„çº¦æ—¥æœŸ YYYY-MM-DD |
-| `selectedTime` | `appointTimeSlot` | é¢„çº¦æ—¶æ®µ |
-| `selectedAddress.id` | `addressId` | åœ°å€ ID |
-| `selectedAddress.contactName` | `contactName` | è”ç³»äºº |
-| `selectedAddress.contactPhone` | `contactPhone` | è”ç³»ç”µè¯ |
-| `isProxy` | `isProxyOrder` | æ˜¯å¦ä»£ä¸‹å• |
-| `serviceContactName` | `serviceContactName` | ä»£ä¸‹å•æ—¶å¿…å¡« |
-| `serviceContactPhone` | `serviceContactPhone` | ä»£ä¸‹å•æ—¶å¿…å¡« |
-| å›ºå®š `'MINIPROGRAM'` | `source` | æ¥æºæ¸ é“ |
-| `remark` | `remark` | å¤‡æ³¨ï¼ˆå¯é€‰ï¼‰ |
+| `authStore.resident.id` | `residentId` | ç?»å½?å±?æ°? ID |
+| `selectedCatalog.name` | `serviceItem` | æ?å?¡ç±»å??åç§° |
+| `duration` | `serviceDuration` | æ?å?¡æ?¶é?¿ï¼?å°æ?¶ï¼? |
+| `selectedDate` | `appointDate` | é¢?çº¦æ?¥æ?? YYYY-MM-DD |
+| `selectedTime` | `appointTimeSlot` | é¢?çº¦æ?¶æ®µ |
+| `selectedAddress.id` | `addressId` | å?°å? ID |
+| `selectedAddress.contactName` | `contactName` | è?ç³»äºº |
+| `selectedAddress.contactPhone` | `contactPhone` | è?ç³»ç?µè¯ |
+| `isProxy` | `isProxyOrder` | æ?¯å¦ä»£ä¸?å? |
+| `serviceContactName` | `serviceContactName` | ä»£ä¸?å?æ?¶å¿?å¡« |
+| `serviceContactPhone` | `serviceContactPhone` | ä»£ä¸?å?æ?¶å¿?å¡« |
+| å?ºå®? `'MINIPROGRAM'` | `source` | æ¥æºæ¸ é? |
+| `remark` | `remark` | å¤?æ³¨ï¼?å¯é??ï¼? |
 
-### 19.3 åœ°å€é€‰æ‹©é¡µ
+### 19.3 å?°å?é??æ?©é¡µ
 
-**è·¯ç”±**ï¼š`/pages/address-select/index?from=cleaning`
+**è·¯ç?±**ï¼?`/pages/address-select/index?from=cleaning`
 
-| æ¥å£ | ç”¨é€” |
+| æ?¥å£ | ç?¨é?? |
 |------|------|
-| `GET /addresses?residentId=X&pageSize=20` | åŠ è½½åœ°å€åˆ—è¡¨ï¼ˆé»˜è®¤åœ°å€æ’æœ€å‰ï¼‰ |
-| `POST /addresses` | åœ°å€ç°¿ä¸ºç©ºæ—¶å¼•å¯¼æ–°å¢ï¼›çœ/å¸‚/åŒºé»˜è®¤é”å®šã€ŒåŒ—äº¬å¸‚/æœé˜³åŒº/ã€ç°è‰²ç¦ç”¨ |
+| `GET /addresses?residentId=X&pageSize=20` | å? è½½å?°å?å??è¡¨ï¼?é»?è®¤å?°å?æ??æ??å?ï¼? |
+| `POST /addresses` | å?°å?ç°¿ä¸ºç©ºæ?¶å¼?å¯¼æ?°å¢?ï¼?ç?/å¸?/å?ºé»?è®¤é?å®?ã??å??äº¬å¸?/æ?é?³å?º/ã?ç°è?²ç¦ç?¨ |
 
-é€‰ä¸­åœ°å€åå†™å…¥ `bookingCleaningStore.selectedAddress`ï¼Œ`navigateBack` è¿”å›å‘å¯¼æ­¥éª¤ 2ã€‚
+é??ä¸­å?°å?å?å??å?¥ `bookingCleaningStore.selectedAddress`ï¼?`navigateBack` è¿?å??å?å¯¼æ­¥éª¤ 2ã??
 
-### 19.4 æ–°å¢æºç æ–‡ä»¶ï¼ˆP3.3ï¼‰
+### 19.4 æ?°å¢?æºç æ??ä»¶ï¼?P3.3ï¼?
 
-| æ–‡ä»¶ | è¯´æ˜ |
+| æ??ä»¶ | è¯´æ?? |
 |------|------|
-| `apps/miniapp-customer/src/pages/booking-cleaning/index.vue` | ä¿æ´é¢„çº¦ä¸‰æ­¥å‘å¯¼é¡µ |
-| `apps/miniapp-customer/src/pages/address-select/index.vue` | æœåŠ¡åœ°å€é€‰æ‹©é¡µï¼ˆä¿æ´/åºŸå“å…±ç”¨ï¼‰ |
-| `apps/miniapp-customer/src/store/booking-cleaning.ts` | ä¿æ´å‘å¯¼ Pinia store |
-| `apps/miniapp-customer/src/api/cleaning-order.ts` | ä¿æ´è®¢å• API å°è£… |
-| `apps/miniapp-customer/src/api/address.ts` | åœ°å€ API å°è£… |
-| `apps/miniapp-customer/src/api/service-catalog.ts` | æœåŠ¡ç›®å½• API å°è£… |
-| `apps/miniapp-customer/src/utils/lunar.ts` | å…¬å†è½¬å†œå†å·¥å…· |
+| `apps/miniapp-customer/src/pages/booking-cleaning/index.vue` | ä¿æ´é¢?çº¦ä¸?æ­¥å?å¯¼é¡µ |
+| `apps/miniapp-customer/src/pages/address-select/index.vue` | æ?å?¡å?°å?é??æ?©é¡µï¼?ä¿æ´/åº?å?å?±ç?¨ï¼? |
+| `apps/miniapp-customer/src/store/booking-cleaning.ts` | ä¿æ´å?å¯¼ Pinia store |
+| `apps/miniapp-customer/src/api/cleaning-order.ts` | ä¿æ´è®¢å? API å°è£? |
+| `apps/miniapp-customer/src/api/address.ts` | å?°å? API å°è£? |
+| `apps/miniapp-customer/src/api/service-catalog.ts` | æ?å?¡ç?®å½? API å°è£? |
+| `apps/miniapp-customer/src/utils/lunar.ts` | å?¬å??è½¬å??å??å·¥å?· |
 
-### 19.5 P3.3 éªŒæ”¶ç»“è®ºï¼ˆ2026-06-20ï¼‰
+### 19.5 P3.3 éª?æ?¶ç»?è®ºï¼?2026-06-20ï¼?
 
-| éªŒæ”¶é¡¹ | ç»“æœ |
+| éª?æ?¶é¡¹ | ç»?æ?? |
 |--------|------|
-| æœåŠ¡ç±»å‹åŠ¨æ€åŠ è½½ï¼Œæ— ä»·æ ¼å±•ç¤º | âœ… é€šè¿‡ |
-| åœ°å€é€‰æ‹©é¡µå¯ç”¨ï¼Œç©ºåœ°å€å¼•å¯¼æ–°å¢ | âœ… é€šè¿‡ |
-| ä»£ä¸‹å•å‹¾é€‰ â†’ ç¡®è®¤é¡µå¡«å†™ â†’ `isProxyOrder=true` | âœ… é€šè¿‡ |
-| å®Œæ•´èµ°é€šç”Ÿæˆ CLN å‰ç¼€è®¢å•å· | âœ… é€šè¿‡ |
-| `npm run build` å…¨é“¾è·¯ç¼–è¯‘æ— æŠ¥é”™ | âœ… é€šè¿‡ |
+| æ?å?¡ç±»å??å?¨æ?å? è½½ï¼?æ? ä»·æ ¼å±?ç¤º | â?? é??è¿? |
+| å?°å?é??æ?©é¡µå¯ç?¨ï¼?ç©ºå?°å?å¼?å¯¼æ?°å¢? | â?? é??è¿? |
+| ä»£ä¸?å?å?¾é?? â?? ç¡®è®¤é¡µå¡«å?? â?? `isProxyOrder=true` | â?? é??è¿? |
+| å®?æ?´èµ°é??ç??æ? CLN å?ç¼?è®¢å?å· | â?? é??è¿? |
+| `npm run build` å?¨é?¾è·¯ç¼?è¯?æ? æ?¥é?? | â?? é??è¿? |
 
 ---
 
-## 20. P3.4 åºŸå“å›æ”¶é¢„çº¦ä¸‰æ­¥å‘å¯¼å¯¹æ¥å¥‘çº¦ï¼ˆ2026-06-20 ç¡®è®¤ï¼‰
+## 20. P3.4 åº?å?å??æ?¶é¢?çº¦ä¸?æ­¥å?å¯¼å¯¹æ?¥å¥?çº¦ï¼?2026-06-20 ç¡®è®¤ï¼?
 
-> **èƒŒæ™¯**ï¼šP3.4 å¤ç”¨ P3.3 å‘å¯¼æ¡†æ¶ï¼Œå¯¹æ¥åºŸå“å›æ”¶æœåŠ¡ç›®å½•ä¸è®¢å•åˆ›å»ºæ¥å£ã€‚
+> **è??æ?¯**ï¼?P3.4 å¤ç?¨ P3.3 å?å¯¼æ¡?æ?¶ï¼?å¯¹æ?¥åº?å?å??æ?¶æ?å?¡ç?®å½?ä¸?è®¢å?å??å»ºæ?¥å£ã??
 
-### 20.1 ä¸ä¿æ´çš„å·®å¼‚
+### 20.1 ä¸?ä¿æ´ç??å·®å¼?
 
-| é¡¹ç›® | ä¿æ´ï¼ˆP3.3ï¼‰ | åºŸå“ï¼ˆP3.4ï¼‰ |
+| é¡¹ç?® | ä¿æ´ï¼?P3.3ï¼? | åº?å?ï¼?P3.4ï¼? |
 |------|-------------|-------------|
-| æœåŠ¡ç›®å½• | `bizType=CLEANING` | `bizType=RECYCLING` |
-| Step 1 ç‰¹æœ‰å­—æ®µ | æœåŠ¡æ—¶é•¿ï¼ˆå°æ—¶ï¼‰ | é¢„ä¼°é‡é‡ï¼ˆkgï¼Œé»˜è®¤ 5ï¼Œæ­¥è¿› 1â€“50ï¼‰ |
-| åˆ›å»ºæ¥å£ | `POST /cleaning-orders` | `POST /recycling-orders` |
-| è®¢å•å·å‰ç¼€ | CLN | RCY |
+| æ?å?¡ç?®å½? | `bizType=CLEANING` | `bizType=RECYCLING` |
+| Step 1 ç?¹æ??å­?æ®µ | æ?å?¡æ?¶é?¿ï¼?å°æ?¶ï¼? | é¢?ä¼°é?é?ï¼?kgï¼?é»?è®¤ 5ï¼?æ­¥è¿? 1â??50ï¼? |
+| å??å»ºæ?¥å£ | `POST /cleaning-orders` | `POST /recycling-orders` |
+| è®¢å?å·å?ç¼? | CLN | RCY |
 | Pinia store | `booking-cleaning` | `booking-recycling` |
-| åœ°å€é€‰æ‹©æ¥æº | `?from=cleaning` | `?from=recycling` |
+| å?°å?é??æ?©æ¥æº | `?from=cleaning` | `?from=recycling` |
 
-å…¶ä½™æµç¨‹ï¼ˆæ—¥å†ã€æ—¶æ®µã€åœ°å€é€‰æ‹©ã€ä»£ä¸‹å•ã€æœåŠ¡é¡»çŸ¥ã€æ— ä»·æ ¼å±•ç¤ºï¼‰ä¸ä¿æ´å®Œå…¨ä¸€è‡´ã€‚
+å?¶ä½?æµç¨?ï¼?æ?¥å??ã?æ?¶æ®µã?å?°å?é??æ?©ã?ä»£ä¸?å?ã?æ?å?¡é¡»ç?¥ã?æ? ä»·æ ¼å±?ç¤ºï¼?ä¸?ä¿æ´å®?å?¨ä¸?è?´ã??
 
-### 20.2 åˆ›å»ºè®¢å•è¯·æ±‚æ˜ å°„
+### 20.2 å??å»ºè®¢å?è¯·æ±?æ? å°?
 
 **`POST /recycling-orders`**
 
-| å‰ç«¯å­—æ®µ | åç«¯å­—æ®µ | è¯´æ˜ |
+| å?ç«¯å­?æ®µ | å?ç«¯å­?æ®µ | è¯´æ?? |
 |---------|---------|------|
-| `selectedCatalog.name` | `serviceItem` | å›æ”¶ç±»å‹ï¼ˆå¤§ä»¶ç±»/å°ä»¶ç±»ï¼‰ |
-| `estimatedWeight` | `estimatedWeight` | é¢„ä¼°é‡é‡ï¼ˆkgï¼‰ |
-| å…¶ä½™å­—æ®µ | åŒ Â§19.2 | å«ä»£ä¸‹å•ä¸ `source=MINIPROGRAM` |
+| `selectedCatalog.name` | `serviceItem` | å??æ?¶ç±»å??ï¼?å¤§ä»¶ç±»/å°ä»¶ç±»ï¼? |
+| `estimatedWeight` | `estimatedWeight` | é¢?ä¼°é?é?ï¼?kgï¼? |
+| å?¶ä½?å­?æ®µ | å? Â§19.2 | å«ä»£ä¸?å?ä¸? `source=MINIPROGRAM` |
 
-### 20.3 æ–°å¢æºç æ–‡ä»¶ï¼ˆP3.4ï¼‰
+### 20.3 æ?°å¢?æºç æ??ä»¶ï¼?P3.4ï¼?
 
-| æ–‡ä»¶ | è¯´æ˜ |
+| æ??ä»¶ | è¯´æ?? |
 |------|------|
-| `apps/miniapp-customer/src/pages/booking-recycling/index.vue` | åºŸå“å›æ”¶é¢„çº¦ä¸‰æ­¥å‘å¯¼é¡µ |
-| `apps/miniapp-customer/src/store/booking-recycling.ts` | åºŸå“å‘å¯¼ Pinia store |
-| `apps/miniapp-customer/src/api/recycling-order.ts` | åºŸå“è®¢å• API å°è£… |
+| `apps/miniapp-customer/src/pages/booking-recycling/index.vue` | åº?å?å??æ?¶é¢?çº¦ä¸?æ­¥å?å¯¼é¡µ |
+| `apps/miniapp-customer/src/store/booking-recycling.ts` | åº?å?å?å¯¼ Pinia store |
+| `apps/miniapp-customer/src/api/recycling-order.ts` | åº?å?è®¢å? API å°è£? |
 
-### 20.4 P3.4 éªŒæ”¶ç»“è®ºï¼ˆ2026-06-20ï¼‰
+### 20.4 P3.4 éª?æ?¶ç»?è®ºï¼?2026-06-20ï¼?
 
-| éªŒæ”¶é¡¹ | ç»“æœ |
+| éª?æ?¶é¡¹ | ç»?æ?? |
 |--------|------|
-| å›æ”¶ç±»å‹åŠ¨æ€åŠ è½½ + é¢„ä¼°é‡é‡æ­¥è¿›å™¨ | âœ… é€šè¿‡ |
-| ä»£ä¸‹å•æµç¨‹ä¸ä¿æ´ä¸€è‡´ | âœ… é€šè¿‡ |
-| å®Œæ•´èµ°é€šç”Ÿæˆ RCY å‰ç¼€è®¢å•å· | âœ… é€šè¿‡ |
-| ç¡®è®¤é¡µæ— ä»·æ ¼å­—æ®µ | âœ… é€šè¿‡ |
-| `npm run build` å…¨é“¾è·¯ç¼–è¯‘æ— æŠ¥é”™ | âœ… é€šè¿‡ |
+| å??æ?¶ç±»å??å?¨æ?å? è½½ + é¢?ä¼°é?é?æ­¥è¿?å?¨ | â?? é??è¿? |
+| ä»£ä¸?å?æµç¨?ä¸?ä¿æ´ä¸?è?´ | â?? é??è¿? |
+| å®?æ?´èµ°é??ç??æ? RCY å?ç¼?è®¢å?å· | â?? é??è¿? |
+| ç¡®è®¤é¡µæ? ä»·æ ¼å­?æ®µ | â?? é??è¿? |
+| `npm run build` å?¨é?¾è·¯ç¼?è¯?æ? æ?¥é?? | â?? é??è¿? |
 
 ---
 
-## 21. P3.5 å®¶æ”¿å’¨è¯¢æäº¤æµç¨‹å¯¹æ¥å¥‘çº¦ï¼ˆ2026-06-20 ç¡®è®¤ï¼‰
+## 21. P3.5 å®¶æ?¿å?¨è¯¢æäº¤æµç¨?å¯¹æ?¥å¥?çº¦ï¼?2026-06-20 ç¡®è®¤ï¼?
 
-> **èƒŒæ™¯**ï¼šP3.5 å®ç°å±…æ°‘ç«¯å®¶æ”¿å’¨è¯¢ä¸¤æ­¥å‘å¯¼ï¼Œå¯¹æ¥å®¶æ”¿æœåŠ¡ç›®å½•ä¸å’¨è¯¢å•åˆ›å»ºæ¥å£ã€‚ä¸ä¿æ´/åºŸå“ä¸åŒï¼Œå®¶æ”¿ä¸ºå’¨è¯¢å•æµç¨‹ï¼Œæ— åœ°å€å­—æ®µã€æ— ä»·æ ¼å±•ç¤ºã€‚
+> **è??æ?¯**ï¼?P3.5 å®?ç?°å±?æ°?ç«¯å®¶æ?¿å?¨è¯¢ä¸¤æ­¥å?å¯¼ï¼?å¯¹æ?¥å®¶æ?¿æ?å?¡ç?®å½?ä¸?å?¨è¯¢å?å??å»ºæ?¥å£ã??ä¸?ä¿æ´/åº?å?ä¸å?ï¼?å®¶æ?¿ä¸ºå?¨è¯¢å?æµç¨?ï¼?æ? å?°å?å­?æ®µã?æ? ä»·æ ¼å±?ç¤ºã??
 
-### 21.1 ä¸¤æ­¥å‘å¯¼æµç¨‹
+### 21.1 ä¸¤æ­¥å?å¯¼æµç¨?
 
 ```
-Step 1 é€‰æ‹©æœåŠ¡ç±»å‹
-  GET /service-catalogs?bizType=CONSULT&isEnabled=true  â†’ åŠ¨æ€å®¶æ”¿ç±»å‹å¡ç‰‡ï¼ˆå•é€‰ï¼‰
-  åº•éƒ¨ã€Œä¸‹ä¸€æ­¥ã€
+Step 1 é??æ?©æ?å?¡ç±»å??
+  GET /service-catalogs?bizType=CONSULT&isEnabled=true  â?? å?¨æ?å®¶æ?¿ç±»å??å¡ç??ï¼?å?é??ï¼?
+  åº?é?¨ã??ä¸?ä¸?æ­¥ã?
 
-Step 2 å¡«å†™éœ€æ±‚
-  ã€Œæ˜¯å¦ä¸ºå®¶äººä»£ä¸‹å•ã€å¼€å…³ â†’ å‹¾é€‰åå±•ç¤ºæœåŠ¡å¯¹è±¡å§“å/æ‰‹æœºå·
-  æ ¸å¿ƒè¯‰æ±‚ï¼ˆå¤šè¡Œæ–‡æœ¬ï¼Œå¿…å¡«ï¼Œæœ€é•¿ 1000 å­—ï¼‰
-  è”ç³»äººå§“åã€è”ç³»ç”µè¯ï¼ˆå¿…å¡«ï¼‰
-  æ— æœåŠ¡åœ°å€å­—æ®µ
-  åº•éƒ¨ã€Œæäº¤ã€â†’ POST /consult-orders â†’ Toast CNS ç¼–å· â†’ è·³è½¬è®¢å• Tab
+Step 2 å¡«å??é??æ±?
+  ã??æ?¯å¦ä¸ºå®¶äººä»£ä¸?å?ã?å¼?å?³ â?? å?¾é??å?å±?ç¤ºæ?å?¡å¯¹è±¡å§?å/æ??æ?ºå·
+  æ ¸å¿?è¯?æ±?ï¼?å¤?è¡?æ??æ?¬ï¼?å¿?å¡«ï¼?æ??é?¿ 1000 å­?ï¼?
+  è?ç³»äººå§?åã?è?ç³»ç?µè¯ï¼?å¿?å¡«ï¼?
+  æ? æ?å?¡å?°å?å­?æ®µ
+  åº?é?¨ã??æäº¤ã?â?? POST /consult-orders â?? Toast CNS ç¼?å· â?? è·³è½¬è®¢å? Tab
 ```
 
-### 21.2 ä¸ä¿æ´/åºŸå“çš„å·®å¼‚
+### 21.2 ä¸?ä¿æ´/åº?å?ç??å·®å¼?
 
-| é¡¹ç›® | ä¿æ´ï¼ˆP3.3ï¼‰ | åºŸå“ï¼ˆP3.4ï¼‰ | å®¶æ”¿ï¼ˆP3.5ï¼‰ |
+| é¡¹ç?® | ä¿æ´ï¼?P3.3ï¼? | åº?å?ï¼?P3.4ï¼? | å®¶æ?¿ï¼?P3.5ï¼? |
 |------|-------------|-------------|-------------|
-| æœåŠ¡ç›®å½• | `bizType=CLEANING` | `bizType=RECYCLING` | `bizType=CONSULT` |
-| å‘å¯¼æ­¥æ•° | 3 æ­¥ | 3 æ­¥ | **2 æ­¥** |
-| ç‰¹æœ‰å­—æ®µ | æœåŠ¡æ—¶é•¿ï¼ˆå°æ—¶ï¼‰ | é¢„ä¼°é‡é‡ï¼ˆkgï¼‰ | æ ¸å¿ƒè¯‰æ±‚ï¼ˆå¤šè¡Œæ–‡æœ¬ï¼‰ |
-| åœ°å€é€‰æ‹© | æœ‰ | æœ‰ | **æ— ** |
-| åˆ›å»ºæ¥å£ | `POST /cleaning-orders` | `POST /recycling-orders` | `POST /consult-orders` |
-| è®¢å•å·å‰ç¼€ | CLN | RCY | CNS |
+| æ?å?¡ç?®å½? | `bizType=CLEANING` | `bizType=RECYCLING` | `bizType=CONSULT` |
+| å?å¯¼æ­¥æ?° | 3 æ­¥ | 3 æ­¥ | **2 æ­¥** |
+| ç?¹æ??å­?æ®µ | æ?å?¡æ?¶é?¿ï¼?å°æ?¶ï¼? | é¢?ä¼°é?é?ï¼?kgï¼? | æ ¸å¿?è¯?æ±?ï¼?å¤?è¡?æ??æ?¬ï¼? |
+| å?°å?é??æ?© | æ?? | æ?? | **æ? ** |
+| å??å»ºæ?¥å£ | `POST /cleaning-orders` | `POST /recycling-orders` | `POST /consult-orders` |
+| è®¢å?å·å?ç¼? | CLN | RCY | CNS |
 | Pinia store | `booking-cleaning` | `booking-recycling` | `booking-consult` |
 
-### 21.3 åˆ›å»ºå’¨è¯¢å•è¯·æ±‚æ˜ å°„
+### 21.3 å??å»ºå?¨è¯¢å?è¯·æ±?æ? å°?
 
 **`POST /consult-orders`**
 
-| å‰ç«¯å­—æ®µ | åç«¯å­—æ®µ | è¯´æ˜ |
+| å?ç«¯å­?æ®µ | å?ç«¯å­?æ®µ | è¯´æ?? |
 |---------|---------|------|
-| `authStore.resident.id` | `residentId` | ç™»å½•å±…æ°‘ IDï¼ˆå¯é€‰ï¼‰ |
-| `selectedCatalog.name` | `serviceType` | å®¶æ”¿æœåŠ¡ç±»å‹åç§° |
-| `contactName` | `contactName` | è”ç³»äººå§“å |
-| `contactPhone` | `contactPhone` | è”ç³»ç”µè¯ |
-| `requirementDesc` | `requirementDesc` | æ ¸å¿ƒè¯‰æ±‚ |
-| `isProxy` | `isProxyOrder` | æ˜¯å¦ä»£ä¸‹å• |
-| `serviceContactName` | `serviceContactName` | ä»£ä¸‹å•æ—¶å¿…å¡« |
-| `serviceContactPhone` | `serviceContactPhone` | ä»£ä¸‹å•æ—¶å¿…å¡« |
-| å›ºå®š `'MINIPROGRAM'` | `source` | æ¥æºæ¸ é“ |
-| `remark` | `remark` | å¤‡æ³¨ï¼ˆå¯é€‰ï¼‰ |
+| `authStore.resident.id` | `residentId` | ç?»å½?å±?æ°? IDï¼?å¯é??ï¼? |
+| `selectedCatalog.name` | `serviceType` | å®¶æ?¿æ?å?¡ç±»å??åç§° |
+| `contactName` | `contactName` | è?ç³»äººå§?å |
+| `contactPhone` | `contactPhone` | è?ç³»ç?µè¯ |
+| `requirementDesc` | `requirementDesc` | æ ¸å¿?è¯?æ±? |
+| `isProxy` | `isProxyOrder` | æ?¯å¦ä»£ä¸?å? |
+| `serviceContactName` | `serviceContactName` | ä»£ä¸?å?æ?¶å¿?å¡« |
+| `serviceContactPhone` | `serviceContactPhone` | ä»£ä¸?å?æ?¶å¿?å¡« |
+| å?ºå®? `'MINIPROGRAM'` | `source` | æ¥æºæ¸ é? |
+| `remark` | `remark` | å¤?æ³¨ï¼?å¯é??ï¼? |
 
-### 21.4 æ–°å¢æºç æ–‡ä»¶ï¼ˆP3.5ï¼‰
+### 21.4 æ?°å¢?æºç æ??ä»¶ï¼?P3.5ï¼?
 
-| æ–‡ä»¶ | è¯´æ˜ |
+| æ??ä»¶ | è¯´æ?? |
 |------|------|
-| `apps/miniapp-customer/src/pages/booking-consult/index.vue` | å®¶æ”¿å’¨è¯¢ä¸¤æ­¥å‘å¯¼é¡µ |
-| `apps/miniapp-customer/src/store/booking-consult.ts` | å®¶æ”¿å’¨è¯¢ Pinia store |
-| `apps/miniapp-customer/src/api/consult-order.ts` | å’¨è¯¢å• API å°è£… |
-| `apps/miniapp-customer/src/api/service-catalog.ts` | æ–°å¢ `fetchConsultCatalogs()` |
+| `apps/miniapp-customer/src/pages/booking-consult/index.vue` | å®¶æ?¿å?¨è¯¢ä¸¤æ­¥å?å¯¼é¡µ |
+| `apps/miniapp-customer/src/store/booking-consult.ts` | å®¶æ?¿å?¨è¯¢ Pinia store |
+| `apps/miniapp-customer/src/api/consult-order.ts` | å?¨è¯¢å? API å°è£? |
+| `apps/miniapp-customer/src/api/service-catalog.ts` | æ?°å¢? `fetchConsultCatalogs()` |
 
-### 21.5 æœåŠ¡è¯¦æƒ…é¡µå¯¼èˆªæ›´æ–°ï¼ˆP3.5ï¼‰
+### 21.5 æ?å?¡è¯¦æ??é¡µå¯¼è?ªæ?´æ?°ï¼?P3.5ï¼?
 
-| type | ã€Œç«‹å³é¢„çº¦ã€è·³è½¬ |
+| type | ã??ç«?å³é¢?çº¦ã?è·³è½¬ |
 |------|----------------|
 | `cleaning` | `/pages/booking-cleaning/index` |
 | `recycling` | `/pages/booking-recycling/index` |
-| `consult` | `/pages/booking-consult/index`ï¼ˆP3.5 æ›¿æ¢åŸ Toast å ä½ï¼‰ |
+| `consult` | `/pages/booking-consult/index`ï¼?P3.5 æ?¿æ¢å?? Toast å ä½ï¼? |
 
-### 21.6 P3.5 éªŒæ”¶ç»“è®ºï¼ˆ2026-06-20ï¼‰
+### 21.6 P3.5 éª?æ?¶ç»?è®ºï¼?2026-06-20ï¼?
 
-| éªŒæ”¶é¡¹ | ç»“æœ |
+| éª?æ?¶é¡¹ | ç»?æ?? |
 |--------|------|
-| å®¶æ”¿ç±»å‹ä» API åŠ¨æ€åŠ è½½ï¼ˆéç¡¬ç¼–ç ï¼‰ | âœ… é€šè¿‡ |
-| ä»£ä¸‹å•å¼€å…³ â†’ æœåŠ¡å¯¹è±¡å§“å/æ‰‹æœºå·å¡«å†™åŒº | âœ… é€šè¿‡ |
-| è¡¨å•æ— æœåŠ¡åœ°å€å­—æ®µ | âœ… é€šè¿‡ |
-| å®Œæ•´èµ°é€šç”Ÿæˆ CNS å‰ç¼€è®¢å•å· | âœ… é€šè¿‡ |
-| `npm run build` å…¨é“¾è·¯ç¼–è¯‘æ— æŠ¥é”™ | âœ… é€šè¿‡ |
+| å®¶æ?¿ç±»å??ä»? API å?¨æ?å? è½½ï¼?é?ç¡¬ç¼?ç ï¼? | â?? é??è¿? |
+| ä»£ä¸?å?å¼?å?³ â?? æ?å?¡å¯¹è±¡å§?å/æ??æ?ºå·å¡«å??å?º | â?? é??è¿? |
+| è¡¨å?æ? æ?å?¡å?°å?å­?æ®µ | â?? é??è¿? |
+| å®?æ?´èµ°é??ç??æ? CNS å?ç¼?è®¢å?å· | â?? é??è¿? |
+| `npm run build` å?¨é?¾è·¯ç¼?è¯?æ? æ?¥é?? | â?? é??è¿? |
+
+---
+
+## 22. P3.6 ¶Ô½ÓÆõÔ¼£¨2026-06-20£©
+
+### 22.1 ºó¶ËÀ©Õ¹£ºresidentId + statuses ¶à×´Ì¬²éÑ¯
+
+ÈıÀà¶©µ¥²éÑ¯ DTO ¾ùĞÂÔö `residentId`£¨¾ÓÃñ¶Ë½ö²é×Ô¼ºµÄ¶©µ¥£©£»±£½à/·ÏÆ· DTO ¶îÍâĞÂÔö `statuses`£¨¶ººÅ·Ö¸ô¶à×´Ì¬£¬¹©¾ÓÃñ¶Ë¡¸´ı·şÎñ¡¹¾ÛºÏ Tab Ê¹ÓÃ£©¡£
+
+#### GET `/cleaning-orders` ĞÂÔö²ÎÊı
+
+| ×Ö¶Î | ÀàĞÍ | ËµÃ÷ |
+|------|------|------|
+| `residentId` | number£¨¿ÉÑ¡£©| ¾ÓÃñ ID£¬°´¾ÓÃñ¹ıÂË |
+| `statuses` | string£¨¿ÉÑ¡£©| ¶ººÅ·Ö¸ô¶à×´Ì¬£¬ÓÅÏÈ¼¶¸ßÓÚ `status`¡£Ê¾Àı£º`PENDING_ASSIGN,ASSIGNED,ACCEPTED` |
+
+#### GET `/recycling-orders` ĞÂÔö²ÎÊı£¨Í¬ÉÏ£©
+
+#### GET `/consult-orders` ĞÂÔö²ÎÊı
+
+| ×Ö¶Î | ÀàĞÍ | ËµÃ÷ |
+|------|------|------|
+| `residentId` | number£¨¿ÉÑ¡£©| ¾ÓÃñ ID£¬°´¾ÓÃñ¹ıÂË |
+
+---
+
+### 22.2 ĞÂÔö¶Ëµã£ºPOST `/recycling-orders/:id/resident-confirm`
+
+¾ÓÃñ¶Ë¡¸ÑéÊÕ·şÎñ¡¹°´Å¥´¥·¢£¬½«·ÏÆ·¶©µ¥×´Ì¬ÓÉ `IN_SERVICE` ±ä¸üÎª `PENDING_REVIEW`¡£
+
+**¼øÈ¨**£º¹«¿ª£¨Áªµ÷½×¶Î£©
+
+**Path ²ÎÊı**
+
+| ×Ö¶Î | ÀàĞÍ | ËµÃ÷ |
+|------|------|------|
+| `id` | number | ·ÏÆ·»ØÊÕ¶©µ¥ ID |
+
+**Request Body**
+
+```typescript
+{
+  operatorId: number; // ¾ÓÃñ ID£¨±ØÌî£©
+}
+```
+
+**Response `data`**£º×îĞÂ `RecyclingOrderDto`£¨×´Ì¬ÒÑ±ä¸üÎª `PENDING_REVIEW`£©
+
+**´íÎó**£º·Ç `IN_SERVICE` ×´Ì¬µ÷ÓÃ·µ»Ø HTTP 400
+
+---
+
+### 22.3 ¾ÓÃñ¶Ë×´Ì¬É¸Ñ¡Ó³ÉäÔ¼¶¨
+
+**±£½à/·ÏÆ·¾ÛºÏÕ¹Ê¾Ãû ¡ú ºó¶Ë statuses**
+
+| Õ¹Ê¾Ãû | statuses ²ÎÊıÖµ |
+|--------|----------------|
+| È«²¿ | £¨²»´«£©|
+| ´ı·şÎñ | `PENDING_ASSIGN,ASSIGNED,ACCEPTED` |
+| ½øĞĞÖĞ | `IN_SERVICE` |
+| ´ı·´À¡ | `PENDING_REVIEW` |
+| ÒÑÍê³É | `REVIEWED` |
+| ÒÑÈ¡Ïû | `CANCELLED` |
+
+**¼ÒÕş×´Ì¬É¸Ñ¡**
+
+| Õ¹Ê¾Ãû | status ²ÎÊıÖµ |
+|--------|--------------|
+| È«²¿ | £¨²»´«£©|
+| ´ı¸ú½ø | `FOLLOW_UP` |
+| ¸ú½øÖĞ | `FOLLOWING` |
+| ÒÑÍê³É | `COMPLETED` |
+
+---
+
+### 22.4 P3.6 ÑéÊÕ½áÂÛ£¨2026-06-20£©
+
+| ÑéÊÕÏî | ½á¹û |
+|--------|------|
+| Èı Tab ÇĞ»»Õı³££¬¼ÒÕş×ÉÑ¯µ¥¿É¼û | ? Í¨¹ı |
+| ·ÏÆ·¡¸·şÎñÖĞ¡¹µã¡¸ÑéÊÕ·şÎñ¡¹¡ú ×´Ì¬±ä PENDING_REVIEW | ? Í¨¹ı |
+| ´ıÅÉµ¥¿ÉÈ¡Ïû£¬ÆäËû×´Ì¬ÎŞÈ¡Ïû°´Å¥ | ? Í¨¹ı |
+| ÏêÇéÒ³ÎŞ¼Û¸ñ/ÖØÁ¿/ÊÕ¿î×Ö¶Î | ? Í¨¹ı |
+| `npm run build` ???????? | ? ?? |
+| ? Tab ???????????? | ? ?? |
+| ??????????????? ??? PENDING_REVIEW | ? ?? |
+| ???????????????? | ? ?? |
+| ??????/??/???? | ? ?? |
+
+---
+
+## 23. P3.6 ????????2026-06-20?v2.7?
+
+### 23.1 ???????????
+
+**??**?`pages/order-detail/index.vue` ?? `onMounted` + `getCurrentPages().$page?.options` ? mp-weixin ????????????? `orderId=0`???????
+
+**??**??? uni-app ?????? `onLoad(options)` ???????
+
+```typescript
+// ????mp-weixin ????
+onMounted(() => {
+  const options = getCurrentPages()[...].options;
+  orderId.value = parseInt(options?.id || '0', 10);
+});
+
+// ???????
+import { onLoad } from '@dcloudio/uni-app';
+onLoad((options) => {
+  orderId.value = parseInt(options?.id || '0', 10);
+  orderType.value = options?.type || 'cleaning';
+  loadDetail();
+});
+```
+
+---
+
+### 23.2 ???? scroll-view ??????
+
+**??**?`scroll-view[scroll-x]` ??? `display:flex` ?????? mp-weixin ? flex ????????????????????????????????
+
+**??**??? flex ????? `white-space:nowrap` + ???? `display:inline-flex` ????????
+
+```css
+/* ??? */
+.filter-row {
+  white-space: nowrap;   /* ???? */
+  padding: 0 24rpx;
+  font-size: 0;          /* ?? inline-block ?? */
+}
+.filter-pill {
+  display: inline-flex;
+  margin-right: 16rpx;
+  /* ???? flex-shrink: 0 / gap */
+}
+```
+
+---
+
+> **????**?v2.7?P3.6 ??????? onLoad ?? + scroll-view ?????  
+> **????**?2026-06-20  
+> **????**?P2.1?P2.15 ????? + P3.1?P3.6 ??????

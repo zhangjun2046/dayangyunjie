@@ -19,6 +19,7 @@ import { CompleteOrderDto } from './dto/complete-order.dto';
 import { CreateRecyclingOrderDto } from './dto/create-recycling-order.dto';
 import { GpsCheckinDto } from './dto/gps-checkin.dto';
 import { QueryRecyclingOrderDto } from './dto/query-recycling-order.dto';
+import { ResidentConfirmDto } from './dto/resident-confirm.dto';
 import { TransitionOrderDto } from './dto/transition-order.dto';
 import { UpdateRecyclingOrderDto } from './dto/update-recycling-order.dto';
 
@@ -159,6 +160,22 @@ export class RecyclingOrderController {
     @Body() cancelOrderDto: CancelOrderDto,
   ): Promise<ApiResponseDto<Awaited<ReturnType<RecyclingOrderService['cancelOrder']>>>> {
     const data = await this.recyclingOrderService.cancelOrder(id, cancelOrderDto);
+    return { code: 0, message: 'ok', data };
+  }
+
+  @Post(':id/resident-confirm')
+  @ApiOperation({
+    summary: '居民验收废品服务',
+    description:
+      '居民端「验收服务」按钮触发，状态由 IN_SERVICE 变更为 PENDING_REVIEW。' +
+      '仅需 operatorId（居民 ID），无需照片。',
+  })
+  @ApiOkResponse({ description: '验收成功，返回最新订单数据' })
+  async residentConfirm(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() residentConfirmDto: ResidentConfirmDto,
+  ): Promise<ApiResponseDto<Awaited<ReturnType<RecyclingOrderService['residentConfirm']>>>> {
+    const data = await this.recyclingOrderService.residentConfirm(id, residentConfirmDto);
     return { code: 0, message: 'ok', data };
   }
 

@@ -26,6 +26,7 @@ export interface ConsultOrderDto {
   contactPhone: string;
   requirementDesc: string;
   status: string;
+  residentId?: number | null;
   isProxyOrder?: boolean;
   serviceContactName?: string | null;
   serviceContactPhone?: string | null;
@@ -33,6 +34,20 @@ export interface ConsultOrderDto {
   remark?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface OrderListResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface QueryConsultOrderParams {
+  residentId?: number;
+  status?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 /**
@@ -46,4 +61,26 @@ export function createConsultOrder(params: CreateConsultOrderParams): Promise<Co
     '/consult-orders',
     params as unknown as Record<string, unknown>,
   );
+}
+
+/**
+ * 查询家政咨询单列表（分页）
+ * GET /consult-orders
+ */
+export function fetchConsultOrderList(
+  params: QueryConsultOrderParams,
+): Promise<OrderListResult<ConsultOrderDto>> {
+  const query = Object.entries(params)
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+    .join('&');
+  return request<OrderListResult<ConsultOrderDto>>('GET', `/consult-orders${query ? `?${query}` : ''}`);
+}
+
+/**
+ * 查询家政咨询单详情
+ * GET /consult-orders/:id
+ */
+export function fetchConsultOrderDetail(id: number): Promise<ConsultOrderDto> {
+  return request<ConsultOrderDto>('GET', `/consult-orders/${id}`);
 }

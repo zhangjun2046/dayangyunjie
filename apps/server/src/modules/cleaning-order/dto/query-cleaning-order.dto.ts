@@ -33,6 +33,26 @@ export class QueryCleaningOrderDto {
   @IsIn(Object.values(OrderStatus))
   status?: (typeof OrderStatus)[keyof typeof OrderStatus];
 
+  /**
+   * 多状态聚合查询（逗号分隔），供居民端「待服务」Tab 使用。
+   * 示例：PENDING_ASSIGN,ASSIGNED,ACCEPTED
+   */
+  @ApiPropertyOptional({
+    description: '多状态聚合查询（逗号分隔），优先级高于 status 单值',
+    example: 'PENDING_ASSIGN,ASSIGNED,ACCEPTED',
+  })
+  @IsOptional()
+  @IsString()
+  statuses?: string;
+
+  /** 居民 ID 过滤，居民端仅查看自己的订单 */
+  @ApiPropertyOptional({ description: '居民 ID', example: 1 })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  residentId?: number;
+
   @ApiPropertyOptional({ description: '预约日期起（ISO 日期）', example: '2026-06-01' })
   @IsOptional()
   @IsDateString()

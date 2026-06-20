@@ -91,10 +91,20 @@ export class RecyclingOrderService {
   }
 
   async findAll(query: QueryRecyclingOrderDto) {
-    const { page = 1, pageSize = 10, status, appointDateFrom, appointDateTo, keyword } = query;
+    const { page = 1, pageSize = 10, status, statuses, residentId, appointDateFrom, appointDateTo, keyword } = query;
+
+    // statuses（逗号分隔）优先级高于 status 单值，供居民端「待服务」聚合 Tab 使用
+    const statusList = statuses
+      ? statuses.split(',').map((s) => s.trim()).filter(Boolean) as PrismaOrderStatus[]
+      : null;
 
     const where: Prisma.RecyclingOrderWhereInput = {
-      ...(status ? { status: status as PrismaOrderStatus } : {}),
+      ...(residentId ? { residentId } : {}),
+      ...(statusList && statusList.length > 0
+        ? { status: { in: statusList } }
+        : status
+          ? { status: status as PrismaOrderStatus }
+          : {}),
       ...(appointDateFrom || appointDateTo
         ? {
             appointDate: {
@@ -320,6 +330,29 @@ export class RecyclingOrderService {
       });
     });
 
+    return this.toDto(await this.findOneOrThrow(id));
+  }
+
+  /**
+   * 居民验收服务：居民端触发 IN_SERVICE → PENDING_REVIEW。
+   * 仅需 operatorId（无需照片），供废品回收「验收服务」按钮使用。
+   */
+  async residentConfirm(id: number, dto: { operatorId: number }): Promise<RecyclingOrderDto> {
+    const order = await this.findOneOrThrow(id);
+
+    await this.prismaService.$transaction(async (tx) => {
+      await this.stateMachine.transition(tx, {
+        orderId: id,
+        orderType: 'RECYCLING',
+        fromStatus: order.status,
+        toStatus: 'PENDING_REVIEW',
+        operatorId: dto.operatorId,
+        operatorType: 'RESIDENT',
+        remark: '居民验收服务',
+      });
+    });
+
+    console.info(`[RecyclingOrder] residentConfirm orderId=${id} operatorId=${dto.operatorId}`);
     return this.toDto(await this.findOneOrThrow(id));
   }
 
