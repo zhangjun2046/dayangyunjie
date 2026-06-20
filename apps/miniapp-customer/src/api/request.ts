@@ -14,7 +14,18 @@ interface ApiResponse<T = unknown> {
   data: T;
 }
 
-const BASE_URL = 'http://127.0.0.1:3000/api/v1';
+/**
+ * H5 走 Vite 反向代理（/api/v1 → http://127.0.0.1:3000/api/v1）
+ * 小程序运行时没有代理，必须使用绝对 URL
+ * 生产环境将 VITE_API_BASE 替换为真实域名
+ */
+// #ifdef H5
+const BASE_URL = '/api/v1';
+// #endif
+// #ifndef H5
+const BASE_URL = (import.meta.env.VITE_API_BASE as string) || 'http://127.0.0.1:3000/api/v1';
+// #endif
+
 const AUTH_STORAGE_KEY = '__auth__';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';

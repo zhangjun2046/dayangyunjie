@@ -25,11 +25,11 @@
 > - 新增 `OperatorModule`：6 个端点（全 CRUD + `GET /operators/contact`）；`/contact` 返回 `purpose='接单'` 第一条记录，无记录返回 `null`
 > - `packages/shared` 新增 `BannerDto`、`OperatorDto` 两个共享接口类型
 >
-> **v2.3 变更摘要（P2.15，2026-06-15）**：
-> - `ConsultOrder` 新增字段：`isProxyOrder`、`serviceContactName`、`serviceContactPhone`、`serviceAddress`、`source`、`remark`（均可选；代下单时前两字段必填）
-> - 新增 `ConsultFollowUp` 接口：`POST /consult-orders/:id/follow-ups`（新增跟进记录）、`GET /consult-orders/:id/follow-ups`（分页查询，时序升序）
-> - `packages/shared` 新增 `ConsultFollowUpDto` 类型
-> - **废品流程修正**：`/resident-accept` 接口已撤销（与 §10.1 原始设计一致）；废品 `IN_SERVICE→PENDING_REVIEW` 由员工 `/complete` 触发（同保洁）
+> **v2.4 变更摘要（P3.2，2026-06-20）**：
+> - 居民端首页对接 `GET /banners/active?displayTarget=RESIDENT` 与 `GET /operators/contact`
+> - 新增服务详情页（`/pages/service-detail/index`），展示服务说明 + §1.6 边界声明，「立即预约」跳转三步向导
+> - H5 开发走 Vite 代理 `/api/v1`；小程序走 `VITE_API_BASE` 绝对 URL
+> - 路由守卫公开页扩展：`pages/index/index`、`pages/service-detail/index`（浏览服务无需登录）
 
 ---
 
@@ -1301,4 +1301,90 @@ wx.login() 获取 code
 | 再次启动不弹隐私协议，直接完成静默登录 | ✅ 通过 |
 | 未登录访问「订单」「我的」Tab 弹出登录提示 | ✅ 通过 |
 | ProfileCompleteModal 弹窗支持手动填写手机号 | ✅ 通过 |
+| `npm run build` 全链路编译无报错 | ✅ 通过 |
+
+---
+
+## 18. P3.2 居民端首页对接契约（2026-06-20 确认）
+
+> **背景**：P3.2 实现居民端小程序首页动态化与服务详情页，对接 P2.14 已实现的 Banner / Operator 公开查询接口。
+
+### 18.1 首页动态数据加载
+
+**并发请求**（`onShow` 时触发，`Promise.allSettled` 静默容错）：
+
+| 接口 | 前端封装 | 用途 |
+|------|---------|------|
+| `GET /banners/active?displayTarget=RESIDENT` | `fetchActiveBanners()` | 轮播图列表，按 `sortOrder` 升序 |
+| `GET /operators/contact` | `fetchContactOperator()` | 接单运营人员（`purpose='接单'` 第一条） |
+
+**Banner 展示规则**：
+- 有数据：swiper 轮播，`imageUrl` 填充，`title` 可选叠加
+- 无数据/请求失败：展示品牌默认占位卡「大洋云洁·智享社区」
+
+**Banner 跳转规则**（`linkType`）：
+
+| linkType | 行为 |
+|----------|------|
+| `NONE` | 无跳转 |
+| `PAGE` | `uni.navigateTo({ url: linkTarget })` |
+| `URL` | 跳转 webview 页（外链） |
+
+**客服电话规则**：
+- 成功：`contactName = operator.name`，`contactPhone = operator.phone`
+- 失败/无记录：兜底 `400-123-4567`，点击 `uni.makePhoneCall`
+
+### 18.2 服务详情页
+
+**路由**：`/pages/service-detail/index?type={cleaning|recycling|consult}`
+
+**页面内容**：
+- 头部：服务名称 + 副标题 + 图标（按 type 配色）
+- 服务说明：各类型 5 条固定说明文案
+- §1.6 边界声明：高空外窗 / 顽固污渍 / 贵重物品 / 上门确认（四种服务共用）
+- 底部「立即预约」：
+  - `cleaning` → `/pages/booking-cleaning/index`
+  - `recycling` → `/pages/booking-recycling/index`
+  - `consult` → Toast「即将上线」（P3.5 实现）
+
+### 18.3 API Base URL 双端配置
+
+| 平台 | BASE_URL | 说明 |
+|------|----------|------|
+| H5 | `/api/v1` | Vite dev proxy → `http://127.0.0.1:3000` |
+| mp-weixin | `VITE_API_BASE` 或 `http://127.0.0.1:3000/api/v1` | 小程序无代理，须绝对 URL |
+
+配置文件：`apps/miniapp-customer/.env.development` / `.env.production`
+
+### 18.4 路由守卫更新（P3.2）
+
+公开页（无需登录）扩展为：
+
+| 页面 | 说明 |
+|------|------|
+| `pages/index/index` | 首页浏览 |
+| `pages/service-detail/index` | 服务详情浏览 |
+
+下单/预约页仍受登录保护。
+
+### 18.5 新增源码文件（P3.2）
+
+| 文件 | 说明 |
+|------|------|
+| `apps/miniapp-customer/src/api/banner.ts` | Banner API 封装 |
+| `apps/miniapp-customer/src/api/operator.ts` | Operator 联系信息 API 封装 |
+| `apps/miniapp-customer/src/pages/index/index.vue` | 首页（动态 Banner + 服务入口 + 客服条） |
+| `apps/miniapp-customer/src/pages/service-detail/index.vue` | 服务详情页 |
+| `apps/miniapp-customer/vite.config.ts` | H5 `/api` 反向代理 |
+| `apps/miniapp-customer/.env.development` | 小程序开发 API 地址 |
+| `apps/miniapp-customer/.env.production` | 生产 API 地址占位 |
+
+### 18.6 P3.2 验收结论（2026-06-20）
+
+| 验收项 | 结果 |
+|--------|------|
+| Banner 从 API 动态加载，后台配置后首页实时更新 | ✅ 通过 |
+| 服务卡片 → 详情页 → 立即预约 → 三步向导跳转 | ✅ 通过 |
+| 客服电话从 `/operators/contact` 动态获取并可拨打 | ✅ 通过 |
+| H5 Vite 代理 + 小程序绝对 URL 双端请求正常 | ✅ 通过 |
 | `npm run build` 全链路编译无报错 | ✅ 通过 |

@@ -6,6 +6,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { PrismaService } from './common/prisma/prisma.service';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -15,9 +16,18 @@ async function bootstrap() {
   fs.mkdirSync(uploadsDir, { recursive: true });
   app.useStaticAssets(uploadsDir, { prefix: '/uploads' });
 
-  // CORS - 一期允许 localhost；生产环境收紧
+  // CORS - 开发阶段允许所有 localhost/127.0.0.1 端口；生产环境收紧
   app.enableCors({
-    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked: ${origin}`));
+      }
+    },
     credentials: true,
   });
 
@@ -48,6 +58,45 @@ async function bootstrap() {
   await app.listen(3000);
   console.log('🚀 大洋云洁 Server is running on http://localhost:3000');
   console.log('📖 Swagger docs at http://localhost:3000/api/docs');
+
+  await seedRecyclingCatalogs(app);
+}
+
+/**
+ * 启动时自动写入废品回收服务目录种子数据（幂等，已存在则跳过）
+ * 对应 POST /api/v1/service-catalogs 接口的数据初始化
+ */
+async function seedRecyclingCatalogs(app: NestExpressApplication) {
+  const prisma = app.get(PrismaService);
+
+  const items = [
+    {
+      bizType: 'RECYCLING',
+      name: '大件类废品',
+      subtitle: '大家电、家具',
+      icon: '🚚',
+      sortOrder: 1,
+    },
+    {
+      bizType: 'RECYCLING',
+      name: '小件类废品',
+      subtitle: '书箱纸箱、塑料瓶、废金属、小家电',
+      icon: '📦',
+      sortOrder: 2,
+    },
+  ];
+
+  for (const item of items) {
+    const exists = await prisma.serviceCatalog.findFirst({
+      where: { bizType: item.bizType, name: item.name },
+    });
+    if (!exists) {
+      await prisma.serviceCatalog.create({ data: item });
+      console.info(`[seed] ServiceCatalog created: ${item.name}`);
+    } else {
+      console.info(`[seed] ServiceCatalog exists, skip: ${item.name}`);
+    }
+  }
 }
 
 bootstrap();

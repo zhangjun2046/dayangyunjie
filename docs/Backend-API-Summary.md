@@ -1,6 +1,6 @@
 # Backend API Summary（P2 全接口交接文档）
 
-> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2  
+> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；**P3.2（2026-06-20）** 更新至 v2.7  
 > **用途**：供居民端（P3）、员工端（P4）、管理后台（P5）对接后端 API，避免上下文丢失  
 > **Base URL**：`http://localhost:3000/api/v1`  
 > **统一响应格式**：`{ code: number, message: string, data: T | null }`  
@@ -464,7 +464,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 }
 ```
 
-> **居民端对接**：小程序首页轮播图调用 `GET /banners/active?displayTarget=RESIDENT`，无需鉴权。
+> **居民端对接**：小程序首页轮播图调用 `GET /banners/active?displayTarget=RESIDENT`，无需鉴权。**P3.2 已对接**（`src/api/banner.ts` → `fetchActiveBanners()`）。
 
 ---
 
@@ -502,7 +502,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 }
 ```
 
-> **居民端对接**：首页客服电话调用 `GET /operators/contact`，无需鉴权；若无接单人员则返回 `data: null`。
+> **居民端对接**：首页客服电话调用 `GET /operators/contact`，无需鉴权；若无接单人员则返回 `data: null`。**P3.2 已对接**（`src/api/operator.ts` → `fetchContactOperator()`）。
 
 ---
 
@@ -510,7 +510,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 | 端 | 关键说明 |
 |----|---------|
-| **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED`；首页轮播图 `GET /banners/active?displayTarget=RESIDENT`；客服电话 `GET /operators/contact` |
+| **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED`；首页轮播图 `GET /banners/active?displayTarget=RESIDENT`（✅ P3.2 已对接）；客服电话 `GET /operators/contact`（✅ P3.2 已对接）；H5 走 Vite 代理 `/api/v1`，小程序走 `VITE_API_BASE` |
 | **员工端（P4）** | 接单用 `POST /cleaning-orders/:id/accept`；GPS 签到用 `POST /cleaning-orders/:id/gps-checkin`；完成服务先上传图片到 `/upload/image` 获取 URL，再调 `/cleaning-orders/:id/complete` |
 | **管理后台（P5）** | 看板接口均在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；配置管理走 `/service-catalogs`、`/banners`、`/operators` |
 
@@ -531,8 +531,32 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
-> **文档版本**：v2.6（P3.1 前端骨架已完成，Auth 接口对接状态更新）  
-> **生成日期**：2026-06-17  
-> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1 前端对接说明  
+## P3.2 完成说明（2026-06-20）
+
+居民端首页（P3.2）已完成，以下接口已在前端完成对接：
+
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `GET /banners/active?displayTarget=RESIDENT` | 首页 swiper 轮播图动态加载 | ✅ P3.2 已对接 |
+| `GET /operators/contact` | 首页底部客服条姓名+电话，一键拨打 | ✅ P3.2 已对接 |
+
+**P3.2 页面与导航**：
+
+| 路径 | 说明 |
+|------|------|
+| `pages/index/index` | 首页：动态 Banner + 三大服务卡片 + 客服条 |
+| `pages/service-detail/index?type=` | 服务详情：说明 + §1.6 边界声明 +「立即预约」 |
+
+**P3.2 关键新增文件**：`src/api/banner.ts`、`src/api/operator.ts`、`src/pages/index/index.vue`（重写）、`src/pages/service-detail/index.vue`、`vite.config.ts`（H5 代理）、`.env.development` / `.env.production`
+
+**双端 API 配置**：
+- H5：`request.ts` 使用 `/api/v1`，Vite proxy 转发至 `http://127.0.0.1:3000`
+- 小程序：`VITE_API_BASE=http://127.0.0.1:3000/api/v1`（开发）/ 生产域名（部署时替换）
+
+---
+
+> **文档版本**：v2.7（P3.2 居民端首页已完成，Banner/Operator 接口对接状态更新）
+> **生成日期**：2026-06-20
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1/P3.2 前端对接说明
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销

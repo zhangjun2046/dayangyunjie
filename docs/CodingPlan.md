@@ -34,8 +34,9 @@
 | P2.14 配置管理 CRUD 接口               | ✅ 已通过 | 2026-06-15 | ServiceCatalog 扩展为全 CRUD + toggle 启用/停用；新建 BannerModule（全 CRUD + `/banners/active` 有效轮播查询）；新建 OperatorModule（全 CRUD + `/operators/contact` 接单人查询）；Jest 32 项全部通过；Swagger 三项验收通过；使用 Sonnet 4.6 LLM 完成 |
 | P2.15 家政跟进记录接口 + ConsultOrder v2.0 字段适配（需求修正：废品仍由员工 /complete 触发） | ✅ 已通过 | 2026-06-15 | ConsultFollowUp CRUD；ConsultOrder v2.0 字段（isProxyOrder/serviceContactName/serviceAddress/source）；需求#92「废品居民验收」为错误描述（#98已更正），撤销误引入的 /resident-accept |
 | P3.1 应用骨架 + 登录授权                    | ✅ 已通过 | 2026-06-17 | 居民端 App.vue 入口配置；微信 wx.login 静默获取 openid → 后端换取 JWT；隐私协议弹窗（PrivacyModal）首次必弹；首次下单身份补全弹窗（ProfileCompleteModal，支持 getPhoneNumber 快速授权或手动输入）；Pinia auth store 持久化登录态；路由守卫（useRouteGuard）拦截未登录页面；使用 Sonnet 4.6 LLM 完成 |
+| P3.2 居民端首页                             | ✅ 已通过 | 2026-06-20 | 动态 Banner 轮播（`GET /banners/active?displayTarget=RESIDENT`）；三大服务卡片 → 服务详情页（含 §1.6 边界声明）→「立即预约」跳转三步向导；客服电话动态获取（`GET /operators/contact`）；H5 Vite 代理 + 小程序 `VITE_API_BASE` 双端 API 配置；使用 Sonnet 4.6 LLM 完成 |
 
-> **P2.1–P2.15 后端核心 API 全部完成（含 v2.0 补充）。P3.1 居民端骨架已完成。** 下一阶段：**P3.2** — 居民端首页。
+> **P2.1–P2.15 后端核心 API 全部完成（含 v2.0 补充）。P3.1–P3.2 居民端骨架与首页已完成。** 下一阶段：**P3.3** — 保洁预约三步向导。
 
 ---
 
@@ -1291,6 +1292,9 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 #### P3.2 首页（3h）
 
+> **验收状态**：✅ **已通过**（2026-06-20）  
+> **验收依据**：① 首页 Banner 从 `GET /banners/active?displayTarget=RESIDENT` 动态加载，无数据时展示品牌默认占位卡；② 三大服务卡片点击 → 服务详情页展示服务说明 + §1.6 边界声明四条；③ 详情页「立即预约」跳转对应三步向导（保洁/废品）；④ 底部客服条电话从 `GET /operators/contact` 动态获取，支持一键拨打；⑤ H5/mp-weixin 双模式 `npm run build` 通过。  
+> 使用 Sonnet 4.6 LLM 完成；下一单元：[P3.3](#p33-保洁预约三步向导5h)  
 > **需求来源**：`requirement_v2.0.md` §3.1
 
 **干什么**
@@ -1322,9 +1326,9 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 **测试标准 — 通过后方可进入 P3.3**:
 
-1. Banner 轮播图从 API 动态加载（非硬编码）
-2. 服务卡片点击路径：卡片 → 详情页 → 立即预约 → 三步向导
-3. 客服电话从 `/operators/contact` 动态获取
+1. Banner 轮播图从 API 动态加载（非硬编码）— ✅ 2026-06-20 已验
+2. 服务卡片点击路径：卡片 → 详情页 → 立即预约 → 三步向导 — ✅ 2026-06-20 已验
+3. 客服电话从 `/operators/contact` 动态获取 — ✅ 2026-06-20 已验
 
 ---
 
@@ -2763,8 +2767,8 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 ---
 
-> **文档版本**: v2.1
+> **文档版本**: v2.2
 > **创建日期**: 2026-06-01
-> **修订日期**: 2026-06-17（v2.1：P3.1 居民端骨架+微信登录+首次下单手机号快速授权验收通过；验收进度表新增 P3.1 行 | v2.0：基于需求文档 v2.0 / Schema v2.0 / Prisma schema v2.0 全面更新；P2 新增 P2.12–P2.15 四个后端补充单元；P3–P6 全面修订；P4.6 由「已取消」恢复为正式单元；P5 新增 P5.9–P5.11 配置管理模块；工时汇总更新至 155h / 51 单元；附录 A 口令表同步更新 | v1.3：废品流程调整，P2.6b/P4.6 取消并入上一单元 | v1.2：WorkBuddy → Cursor Agent；新增磁盘约束）
+> **修订日期**: 2026-06-20（v2.2：P3.2 居民端首页（动态 Banner + 服务详情页 + 动态客服电话）验收通过；验收进度表新增 P3.2 行 | v2.1：P3.1 居民端骨架+微信登录+首次下单手机号快速授权验收通过 | v2.0：基于需求文档 v2.0 / Schema v2.0 / Prisma schema v2.0 全面更新；P2 新增 P2.12–P2.15 四个后端补充单元；P3–P6 全面修订 | v1.3：废品流程调整，P2.6b/P4.6 取消并入上一单元 | v1.2：WorkBuddy → Cursor Agent；新增磁盘约束）
 > **适用范围**: 大洋云洁 (dayangyunjie-code) 社区服务平台一期 MVP（v2.0 基线）
-> **使用方式**: 按 P1 → P2 → P3 → P4 → P5 → P6 顺序，逐单元执行。每单元完成后按"测试标准"验收，通过后进入下一单元。P2.1–P2.15 已完成（v1.x + v2.0 阶段）；P3.1 已完成，当前继续 P3.2。
+> **使用方式**: 按 P1 → P2 → P3 → P4 → P5 → P6 顺序，逐单元执行。每单元完成后按"测试标准"验收，通过后进入下一单元。P2.1–P2.15 已完成（v1.x + v2.0 阶段）；P3.1–P3.2 已完成，当前继续 P3.3。

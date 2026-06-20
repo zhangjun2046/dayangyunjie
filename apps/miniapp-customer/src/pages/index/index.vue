@@ -1,101 +1,106 @@
 <template>
   <view class="page">
     <!-- Banner 轮播 -->
-    <swiper class="banner-swiper" circular autoplay interval="4000" indicator-dots indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#ffffff">
-      <swiper-item>
-        <view class="banner-card">
-          <!-- 左侧文案 -->
-          <view class="banner-text">
-            <text class="banner-tag">#清洁每个角落 保护家人健康#</text>
-            <text class="banner-title">8.8折深度保洁</text>
-            <text class="banner-title accent">优惠券</text>
-            <view class="banner-btn" @tap="onBannerTap">立即领取</view>
-          </view>
-          <!-- 右侧装饰 -->
-          <view class="banner-deco">
-            <view class="deco-circle-lg" />
-            <view class="deco-circle-sm" />
-            <view class="deco-coupon">
-              <text class="coupon-label">8.8折</text>
-              <text class="coupon-sub">深度保洁</text>
+    <swiper
+      class="banner-swiper"
+      circular
+      autoplay
+      interval="4000"
+      indicator-dots
+      indicator-color="rgba(255,255,255,0.5)"
+      indicator-active-color="#ffffff"
+    >
+      <!-- 有效 Banner 数据（来自 API） -->
+      <template v-if="banners.length > 0">
+        <swiper-item v-for="banner in banners" :key="banner.id">
+          <view class="banner-img-card" @tap="onBannerTap(banner)">
+            <image
+              class="banner-img"
+              :src="banner.imageUrl"
+              mode="aspectFill"
+            />
+            <view v-if="banner.title" class="banner-img-overlay">
+              <text class="banner-img-title">{{ banner.title }}</text>
             </view>
           </view>
-        </view>
-      </swiper-item>
-      <swiper-item>
-        <view class="banner-card banner-card-green">
-          <view class="banner-text">
-            <text class="banner-tag">#废旧物品换新价#</text>
-            <text class="banner-title">废品上门</text>
-            <text class="banner-title accent">免费回收</text>
-            <view class="banner-btn" @tap="onBannerTap">立即预约</view>
-          </view>
-          <view class="banner-deco">
-            <view class="deco-circle-lg green" />
-            <view class="deco-circle-sm green" />
-            <view class="deco-coupon green">
-              <text class="coupon-label">免费</text>
-              <text class="coupon-sub">上门回收</text>
+        </swiper-item>
+      </template>
+
+      <!-- 无数据时显示品牌默认占位卡 -->
+      <template v-else>
+        <swiper-item>
+          <view class="banner-card">
+            <view class="banner-text">
+              <text class="banner-slogan">大洋云洁·智享社区</text>
+              <text class="banner-desc">专业上门服务 · 品质生活首选</text>
+            </view>
+            <view class="banner-deco">
+              <view class="deco-circle-lg" />
+              <view class="deco-circle-sm" />
+              <view class="deco-badge">
+                <text class="deco-badge-text">专业</text>
+                <text class="deco-badge-sub">放心服务</text>
+              </view>
             </view>
           </view>
-        </view>
-      </swiper-item>
+        </swiper-item>
+      </template>
     </swiper>
 
     <!-- 服务入口 -->
     <view class="service-section">
       <view class="section-header">
         <text class="section-title">服务项目</text>
-        <text class="section-more">查看全部 ›</text>
+        <text class="section-sub">专业上门 · 品质保障</text>
       </view>
 
       <!-- 第一行：保洁 + 废品 -->
       <view class="service-row">
-        <view class="service-card" @tap="onBookService('cleaning')">
+        <view class="service-card" @tap="onServiceTap('cleaning')">
           <view class="card-top">
             <view class="icon-circle blue">
               <image class="icon-image" src="/static/icons/cleaning.svg" mode="aspectFit" />
             </view>
             <view class="card-info">
               <text class="card-title">保洁服务</text>
-              <text class="card-subtitle">预计30分钟上门</text>
+              <text class="card-subtitle">预约上门 · 深度清洁</text>
             </view>
           </view>
           <view class="arrow-btn blue-btn">
-            <text class="arrow-icon">→</text>
+            <text class="arrow-icon">›</text>
           </view>
         </view>
 
-        <view class="service-card" @tap="onBookService('recycling')">
+        <view class="service-card" @tap="onServiceTap('recycling')">
           <view class="card-top">
             <view class="icon-circle green">
               <image class="icon-image" src="/static/icons/recycling.svg" mode="aspectFit" />
             </view>
             <view class="card-info">
               <text class="card-title">废品回收</text>
-              <text class="card-subtitle">预计30分钟上门</text>
+              <text class="card-subtitle">免费上门 · 绿色环保</text>
             </view>
           </view>
           <view class="arrow-btn green-btn">
-            <text class="arrow-icon">→</text>
+            <text class="arrow-icon">›</text>
           </view>
         </view>
       </view>
 
-      <!-- 第二行：咨询（宽卡横跨全行） -->
+      <!-- 第二行：家政咨询（宽卡横跨全行） -->
       <view class="service-row">
-        <view class="service-card service-card-wide" @tap="onBookService('consult')">
+        <view class="service-card service-card-wide" @tap="onServiceTap('consult')">
           <view class="card-top">
             <view class="icon-circle orange">
               <image class="icon-image" src="/static/icons/housekeeping.svg" mode="aspectFit" />
             </view>
             <view class="card-info">
               <text class="card-title">家政服务</text>
-              <text class="card-subtitle">预计30分钟上门</text>
+              <text class="card-subtitle">专业顾问 · 一站咨询</text>
             </view>
           </view>
           <view class="arrow-btn orange-btn">
-            <text class="arrow-icon">→</text>
+            <text class="arrow-icon">›</text>
           </view>
         </view>
       </view>
@@ -105,9 +110,12 @@
     <view class="customer-service-bar">
       <view class="cs-info">
         <image class="cs-avatar" src="/static/images/default-avatar.png" mode="aspectFill" />
-        <text class="cs-text">客服在线 · 快速响应</text>
+        <view class="cs-text-wrap">
+          <text class="cs-label">{{ contactName }}</text>
+          <text class="cs-phone">{{ contactPhone }}</text>
+        </view>
       </view>
-      <view class="cs-btn" @tap="onCallService">电话预约</view>
+      <view class="cs-btn" @tap="onCallService">立即拨打</view>
     </view>
 
     <!-- 身份补全弹窗 -->
@@ -131,12 +139,47 @@ import { onShow } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/store/auth';
 import ProfileCompleteModal from '@/components/ProfileCompleteModal.vue';
 import PrivacyModal from '@/components/PrivacyModal.vue';
+import { fetchActiveBanners, type BannerDto } from '@/api/banner';
+import { fetchContactOperator } from '@/api/operator';
 
 const authStore = useAuthStore();
 const profileModalRef = ref<InstanceType<typeof ProfileCompleteModal> | null>(null);
 const privacyModalRef = ref<InstanceType<typeof PrivacyModal> | null>(null);
 
+/** 动态 Banner 列表（API 返回；为空则展示品牌默认卡） */
+const banners = ref<BannerDto[]>([]);
+
+/** 客服联系人（来自 /operators/contact；默认兜底值） */
+const contactName = ref('电话预约');
+const contactPhone = ref('400-123-4567');
+
+/** 待跳转的服务类型（补全手机号后继续） */
 let pendingServiceType = '';
+
+// ── 页面数据加载 ─────────────────────────────────────────────────
+
+/** 并发加载首页动态数据，任一失败均静默处理，不影响页面展示 */
+async function loadPageData() {
+  const [bannersResult, operatorResult] = await Promise.allSettled([
+    fetchActiveBanners(),
+    fetchContactOperator(),
+  ]);
+
+  if (bannersResult.status === 'fulfilled') {
+    banners.value = bannersResult.value ?? [];
+    console.info('[home] banners loaded, count=', banners.value.length);
+  } else {
+    console.info('[home] banners load failed, using default placeholder');
+  }
+
+  if (operatorResult.status === 'fulfilled' && operatorResult.value?.phone) {
+    contactName.value = operatorResult.value.name || '电话预约';
+    contactPhone.value = operatorResult.value.phone;
+    console.info('[home] contact operator loaded=', contactName.value, contactPhone.value);
+  } else {
+    console.info('[home] operator contact load failed, using default phone');
+  }
+}
 
 // ── 隐私 & 登录流程 ────────────────────────────────────────────
 
@@ -170,7 +213,7 @@ async function doWechatLogin() {
   }
 }
 
-/** 用户同意隐私协议：标记已同意后，进入微信手机号授权步骤，授权成功才完成登录 */
+/** 用户同意隐私协议：标记已同意后，进入微信手机号授权步骤 */
 function onPrivacyAgreed() {
   authStore.setPrivacyAgreed();
   profileModalRef.value?.show();
@@ -183,14 +226,16 @@ function onPrivacyDeclined() {
 }
 
 /**
- * 每次页面显示时检查隐私协议与登录态
+ * 每次页面显示时检查隐私协议与登录态，并加载首页动态数据
  * onShow 比 onMounted 更适合：重新进入 Tab 时也会触发
  */
 onShow(() => {
+  // 无论登录状态如何，每次显示都刷新首页动态数据
+  loadPageData();
+
   if (authStore.isLoggedIn) return;
 
   if (!authStore.hasAgreedPrivacy) {
-    // 等待组件挂载完成
     setTimeout(() => {
       privacyModalRef.value?.show();
     }, 300);
@@ -198,59 +243,71 @@ onShow(() => {
   }
 
   if (!authStore.hasPhone) {
-    // 已同意隐私但未完成手机授权 → 重新弹出手机授权弹窗，不允许跳过
     setTimeout(() => {
       profileModalRef.value?.show();
     }, 300);
     return;
   }
 
-  // 已同意协议、已完成手机授权但 token 失效 → 静默重新登录
   doWechatLogin();
 });
 
-// ── 服务预约 ────────────────────────────────────────────────────
+// ── Banner 交互 ───────────────────────────────────────────────
 
-function onBannerTap() {
-  uni.showToast({ title: '活动详情（P3.2 实现）', icon: 'none' });
+function onBannerTap(banner: BannerDto) {
+  if (banner.linkType === 'PAGE' && banner.linkTarget) {
+    uni.navigateTo({ url: banner.linkTarget });
+  } else if (banner.linkType === 'URL' && banner.linkTarget) {
+    // #ifdef MP-WEIXIN
+    uni.navigateTo({ url: `/pages/webview/index?url=${encodeURIComponent(banner.linkTarget)}` });
+    // #endif
+    // #ifndef MP-WEIXIN
+    window.open(banner.linkTarget, '_blank');
+    // #endif
+  }
+  // linkType === 'NONE'：无动作
 }
 
-function onBookService(type: string) {
+// ── 服务卡片导航 ──────────────────────────────────────────────
+
+/** 点击服务卡片：先确认手机号，再跳转服务详情页 */
+function onServiceTap(type: string) {
   if (!authStore.hasPhone) {
     pendingServiceType = type;
     profileModalRef.value?.show();
-    console.info('[home] profile complete required before booking, type=', type);
+    console.info('[home] profile complete required before viewing service, type=', type);
     return;
   }
-  navigateToService(type);
+  navigateToServiceDetail(type);
+}
+
+/** 跳转服务详情页 */
+function navigateToServiceDetail(type: string) {
+  uni.navigateTo({ url: `/pages/service-detail/index?type=${type}` });
 }
 
 async function onProfileCompleted(payload: { phone: string }) {
   console.info('[home] profile completed, phone=', payload.phone.slice(0, 3) + '****', 'pendingServiceType=', pendingServiceType);
 
   if (!authStore.isLoggedIn) {
-    // 初次登录流程：手机授权完成后执行微信登录，登录成功才标记已登录
     await doWechatLogin();
     console.info('[home] initial login completed via phone auth, isLoggedIn=', authStore.isLoggedIn);
     return;
   }
 
-  // 已登录时补全资料，完成后跳转到预约服务
   uni.showToast({ title: '信息完善成功！', icon: 'success', duration: 1500 });
   setTimeout(() => {
     if (pendingServiceType) {
-      navigateToService(pendingServiceType);
+      navigateToServiceDetail(pendingServiceType);
       pendingServiceType = '';
     }
   }, 1600);
 }
 
-function navigateToService(type: string) {
-  uni.showToast({ title: `${type} 预约（P3.2 实现）`, icon: 'none' });
-}
+// ── 客服电话 ─────────────────────────────────────────────────
 
 function onCallService() {
-  uni.makePhoneCall({ phoneNumber: '400-123-4567' });
+  uni.makePhoneCall({ phoneNumber: contactPhone.value });
 }
 </script>
 
@@ -266,6 +323,35 @@ function onCallService() {
   height: 320rpx;
 }
 
+/* API 图片 Banner */
+.banner-img-card {
+  width: 100%;
+  height: 320rpx;
+  position: relative;
+  overflow: hidden;
+}
+
+.banner-img {
+  width: 100%;
+  height: 100%;
+}
+
+.banner-img-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20rpx 32rpx;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.45) 0%, transparent 100%);
+}
+
+.banner-img-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* 默认品牌占位卡 */
 .banner-card {
   width: 100%;
   height: 320rpx;
@@ -279,43 +365,24 @@ function onCallService() {
   box-sizing: border-box;
 }
 
-.banner-card-green {
-  background: linear-gradient(135deg, #07c160 0%, #36cfc9 100%);
-}
-
 .banner-text {
   flex: 1;
   z-index: 2;
 }
 
-.banner-tag {
+.banner-slogan {
   display: block;
-  font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.85);
-  margin-bottom: 12rpx;
-}
-
-.banner-title {
-  display: block;
-  font-size: 42rpx;
+  font-size: 40rpx;
   font-weight: 800;
   color: #ffffff;
-  line-height: 1.2;
+  letter-spacing: 2rpx;
+  margin-bottom: 16rpx;
 }
 
-.banner-title.accent {
-  color: #ffe566;
-}
-
-.banner-btn {
-  display: inline-block;
-  margin-top: 20rpx;
-  padding: 10rpx 28rpx;
-  border: 2rpx solid rgba(255, 255, 255, 0.9);
-  border-radius: 32rpx;
-  font-size: 24rpx;
-  color: #ffffff;
-  font-weight: 600;
+.banner-desc {
+  display: block;
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 /* 右侧装饰 */
@@ -347,12 +414,7 @@ function onCallService() {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-.deco-circle-lg.green,
-.deco-circle-sm.green {
-  background-color: rgba(255, 255, 255, 0.18);
-}
-
-.deco-coupon {
+.deco-badge {
   position: absolute;
   right: 20rpx;
   top: 50%;
@@ -368,22 +430,13 @@ function onCallService() {
   border: 2rpx solid rgba(255, 255, 255, 0.4);
 }
 
-.deco-coupon.green {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-.coupon-label {
+.deco-badge-text {
   font-size: 34rpx;
   font-weight: 800;
   color: #ffe566;
 }
 
-.deco-coupon.green .coupon-label {
-  color: #ffffff;
-  font-size: 26rpx;
-}
-
-.coupon-sub {
+.deco-badge-sub {
   font-size: 18rpx;
   color: rgba(255, 255, 255, 0.9);
   margin-top: 4rpx;
@@ -391,12 +444,12 @@ function onCallService() {
 
 /* ── 服务入口 ── */
 .service-section {
-  padding: 28rpx 24rpx 160rpx; /* 增加底部 padding，避免被固定定位的客服条遮挡 */
+  padding: 28rpx 24rpx 160rpx;
 }
 
 .section-header {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   margin-bottom: 20rpx;
 }
@@ -407,7 +460,7 @@ function onCallService() {
   color: #1a1a1a;
 }
 
-.section-more {
+.section-sub {
   font-size: 24rpx;
   color: #999;
 }
@@ -429,7 +482,6 @@ function onCallService() {
   justify-content: space-between;
   min-height: 200rpx;
   box-shadow: 0 2rpx 16rpx rgba(0, 0, 0, 0.06);
-  position: relative;
 }
 
 .service-card-wide {
@@ -540,7 +592,7 @@ function onCallService() {
 
 .arrow-icon {
   color: #ffffff;
-  font-size: 28rpx;
+  font-size: 36rpx;
   font-weight: 700;
 }
 
@@ -573,10 +625,22 @@ function onCallService() {
   background-color: #f0f0f0;
 }
 
-.cs-text {
+.cs-text-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.cs-label {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.cs-phone {
   font-size: 28rpx;
-  color: #333;
-  font-weight: 500;
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: 1rpx;
 }
 
 .cs-btn {

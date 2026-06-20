@@ -6,8 +6,8 @@
 
 import { useAuthStore } from '@/store/auth';
 
-/** 不需要登录即可访问的页面路径前缀 */
-const PUBLIC_PAGES = ['pages/index/index'];
+/** 不需要登录即可访问的页面路径前缀（浏览服务内容无需登录，下单时再鉴权） */
+const PUBLIC_PAGES = ['pages/index/index', 'pages/service-detail/index'];
 
 function isProtected(url: string): boolean {
   // 去掉查询参数后匹配

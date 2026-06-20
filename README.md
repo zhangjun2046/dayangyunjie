@@ -65,3 +65,4 @@ npx prisma migrate dev
 - 使用Sonnet4.6 LLM完成P2.14，实现 ServiceCatalog 全 CRUD+toggle、Banner 全 CRUD+有效轮播查询、Operator 全 CRUD+接单人接口
 - 使用Sonnet4.6 LLM完成P2.15，实现废品居民验收接口（/recycling-orders/:id/accept）、ConsultFollowUp CRUD 及 ConsultOrder v2.0 字段适配
 - 使用Sonnet4.6 LLM完成P3.1，实现居民端应用骨架、微信登录和首次下单手机号快速授权
+- 使用Sonnet4.6 LLM完成P3.2，实现居民端首页（动态 Banner + 服务详情页 + 动态客服电话）
