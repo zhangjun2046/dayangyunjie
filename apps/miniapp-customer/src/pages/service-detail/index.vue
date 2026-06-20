@@ -37,7 +37,7 @@
       </view>
       <view class="notice-card">
         <view
-          v-for="(notice, index) in BOUNDARY_NOTICES"
+          v-for="(notice, index) in boundaryNotices"
           :key="index"
           class="notice-item"
         >
@@ -71,8 +71,8 @@ import { useBookingRecyclingStore } from '@/store/booking-recycling';
 /** 服务类型，来自页面 URL 参数 */
 const serviceType = ref<'cleaning' | 'recycling' | 'consult'>('cleaning');
 
-/** §1.6 边界声明（固定四条，三种服务共用） */
-const BOUNDARY_NOTICES = [
+/** §1.6 边界声明 — 保洁服务 */
+const CLEANING_BOUNDARY_NOTICES = [
   {
     icon: '🪟',
     title: '高空外窗清洁',
@@ -94,6 +94,64 @@ const BOUNDARY_NOTICES = [
     desc: '服务员上门后将与您当面确认本次服务范围及注意事项，如有额外需求请提前沟通，避免产生误解。',
   },
 ];
+
+/** §1.6 边界声明 — 废品回收 */
+const RECYCLING_BOUNDARY_NOTICES = [
+  {
+    icon: '📦',
+    title: '大件搬运准备',
+    desc: '大件类废品需搬运工上门，请确保电梯或楼梯通道畅通可用，便于安全搬运。',
+  },
+  {
+    icon: '⚖️',
+    title: '预估重量说明',
+    desc: '预约时填写的预估重量仅供安排搬运工具及人员，实际回收量以上门现场核定为准。',
+  },
+  {
+    icon: '🚫',
+    title: '回收品类范围',
+    desc: '本服务不含危险废品、医疗废物、易燃易爆等特殊品类，如有疑问请提前预约时说明。',
+  },
+  {
+    icon: '✅',
+    title: '上门确认',
+    desc: '回收员上门前会电话确认，到达后将与您当面核对回收物品及注意事项，避免遗漏或误解。',
+  },
+];
+
+/** §1.6 边界声明 — 家政咨询 */
+const CONSULT_BOUNDARY_NOTICES = [
+  {
+    icon: '📞',
+    title: '电话回访',
+    desc: '提交需求后，运营人员将在 15 分钟内电话回访，了解您的具体家政需求。',
+  },
+  {
+    icon: '💡',
+    title: '方案定制',
+    desc: '家政服务需根据实际需求匹配专员，最终服务方案以电话沟通确认结果为准。',
+  },
+  {
+    icon: '🔒',
+    title: '隐私保护',
+    desc: '您填写的联系信息仅用于需求跟进与服务安排，不会用于其他用途。',
+  },
+  {
+    icon: '✅',
+    title: '需求确认',
+    desc: '顾问将与您确认服务类型、时间及注意事项，如有额外需求请提前沟通，避免理解偏差。',
+  },
+];
+
+const BOUNDARY_NOTICE_MAP = {
+  cleaning: CLEANING_BOUNDARY_NOTICES,
+  recycling: RECYCLING_BOUNDARY_NOTICES,
+  consult: CONSULT_BOUNDARY_NOTICES,
+} as const;
+
+const boundaryNotices = computed(
+  () => BOUNDARY_NOTICE_MAP[serviceType.value] ?? CLEANING_BOUNDARY_NOTICES,
+);
 
 /** 各服务类型的静态展示信息 */
 const SERVICE_MAP = {

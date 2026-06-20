@@ -35,8 +35,10 @@
 | P2.15 家政跟进记录接口 + ConsultOrder v2.0 字段适配（需求修正：废品仍由员工 /complete 触发） | ✅ 已通过 | 2026-06-15 | ConsultFollowUp CRUD；ConsultOrder v2.0 字段（isProxyOrder/serviceContactName/serviceAddress/source）；需求#92「废品居民验收」为错误描述（#98已更正），撤销误引入的 /resident-accept |
 | P3.1 应用骨架 + 登录授权                    | ✅ 已通过 | 2026-06-17 | 居民端 App.vue 入口配置；微信 wx.login 静默获取 openid → 后端换取 JWT；隐私协议弹窗（PrivacyModal）首次必弹；首次下单身份补全弹窗（ProfileCompleteModal，支持 getPhoneNumber 快速授权或手动输入）；Pinia auth store 持久化登录态；路由守卫（useRouteGuard）拦截未登录页面；使用 Sonnet 4.6 LLM 完成 |
 | P3.2 居民端首页                             | ✅ 已通过 | 2026-06-20 | 动态 Banner 轮播（`GET /banners/active?displayTarget=RESIDENT`）；三大服务卡片 → 服务详情页（含 §1.6 边界声明）→「立即预约」跳转三步向导；客服电话动态获取（`GET /operators/contact`）；H5 Vite 代理 + 小程序 `VITE_API_BASE` 双端 API 配置；使用 Sonnet 4.6 LLM 完成 |
+| P3.3 保洁预约三步向导                       | ✅ 已通过 | 2026-06-20 | 动态服务类型（`GET /service-catalogs?bizType=CLEANING`）；时长步进器（1–8h，默认 2h）；公历+农历日历 + 时段选择；地址选择页（空地址引导新增）；代下单勾选 + 确认页填写；无价格展示；`POST /cleaning-orders` 生成 CLN 订单号；使用 Sonnet 4.6 LLM 完成 |
+| P3.4 废品回收预约三步向导                   | ✅ 已通过 | 2026-06-20 | 复用 P3.3 向导框架；动态回收类型 + 预估重量步进器（默认 5kg）；地址选择/代下单/日历/时段与保洁一致；`POST /recycling-orders` 生成 RCY 订单号；无价格展示；使用 Sonnet 4.6 LLM 完成 |
 
-> **P2.1–P2.15 后端核心 API 全部完成（含 v2.0 补充）。P3.1–P3.2 居民端骨架与首页已完成。** 下一阶段：**P3.3** — 保洁预约三步向导。
+> **P2.1–P2.15 后端核心 API 全部完成（含 v2.0 补充）。P3.1–P3.4 居民端骨架、首页与保洁/废品预约向导已完成。** 下一阶段：**P3.5** — 家政咨询提交流程。
 
 ---
 
@@ -1334,6 +1336,9 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 #### P3.3 保洁预约三步向导（5h）
 
+> **验收状态**：✅ **已通过**（2026-06-20）  
+> **验收依据**：① 服务类型从 `GET /service-catalogs?bizType=CLEANING&isEnabled=true` 动态加载，无参考价展示；② 步骤 2 日历（公历+农历）+ 时段（08:00–11:00 / 14:00–17:00）+ 地址区跳转 `/pages/address-select/index?from=cleaning`，空地址引导新增；③ 步骤 2 底部「为家人代下单」勾选，步骤 3 条件展示服务对象姓名/手机号；④ 确认页含服务须知（§1.6 边界声明），无价格字段；⑤ 提交 `POST /cleaning-orders`（`source=MINIPROGRAM`，代下单时 `isProxyOrder=true`）生成 CLN 前缀订单号；`npm run build` 通过。  
+> 使用 Sonnet 4.6 LLM 完成；下一单元：[P3.4](#p34-废品回收预约三步向导4h)  
 > **需求来源**：`requirement_v2.0.md` §3.2、§3.0.3、§3.0.4
 
 **干什么**
@@ -1385,14 +1390,17 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 **测试标准 — 通过后方可进入 P3.4**:
 
-1. 完整走通三步提交，生成 CLN 前缀订单号（无价格字段）
-2. 代下单开关有效：`isProxyOrder=true` + 被服务人信息写入订单
-3. 服务地址选择页可用；空地址引导流程正常
+1. 完整走通三步提交，生成 CLN 前缀订单号（无价格字段）— ✅ 2026-06-20 已验
+2. 代下单开关有效：`isProxyOrder=true` + 被服务人信息写入订单 — ✅ 2026-06-20 已验
+3. 服务地址选择页可用；空地址引导流程正常 — ✅ 2026-06-20 已验
 
 ---
 
 #### P3.4 废品回收预约三步向导（4h）
 
+> **验收状态**：✅ **已通过**（2026-06-20）  
+> **验收依据**：① 复用 P3.3 三步向导框架（Pinia store + 日历 + 地址选择页 + 代下单）；② 步骤 1 从 `GET /service-catalogs?bizType=RECYCLING` 动态加载回收类型，预估重量步进器（默认 5kg）；③ 提交 `POST /recycling-orders`（`source=MINIPROGRAM`，含代下单字段）生成 RCY 前缀订单号；④ 确认页无价格字段；`npm run build` 通过。  
+> 使用 Sonnet 4.6 LLM 完成；下一单元：[P3.5](#p35-家政咨询流程2h)  
 > **需求来源**：`requirement_v2.0.md` §3.3
 
 **干什么**
@@ -1432,8 +1440,8 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 **测试标准 — 通过后方可进入 P3.5**:
 
-1. 废品预约完整走通，生成 RCY 前缀订单号
-2. 代下单功能与保洁一致
+1. 废品预约完整走通，生成 RCY 前缀订单号 — ✅ 2026-06-20 已验
+2. 代下单功能与保洁一致 — ✅ 2026-06-20 已验
 
 ---
 
@@ -2767,8 +2775,8 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 ---
 
-> **文档版本**: v2.2
+> **文档版本**: v2.3
 > **创建日期**: 2026-06-01
-> **修订日期**: 2026-06-20（v2.2：P3.2 居民端首页（动态 Banner + 服务详情页 + 动态客服电话）验收通过；验收进度表新增 P3.2 行 | v2.1：P3.1 居民端骨架+微信登录+首次下单手机号快速授权验收通过 | v2.0：基于需求文档 v2.0 / Schema v2.0 / Prisma schema v2.0 全面更新；P2 新增 P2.12–P2.15 四个后端补充单元；P3–P6 全面修订 | v1.3：废品流程调整，P2.6b/P4.6 取消并入上一单元 | v1.2：WorkBuddy → Cursor Agent；新增磁盘约束）
+> **修订日期**: 2026-06-20（v2.3：P3.3 保洁预约三步向导 + P3.4 废品回收预约三步向导验收通过；验收进度表新增 P3.3/P3.4 行 | v2.2：P3.2 居民端首页验收通过 | v2.1：P3.1 居民端骨架+微信登录验收通过 | v2.0：基于需求文档 v2.0 全面更新 | v1.3：废品流程调整 | v1.2：WorkBuddy → Cursor Agent）
 > **适用范围**: 大洋云洁 (dayangyunjie-code) 社区服务平台一期 MVP（v2.0 基线）
-> **使用方式**: 按 P1 → P2 → P3 → P4 → P5 → P6 顺序，逐单元执行。每单元完成后按"测试标准"验收，通过后进入下一单元。P2.1–P2.15 已完成（v1.x + v2.0 阶段）；P3.1–P3.2 已完成，当前继续 P3.3。
+> **使用方式**: 按 P1 → P2 → P3 → P4 → P5 → P6 顺序，逐单元执行。每单元完成后按"测试标准"验收，通过后进入下一单元。P2.1–P2.15 已完成（v1.x + v2.0 阶段）；P3.1–P3.4 已完成，当前继续 P3.5。

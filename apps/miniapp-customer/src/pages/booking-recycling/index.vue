@@ -170,6 +170,33 @@
           </view>
         </view>
       </view>
+
+      <!-- 代下单信息（选择"是"时即时展开） -->
+      <view v-if="store.isProxy" class="section-wrap">
+        <text class="sub-title">服务对象信息</text>
+        <view class="input-card">
+          <view class="input-row">
+            <text class="input-label">姓名</text>
+            <input
+              class="input-field"
+              placeholder="请输入服务对象姓名"
+              :value="store.serviceContactName"
+              @input="store.serviceContactName = $event.detail.value"
+            />
+          </view>
+          <view class="input-row">
+            <text class="input-label">手机号</text>
+            <input
+              class="input-field"
+              type="number"
+              maxlength="11"
+              placeholder="请输入服务对象手机号"
+              :value="store.serviceContactPhone"
+              @input="store.serviceContactPhone = $event.detail.value"
+            />
+          </view>
+        </view>
+      </view>
     </scroll-view>
 
     <!-- ===================== STEP 3: 确认订单 ===================== -->
@@ -279,9 +306,10 @@ const STEP_LABELS = ['选择服务', '预约时间', '确认订单'];
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
 const TIME_SLOTS = ['08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'];
 const SERVICE_NOTICES = [
-  '服务人员上门前会电话确认',
-  '请提前收纳贵重物品',
-  '高空外窗不纳入标准服务范围',
+  '回收员上门前会电话确认',
+  '大件类需搬运工上门，请确保电梯可用',
+  '请合理估算重量，以便确认搬运工具',
+  '危险废品、医疗废物等特殊品类不纳入回收范围',
 ];
 
 // ───────────────────── Step 1 ─────────────────────

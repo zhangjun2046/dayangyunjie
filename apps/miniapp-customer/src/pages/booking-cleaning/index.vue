@@ -151,6 +151,33 @@
           </view>
         </view>
       </view>
+
+      <!-- 代下单信息（选择"是"时即时展开） -->
+      <view v-if="store.isProxy" class="section-wrap">
+        <text class="sub-title">服务对象信息</text>
+        <view class="input-card">
+          <view class="input-row">
+            <text class="input-label">姓名</text>
+            <input
+              class="input-field"
+              placeholder="请输入服务对象姓名"
+              :value="store.serviceContactName"
+              @input="store.serviceContactName = $event.detail.value"
+            />
+          </view>
+          <view class="input-row">
+            <text class="input-label">手机号</text>
+            <input
+              class="input-field"
+              type="number"
+              maxlength="11"
+              placeholder="请输入服务对象手机号"
+              :value="store.serviceContactPhone"
+              @input="store.serviceContactPhone = $event.detail.value"
+            />
+          </view>
+        </view>
+      </view>
     </scroll-view>
 
     <!-- ===================== STEP 3: 确认订单 ===================== -->

@@ -1,6 +1,6 @@
 # Backend API Summary（P2 全接口交接文档）
 
-> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；**P3.2（2026-06-20）** 更新至 v2.7  
+> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；**P3.4（2026-06-20）** 更新至 v2.8  
 > **用途**：供居民端（P3）、员工端（P4）、管理后台（P5）对接后端 API，避免上下文丢失  
 > **Base URL**：`http://localhost:3000/api/v1`  
 > **统一响应格式**：`{ code: number, message: string, data: T | null }`  
@@ -510,7 +510,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 | 端 | 关键说明 |
 |----|---------|
-| **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED`；首页轮播图 `GET /banners/active?displayTarget=RESIDENT`（✅ P3.2 已对接）；客服电话 `GET /operators/contact`（✅ P3.2 已对接）；H5 走 Vite 代理 `/api/v1`，小程序走 `VITE_API_BASE` |
+| **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED`；首页轮播图 `GET /banners/active?displayTarget=RESIDENT`（✅ P3.2 已对接）；客服电话 `GET /operators/contact`（✅ P3.2 已对接）；保洁预约 `POST /cleaning-orders`（✅ P3.3 已对接）；废品预约 `POST /recycling-orders`（✅ P3.4 已对接）；地址选择 `GET/POST /addresses`（✅ P3.3 已对接）；H5 走 Vite 代理 `/api/v1`，小程序走 `VITE_API_BASE` |
 | **员工端（P4）** | 接单用 `POST /cleaning-orders/:id/accept`；GPS 签到用 `POST /cleaning-orders/:id/gps-checkin`；完成服务先上传图片到 `/upload/image` 获取 URL，再调 `/cleaning-orders/:id/complete` |
 | **管理后台（P5）** | 看板接口均在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；配置管理走 `/service-catalogs`、`/banners`、`/operators` |
 
@@ -555,8 +555,52 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
-> **文档版本**：v2.7（P3.2 居民端首页已完成，Banner/Operator 接口对接状态更新）
+## P3.3 完成说明（2026-06-20）
+
+居民端保洁预约三步向导（P3.3）已完成，以下接口已在前端完成对接：
+
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `GET /service-catalogs?bizType=CLEANING&isEnabled=true` | 步骤 1 动态服务类型卡片 | ✅ P3.3 已对接 |
+| `GET /addresses?residentId=X` | 步骤 2 默认地址加载 + 地址选择页列表 | ✅ P3.3 已对接 |
+| `POST /addresses` | 地址选择页空地址引导新增 | ✅ P3.3 已对接 |
+| `POST /cleaning-orders` | 步骤 3 提交预约，返回 CLN 前缀订单号 | ✅ P3.3 已对接 |
+
+**P3.3 页面与导航**：
+
+| 路径 | 说明 |
+|------|------|
+| `pages/booking-cleaning/index` | 保洁预约三步向导（选服务 → 预约时间 → 确认订单） |
+| `pages/address-select/index?from=cleaning` | 服务地址选择页（列表选择 + 底部新增入口） |
+
+**P3.3 关键新增文件**：`src/pages/booking-cleaning/index.vue`、`src/pages/address-select/index.vue`、`src/store/booking-cleaning.ts`、`src/api/cleaning-order.ts`、`src/api/address.ts`、`src/api/service-catalog.ts`、`src/utils/lunar.ts`
+
+**代下单字段**：`isProxyOrder` / `serviceContactName` / `serviceContactPhone` / `source=MINIPROGRAM`
+
+---
+
+## P3.4 完成说明（2026-06-20）
+
+居民端废品回收预约三步向导（P3.4）已完成，复用 P3.3 框架：
+
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `GET /service-catalogs?bizType=RECYCLING&isEnabled=true` | 步骤 1 动态回收类型卡片 | ✅ P3.4 已对接 |
+| `POST /recycling-orders` | 步骤 3 提交预约，返回 RCY 前缀订单号 | ✅ P3.4 已对接 |
+
+**P3.4 页面与导航**：
+
+| 路径 | 说明 |
+|------|------|
+| `pages/booking-recycling/index` | 废品回收预约三步向导（选类型+重量 → 预约时间 → 确认订单） |
+| `pages/address-select/index?from=recycling` | 服务地址选择页（与保洁共用） |
+
+**P3.4 关键新增文件**：`src/pages/booking-recycling/index.vue`、`src/store/booking-recycling.ts`、`src/api/recycling-order.ts`
+
+---
+
+> **文档版本**：v2.8（P3.3/P3.4 保洁/废品预约三步向导已完成，订单/地址/服务目录接口对接状态更新）
 > **生成日期**：2026-06-20
-> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1/P3.2 前端对接说明
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.4 前端对接说明
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销

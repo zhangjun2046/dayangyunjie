@@ -30,6 +30,13 @@
 > - 新增服务详情页（`/pages/service-detail/index`），展示服务说明 + §1.6 边界声明，「立即预约」跳转三步向导
 > - H5 开发走 Vite 代理 `/api/v1`；小程序走 `VITE_API_BASE` 绝对 URL
 > - 路由守卫公开页扩展：`pages/index/index`、`pages/service-detail/index`（浏览服务无需登录）
+>
+> **v2.5 变更摘要（P3.3/P3.4，2026-06-20）**：
+> - 居民端保洁预约三步向导对接 `GET /service-catalogs?bizType=CLEANING`、`GET /addresses`、`POST /cleaning-orders`
+> - 居民端废品回收预约三步向导对接 `GET /service-catalogs?bizType=RECYCLING`、`POST /recycling-orders`
+> - 新增地址选择页（`/pages/address-select/index?from=cleaning|recycling`），支持列表选择 + 空地址引导新增（`POST /addresses`）
+> - 创建订单支持 v2.0 代下单字段：`isProxyOrder`、`serviceContactName`、`serviceContactPhone`、`source=MINIPROGRAM`
+> - 确认页无价格展示；保洁生成 CLN 前缀订单号，废品生成 RCY 前缀订单号
 
 ---
 
@@ -1387,4 +1394,128 @@ wx.login() 获取 code
 | 服务卡片 → 详情页 → 立即预约 → 三步向导跳转 | ✅ 通过 |
 | 客服电话从 `/operators/contact` 动态获取并可拨打 | ✅ 通过 |
 | H5 Vite 代理 + 小程序绝对 URL 双端请求正常 | ✅ 通过 |
+| `npm run build` 全链路编译无报错 | ✅ 通过 |
+
+---
+
+## 19. P3.3 保洁预约三步向导对接契约（2026-06-20 确认）
+
+> **背景**：P3.3 实现居民端保洁预约三步向导，对接服务目录、地址管理与保洁订单创建接口。
+
+### 19.1 三步向导流程
+
+```
+Step 1 选择服务
+  GET /service-catalogs?bizType=CLEANING&isEnabled=true  → 动态服务类型卡片
+  时长步进器（1–8 小时，默认 2 小时），无价格展示
+
+Step 2 预约时间
+  公历+农历日历（不可选过去日期）
+  时段：08:00 / 09:00 / 10:00 / 11:00 / 14:00 / 15:00 / 16:00 / 17:00
+  服务地址：展示默认地址 + 脱敏手机号 → 跳转地址选择页
+  「为家人代下单」勾选框（步骤 2 底部）
+
+Step 3 确认订单
+  信息汇总 + 代下单信息区（勾选时展示）+ 备注 + 服务须知
+  POST /cleaning-orders → 成功 Toast 展示 CLN 前缀订单号 → 跳转订单 Tab
+```
+
+### 19.2 创建订单请求映射
+
+**`POST /cleaning-orders`**
+
+| 前端字段 | 后端字段 | 说明 |
+|---------|---------|------|
+| `authStore.resident.id` | `residentId` | 登录居民 ID |
+| `selectedCatalog.name` | `serviceItem` | 服务类型名称 |
+| `duration` | `serviceDuration` | 服务时长（小时） |
+| `selectedDate` | `appointDate` | 预约日期 YYYY-MM-DD |
+| `selectedTime` | `appointTimeSlot` | 预约时段 |
+| `selectedAddress.id` | `addressId` | 地址 ID |
+| `selectedAddress.contactName` | `contactName` | 联系人 |
+| `selectedAddress.contactPhone` | `contactPhone` | 联系电话 |
+| `isProxy` | `isProxyOrder` | 是否代下单 |
+| `serviceContactName` | `serviceContactName` | 代下单时必填 |
+| `serviceContactPhone` | `serviceContactPhone` | 代下单时必填 |
+| 固定 `'MINIPROGRAM'` | `source` | 来源渠道 |
+| `remark` | `remark` | 备注（可选） |
+
+### 19.3 地址选择页
+
+**路由**：`/pages/address-select/index?from=cleaning`
+
+| 接口 | 用途 |
+|------|------|
+| `GET /addresses?residentId=X&pageSize=20` | 加载地址列表（默认地址排最前） |
+| `POST /addresses` | 地址簿为空时引导新增；省/市/区默认锁定「北京市/朝阳区/」灰色禁用 |
+
+选中地址后写入 `bookingCleaningStore.selectedAddress`，`navigateBack` 返回向导步骤 2。
+
+### 19.4 新增源码文件（P3.3）
+
+| 文件 | 说明 |
+|------|------|
+| `apps/miniapp-customer/src/pages/booking-cleaning/index.vue` | 保洁预约三步向导页 |
+| `apps/miniapp-customer/src/pages/address-select/index.vue` | 服务地址选择页（保洁/废品共用） |
+| `apps/miniapp-customer/src/store/booking-cleaning.ts` | 保洁向导 Pinia store |
+| `apps/miniapp-customer/src/api/cleaning-order.ts` | 保洁订单 API 封装 |
+| `apps/miniapp-customer/src/api/address.ts` | 地址 API 封装 |
+| `apps/miniapp-customer/src/api/service-catalog.ts` | 服务目录 API 封装 |
+| `apps/miniapp-customer/src/utils/lunar.ts` | 公历转农历工具 |
+
+### 19.5 P3.3 验收结论（2026-06-20）
+
+| 验收项 | 结果 |
+|--------|------|
+| 服务类型动态加载，无价格展示 | ✅ 通过 |
+| 地址选择页可用，空地址引导新增 | ✅ 通过 |
+| 代下单勾选 → 确认页填写 → `isProxyOrder=true` | ✅ 通过 |
+| 完整走通生成 CLN 前缀订单号 | ✅ 通过 |
+| `npm run build` 全链路编译无报错 | ✅ 通过 |
+
+---
+
+## 20. P3.4 废品回收预约三步向导对接契约（2026-06-20 确认）
+
+> **背景**：P3.4 复用 P3.3 向导框架，对接废品回收服务目录与订单创建接口。
+
+### 20.1 与保洁的差异
+
+| 项目 | 保洁（P3.3） | 废品（P3.4） |
+|------|-------------|-------------|
+| 服务目录 | `bizType=CLEANING` | `bizType=RECYCLING` |
+| Step 1 特有字段 | 服务时长（小时） | 预估重量（kg，默认 5，步进 1–50） |
+| 创建接口 | `POST /cleaning-orders` | `POST /recycling-orders` |
+| 订单号前缀 | CLN | RCY |
+| Pinia store | `booking-cleaning` | `booking-recycling` |
+| 地址选择来源 | `?from=cleaning` | `?from=recycling` |
+
+其余流程（日历、时段、地址选择、代下单、服务须知、无价格展示）与保洁完全一致。
+
+### 20.2 创建订单请求映射
+
+**`POST /recycling-orders`**
+
+| 前端字段 | 后端字段 | 说明 |
+|---------|---------|------|
+| `selectedCatalog.name` | `serviceItem` | 回收类型（大件类/小件类） |
+| `estimatedWeight` | `estimatedWeight` | 预估重量（kg） |
+| 其余字段 | 同 §19.2 | 含代下单与 `source=MINIPROGRAM` |
+
+### 20.3 新增源码文件（P3.4）
+
+| 文件 | 说明 |
+|------|------|
+| `apps/miniapp-customer/src/pages/booking-recycling/index.vue` | 废品回收预约三步向导页 |
+| `apps/miniapp-customer/src/store/booking-recycling.ts` | 废品向导 Pinia store |
+| `apps/miniapp-customer/src/api/recycling-order.ts` | 废品订单 API 封装 |
+
+### 20.4 P3.4 验收结论（2026-06-20）
+
+| 验收项 | 结果 |
+|--------|------|
+| 回收类型动态加载 + 预估重量步进器 | ✅ 通过 |
+| 代下单流程与保洁一致 | ✅ 通过 |
+| 完整走通生成 RCY 前缀订单号 | ✅ 通过 |
+| 确认页无价格字段 | ✅ 通过 |
 | `npm run build` 全链路编译无报错 | ✅ 通过 |
