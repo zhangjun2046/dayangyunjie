@@ -67,6 +67,7 @@ import { ref, computed } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { useBookingCleaningStore } from '@/store/booking-cleaning';
 import { useBookingRecyclingStore } from '@/store/booking-recycling';
+import { useBookingConsultStore } from '@/store/booking-consult';
 
 /** 服务类型，来自页面 URL 参数 */
 const serviceType = ref<'cleaning' | 'recycling' | 'consult'>('cleaning');
@@ -217,6 +218,7 @@ onLoad((options?: Record<string, string>) => {
 
 const bookingStore = useBookingCleaningStore();
 const recyclingStore = useBookingRecyclingStore();
+const consultStore = useBookingConsultStore();
 
 function onBook() {
   if (serviceType.value === 'cleaning') {
@@ -229,7 +231,11 @@ function onBook() {
     uni.navigateTo({ url: '/pages/booking-recycling/index' });
     return;
   }
-  uni.showToast({ title: '该服务预约功能即将上线', icon: 'none' });
+  if (serviceType.value === 'consult') {
+    consultStore.reset();
+    uni.navigateTo({ url: '/pages/booking-consult/index' });
+    return;
+  }
 }
 </script>
 

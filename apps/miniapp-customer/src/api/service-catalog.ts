@@ -48,3 +48,16 @@ export async function fetchRecyclingCatalogs(): Promise<ServiceCatalogDto[]> {
   });
   return result.items ?? [];
 }
+
+/**
+ * 获取家政咨询服务目录列表
+ * GET /service-catalogs?bizType=CONSULT&isEnabled=true
+ */
+export async function fetchConsultCatalogs(): Promise<ServiceCatalogDto[]> {
+  const result = await request<PageResult<ServiceCatalogDto>>('GET', '/service-catalogs', {
+    bizType: 'CONSULT',
+    isEnabled: true,
+    pageSize: 50,
+  });
+  return result.items ?? [];
+}

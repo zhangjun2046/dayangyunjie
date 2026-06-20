@@ -1,6 +1,6 @@
 # Backend API Summary（P2 全接口交接文档）
 
-> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；**P3.4（2026-06-20）** 更新至 v2.8  
+> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；**P3.5（2026-06-20）** 更新至 v2.9  
 > **用途**：供居民端（P3）、员工端（P4）、管理后台（P5）对接后端 API，避免上下文丢失  
 > **Base URL**：`http://localhost:3000/api/v1`  
 > **统一响应格式**：`{ code: number, message: string, data: T | null }`  
@@ -510,7 +510,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 | 端 | 关键说明 |
 |----|---------|
-| **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED`；首页轮播图 `GET /banners/active?displayTarget=RESIDENT`（✅ P3.2 已对接）；客服电话 `GET /operators/contact`（✅ P3.2 已对接）；保洁预约 `POST /cleaning-orders`（✅ P3.3 已对接）；废品预约 `POST /recycling-orders`（✅ P3.4 已对接）；地址选择 `GET/POST /addresses`（✅ P3.3 已对接）；H5 走 Vite 代理 `/api/v1`，小程序走 `VITE_API_BASE` |
+| **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED`；首页轮播图 `GET /banners/active?displayTarget=RESIDENT`（✅ P3.2 已对接）；客服电话 `GET /operators/contact`（✅ P3.2 已对接）；保洁预约 `POST /cleaning-orders`（✅ P3.3 已对接）；废品预约 `POST /recycling-orders`（✅ P3.4 已对接）；家政咨询 `POST /consult-orders`（✅ P3.5 已对接）；地址选择 `GET/POST /addresses`（✅ P3.3 已对接）；H5 走 Vite 代理 `/api/v1`，小程序走 `VITE_API_BASE` |
 | **员工端（P4）** | 接单用 `POST /cleaning-orders/:id/accept`；GPS 签到用 `POST /cleaning-orders/:id/gps-checkin`；完成服务先上传图片到 `/upload/image` 获取 URL，再调 `/cleaning-orders/:id/complete` |
 | **管理后台（P5）** | 看板接口均在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；配置管理走 `/service-catalogs`、`/banners`、`/operators` |
 
@@ -599,8 +599,30 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
-> **文档版本**：v2.8（P3.3/P3.4 保洁/废品预约三步向导已完成，订单/地址/服务目录接口对接状态更新）
+## P3.5 完成说明（2026-06-20）
+
+居民端家政咨询提交流程（P3.5）已完成：
+
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `GET /service-catalogs?bizType=CONSULT&isEnabled=true` | Step 1 动态家政类型卡片 | ✅ P3.5 已对接 |
+| `POST /consult-orders` | Step 2 提交咨询单，返回 CNS 前缀订单号 | ✅ P3.5 已对接 |
+
+**P3.5 页面与导航**：
+
+| 路径 | 说明 |
+|------|------|
+| `pages/booking-consult/index` | 家政咨询两步向导（选类型 → 填写需求） |
+| `pages/service-detail/index?type=consult` | 服务详情「立即预约」跳转家政咨询向导 |
+
+**P3.5 关键新增文件**：`src/pages/booking-consult/index.vue`、`src/store/booking-consult.ts`、`src/api/consult-order.ts`、`src/api/service-catalog.ts`（新增 `fetchConsultCatalogs()`）
+
+**代下单字段**：`isProxyOrder` / `serviceContactName` / `serviceContactPhone` / `source=MINIPROGRAM`；**无服务地址字段**
+
+---
+
+> **文档版本**：v2.9（P3.5 家政咨询提交流程已完成，咨询单/服务目录接口对接状态更新）
 > **生成日期**：2026-06-20
-> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.4 前端对接说明
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.5 前端对接说明
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销

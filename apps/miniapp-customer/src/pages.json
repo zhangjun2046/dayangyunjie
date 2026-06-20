@@ -43,6 +43,12 @@
       }
     },
     {
+      "path": "pages/booking-consult/index",
+      "style": {
+        "navigationBarTitleText": "家政服务"
+      }
+    },
+    {
       "path": "pages/address-select/index",
       "style": {
         "navigationBarTitleText": "选择地址"

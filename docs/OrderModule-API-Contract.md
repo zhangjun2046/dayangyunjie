@@ -37,6 +37,12 @@
 > - 新增地址选择页（`/pages/address-select/index?from=cleaning|recycling`），支持列表选择 + 空地址引导新增（`POST /addresses`）
 > - 创建订单支持 v2.0 代下单字段：`isProxyOrder`、`serviceContactName`、`serviceContactPhone`、`source=MINIPROGRAM`
 > - 确认页无价格展示；保洁生成 CLN 前缀订单号，废品生成 RCY 前缀订单号
+>
+> **v2.6 变更摘要（P3.5，2026-06-20）**：
+> - 居民端家政咨询两步向导对接 `GET /service-catalogs?bizType=CONSULT`、`POST /consult-orders`
+> - 新增家政咨询预约页（`/pages/booking-consult/index`）：Step 1 动态类型选择 + Step 2 需求填写
+> - 服务详情页 `type=consult`「立即预约」跳转家政咨询向导（替换原 Toast 占位）
+> - 代下单支持 `isProxyOrder`、`serviceContactName`、`serviceContactPhone`；无服务地址字段；生成 CNS 前缀订单号
 
 ---
 
@@ -1352,7 +1358,7 @@ wx.login() 获取 code
 - 底部「立即预约」：
   - `cleaning` → `/pages/booking-cleaning/index`
   - `recycling` → `/pages/booking-recycling/index`
-  - `consult` → Toast「即将上线」（P3.5 实现）
+  - `consult` → `/pages/booking-consult/index`（✅ P3.5 已实现）
 
 ### 18.3 API Base URL 双端配置
 
@@ -1518,4 +1524,81 @@ Step 3 确认订单
 | 代下单流程与保洁一致 | ✅ 通过 |
 | 完整走通生成 RCY 前缀订单号 | ✅ 通过 |
 | 确认页无价格字段 | ✅ 通过 |
+| `npm run build` 全链路编译无报错 | ✅ 通过 |
+
+---
+
+## 21. P3.5 家政咨询提交流程对接契约（2026-06-20 确认）
+
+> **背景**：P3.5 实现居民端家政咨询两步向导，对接家政服务目录与咨询单创建接口。与保洁/废品不同，家政为咨询单流程，无地址字段、无价格展示。
+
+### 21.1 两步向导流程
+
+```
+Step 1 选择服务类型
+  GET /service-catalogs?bizType=CONSULT&isEnabled=true  → 动态家政类型卡片（单选）
+  底部「下一步」
+
+Step 2 填写需求
+  「是否为家人代下单」开关 → 勾选后展示服务对象姓名/手机号
+  核心诉求（多行文本，必填，最长 1000 字）
+  联系人姓名、联系电话（必填）
+  无服务地址字段
+  底部「提交」→ POST /consult-orders → Toast CNS 编号 → 跳转订单 Tab
+```
+
+### 21.2 与保洁/废品的差异
+
+| 项目 | 保洁（P3.3） | 废品（P3.4） | 家政（P3.5） |
+|------|-------------|-------------|-------------|
+| 服务目录 | `bizType=CLEANING` | `bizType=RECYCLING` | `bizType=CONSULT` |
+| 向导步数 | 3 步 | 3 步 | **2 步** |
+| 特有字段 | 服务时长（小时） | 预估重量（kg） | 核心诉求（多行文本） |
+| 地址选择 | 有 | 有 | **无** |
+| 创建接口 | `POST /cleaning-orders` | `POST /recycling-orders` | `POST /consult-orders` |
+| 订单号前缀 | CLN | RCY | CNS |
+| Pinia store | `booking-cleaning` | `booking-recycling` | `booking-consult` |
+
+### 21.3 创建咨询单请求映射
+
+**`POST /consult-orders`**
+
+| 前端字段 | 后端字段 | 说明 |
+|---------|---------|------|
+| `authStore.resident.id` | `residentId` | 登录居民 ID（可选） |
+| `selectedCatalog.name` | `serviceType` | 家政服务类型名称 |
+| `contactName` | `contactName` | 联系人姓名 |
+| `contactPhone` | `contactPhone` | 联系电话 |
+| `requirementDesc` | `requirementDesc` | 核心诉求 |
+| `isProxy` | `isProxyOrder` | 是否代下单 |
+| `serviceContactName` | `serviceContactName` | 代下单时必填 |
+| `serviceContactPhone` | `serviceContactPhone` | 代下单时必填 |
+| 固定 `'MINIPROGRAM'` | `source` | 来源渠道 |
+| `remark` | `remark` | 备注（可选） |
+
+### 21.4 新增源码文件（P3.5）
+
+| 文件 | 说明 |
+|------|------|
+| `apps/miniapp-customer/src/pages/booking-consult/index.vue` | 家政咨询两步向导页 |
+| `apps/miniapp-customer/src/store/booking-consult.ts` | 家政咨询 Pinia store |
+| `apps/miniapp-customer/src/api/consult-order.ts` | 咨询单 API 封装 |
+| `apps/miniapp-customer/src/api/service-catalog.ts` | 新增 `fetchConsultCatalogs()` |
+
+### 21.5 服务详情页导航更新（P3.5）
+
+| type | 「立即预约」跳转 |
+|------|----------------|
+| `cleaning` | `/pages/booking-cleaning/index` |
+| `recycling` | `/pages/booking-recycling/index` |
+| `consult` | `/pages/booking-consult/index`（P3.5 替换原 Toast 占位） |
+
+### 21.6 P3.5 验收结论（2026-06-20）
+
+| 验收项 | 结果 |
+|--------|------|
+| 家政类型从 API 动态加载（非硬编码） | ✅ 通过 |
+| 代下单开关 → 服务对象姓名/手机号填写区 | ✅ 通过 |
+| 表单无服务地址字段 | ✅ 通过 |
+| 完整走通生成 CNS 前缀订单号 | ✅ 通过 |
 | `npm run build` 全链路编译无报错 | ✅ 通过 |
