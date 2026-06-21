@@ -12,7 +12,13 @@
       "es6": true,
       "minified": true
     },
-    "usingComponents": true
+    "usingComponents": true,
+    "requiredPrivateInfos": ["getLocation"],
+    "permission": {
+      "scope.userLocation": {
+        "desc": "员工签到时需要获取您的位置，用于确认已到达服务现场"
+      }
+    }
   },
   "h5": {
     "title": "大洋云洁 · 员工端",

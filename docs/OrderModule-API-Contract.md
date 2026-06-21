@@ -62,6 +62,14 @@
 > - 前端封装 `fetchWorkerOrders(workerId, orderType, statuses[], page, pageSize)` → `WorkerOrderItem[]`
 > - ASSIGNED 卡片复用 `acceptOrder` 接单；详情页跳转留 P4.4
 
+**v3.1 小程序对接补充（P4.4·2026-06-21）**：
+- 员工端任务详情页 `pages/task-detail/index?orderId=&orderType=cleaning|recycling`
+- 详情：`GET /cleaning-orders/:id` / `GET /recycling-orders/:id` → `fetchOrderDetail()`
+- ASSIGNED 底部「立即接单」→ `acceptOrder()`；ACCEPTED 底部「开始服务」→ `gpsCheckin()`
+- GPS：`uni.getLocation`（gcj02）→ `POST /cleaning-orders/:id/gps-checkin` 或废品同名接口（Body: `{ lat, lng, operatorId }`）
+- 作业记录区 ASSIGNED/ACCEPTED 禁用；代下单展示 `serviceContactName`/`serviceContactPhone`
+- 小程序 `manifest.json` 声明 `requiredPrivateInfos: ["getLocation"]`
+
 ---
 
 ## 1. ?????????
@@ -2148,6 +2156,88 @@ ASSIGNED 状态卡片「立即接单」调用 §28.2 同名接口，成功后刷
 
 ---
 
-> **文档版本**：v3.3（P4.3 员工端任务列表验收通过）  
+## 30. P4.4 员工端任务详情—已派单/已接单态（2026-06-21 ✅）
+
+> **状态**：✅ 已通过  
+> **用途**：记录 P4.4 任务详情页与后端详情/GPS 签到/接单接口的对接约定
+
+### 30.1 订单详情
+
+| 方法 | 路径 | 前端封装 |
+|------|------|---------|
+| `GET /cleaning-orders/:id` | 保洁订单详情 | `fetchOrderDetail('cleaning', orderId)` |
+| `GET /recycling-orders/:id` | 废品订单详情 | `fetchOrderDetail('recycling', orderId)` |
+
+**Response `data`**：`OrderDetailDto`（员工端关注字段）
+
+| 字段 | 说明 |
+|------|------|
+| `id` / `orderNo` / `status` | 订单标识与状态 |
+| `serviceItem` / `serviceDuration`（保洁） | 服务名称与时长 |
+| `serviceItem` / `estimatedWeight`（废品） | 回收类型与预估重量 |
+| `contactName` / `contactPhone` | 下单联系人（代下单时为「代下单人」） |
+| `addressSnapshot` | 服务地址快照 |
+| `isProxyOrder` / `serviceContactName` / `serviceContactPhone` | 代下单与被服务人 |
+| `appointDate` / `appointTimeSlot` | 预约时间 |
+| `gpsLat` / `gpsLng` / `gpsCheckinAt` / `gpsDistance` / `gpsRemark` | GPS 签到信息 |
+| `createdAt` / `assignedAt` / `acceptedAt` / `completedAt` / `reviewedAt` | 时间轴节点时间 |
+
+### 30.2 接单（ASSIGNED → ACCEPTED）
+
+复用 §28.2 / §29.2 的 `POST /cleaning-orders/:id/accept` 与废品同名接口。  
+详情页 ASSIGNED 状态底部显示「立即接单」，成功后 `loadDetail()` 刷新，按钮切换为「开始服务」。
+
+### 30.3 GPS 签到（ACCEPTED → IN_SERVICE）
+
+| 方法 | 路径 | 前端封装 | 状态转移 |
+|------|------|---------|---------|
+| `POST /cleaning-orders/:id/gps-checkin` | 保洁 GPS 签到 | `gpsCheckin('cleaning', id, lat, lng, operatorId)` | ACCEPTED → IN_SERVICE |
+| `POST /recycling-orders/:id/gps-checkin` | 废品 GPS 签到 | `gpsCheckin('recycling', id, lat, lng, operatorId)` | ACCEPTED → IN_SERVICE |
+
+**Request Body**：`{ lat: number, lng: number, operatorId: number }`
+
+**Response `data`**：`GpsCheckinResult`（含 `gpsDistance`, `gpsRemark`）；超距时 `gpsRemark` 含「超距签到」，前端弹窗提示但不阻断。
+
+**前端 GPS 流程**：
+1. `uni.getLocation({ type: 'gcj02' })` 获取坐标
+2. 调用 `gpsCheckin()` 提交后端
+3. 微信开发者工具定位失败时，提供「模拟签到」（北京朝阳区坐标）便于联调
+
+**状态阻断**：ASSIGNED 状态不可直接 `gpsCheckin`（须先 `acceptOrder`）。
+
+### 30.4 前端文件
+
+| 路径 | 说明 |
+|------|------|
+| `apps/miniapp-worker/src/pages/task-detail/index.vue` | 任务详情页（头部/联系人/订单信息/时间轴/作业区/底部按钮） |
+| `apps/miniapp-worker/src/api/order.ts` | `OrderDetailDto` / `fetchOrderDetail()` / `gpsCheckin()` |
+| `apps/miniapp-worker/src/pages/index/index.vue` | 首页「查看详情」跳转 |
+| `apps/miniapp-worker/src/pages/tasks/index.vue` | 任务列表「查看详情」跳转 |
+| `apps/miniapp-worker/src/manifest.json` | `requiredPrivateInfos: ["getLocation"]` |
+
+### 30.5 后端 P4.4 单元测试（2026-06-21）
+
+| 测试文件 | 用例数 | 覆盖点 |
+|---------|--------|--------|
+| `cleaning-order-p4-4.spec.ts` | 18 | findOne / toDto GPS·代下单字段 / ASSIGNED 阻断 gpsCheckin / 完整签到流程 |
+| `recycling-order-p4-4.spec.ts` | 18 | 同上（废品对称） |
+| **合计** | **36** | 全套回归 276 项通过 |
+
+### 30.6 P4.4 验收清单（2026-06-21）
+
+| 验收项 | 结果 |
+|--------|------|
+| ASSIGNED 显示「立即接单」，不可直接「开始服务」 | ✅ |
+| ACCEPTED 显示「开始服务」→ GPS 签到 → IN_SERVICE | ✅ |
+| 时间轴 IN_SERVICE 时高亮「服务中」节点 | ✅ |
+| 作业记录区 ASSIGNED/ACCEPTED 禁用 | ✅ |
+| 代下单展示被服务人信息（完整手机号） | ✅ |
+| 一键拨号 + 地址复制导航 | ✅ |
+| Jest P4.4 测试 36 项通过 | ✅ |
+| `npm run build` 通过 | ✅ |
+
+---
+
+> **文档版本**：v3.4（P4.4 员工端任务详情验收通过）  
 > **修订日期**：2026-06-21  
-> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.3 员工端
+> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.4 员工端

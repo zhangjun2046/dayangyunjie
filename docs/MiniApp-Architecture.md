@@ -1,6 +1,6 @@
 # MiniApp-Architecture.md — 小程序架构交接文档
 
-> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）；P4.1（2026-06-21）补充员工端登录认证；P4.2（2026-06-21）补充员工端首页待接单任务列表；**P4.3（2026-06-21）** 补充员工端任务列表（双 Tab + 精确状态筛选）  
+> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）；P4.1（2026-06-21）补充员工端登录认证；P4.2（2026-06-21）补充员工端首页待接单任务列表；P4.3（2026-06-21）补充员工端任务列表；**P4.4（2026-06-21）** 补充员工端任务详情（已派单/已接单态 + GPS 签到）  
 > **用途**：供 P4（员工端）、P5（管理后台）及后续维护对接，记录居民端已完成的页面结构、Store 设计、组件、API 封装与代下单数据流；并记录员工端 P4.1 登录认证实现  
 > **应用目录**：`apps/miniapp-customer/`（居民端）、`apps/miniapp-worker/`（员工端）
 
@@ -21,6 +21,7 @@
 11. [员工端 P4.1 登录认证（miniapp-worker）](#11-员工端-p41-登录认证miniapp-worker)
 12. [员工端 P4.2 首页待接单列表（miniapp-worker）](#12-员工端-p42-首页待接单列表miniapp-worker)
 13. [员工端 P4.3 任务列表（miniapp-worker）](#13-员工端-p43-任务列表miniapp-worker)
+14. [员工端 P4.4 任务详情—已派单/已接单态（miniapp-worker）](#14-员工端-p44-任务详情已派单已接单态miniapp-worker)
 
 ---
 
@@ -414,6 +415,7 @@ apps/miniapp-worker/
 | `pages/login/index` | 手机号+密码登录，协议勾选，「开始服务」按钮 | 否 |
 | `pages/index/index` | 首页（tabBar，P4.2 待接单 ASSIGNED 列表） | 是 |
 | `pages/tasks/index` | 任务（tabBar，P4.3 双 Tab + 状态筛选列表） | 是 |
+| `pages/task-detail/index` | 任务详情（P4.4，Query: `orderId=&orderType=`） | 是 |
 | `pages/mine/index` | 我的（tabBar，P1.4 骨架） | 是 |
 
 ### 11.3 Auth Store 设计
@@ -544,7 +546,7 @@ Login Page → 校验协议+手机号+密码
 - `onShow`：每次显示刷新第 1 页
 - `onPullDownRefresh`：下拉重置列表
 - `onReachBottom`：上拉追加下一页（pageSize=20）
-- 仅 `ASSIGNED` 卡片显示「查看详情」「立即接单」（详情页 P4.4 待实现）
+- 仅 `ASSIGNED` 卡片显示「查看详情」「立即接单」
 - 筛选胶囊使用 `scroll-view` 横向 + `white-space:nowrap` + `display:inline-flex`（mp-weixin 兼容）
 
 ### 13.5 数据映射（WorkerOrderItem）
@@ -553,11 +555,83 @@ Login Page → 校验协议+手机号+密码
 
 ---
 
-> **文档版本**：v1.4（P4.3 员工端任务列表验收通过）  
+## 14. 员工端 P4.4 任务详情—已派单/已接单态（miniapp-worker）
+
+> **验收状态**：✅ 已通过（2026-06-21）
+
+### 14.1 功能概述
+
+任务详情页展示订单完整信息、服务进度时间轴与底部操作按钮。根据订单状态分两种底部交互：
+
+| 状态 | 底部按钮 | 行为 |
+|------|---------|------|
+| ASSIGNED | 绿色「立即接单」+ 橙色提示 | 调 `acceptOrder()` → 刷新 → ACCEPTED |
+| ACCEPTED | 蓝色「开始服务」 | `uni.getLocation` → `gpsCheckin()` → IN_SERVICE |
+| IN_SERVICE | 信息提示栏 | 「服务进行中，请完成工作后提交照片」（P4.5 实现上传） |
+
+### 14.2 关键文件
+
+| 文件 | 说明 |
+|------|------|
+| `src/pages/task-detail/index.vue` | 详情页 UI（头部/联系人/订单信息/时间轴/作业区/底部按钮） |
+| `src/api/order.ts` | `OrderDetailDto` / `fetchOrderDetail()` / `gpsCheckin()` |
+| `src/manifest.json` | `requiredPrivateInfos: ["getLocation"]` + 位置权限说明 |
+| `src/pages/index/index.vue` | 首页「查看详情」→ `navigateTo` 详情页 |
+| `src/pages/tasks/index.vue` | 任务列表「查看详情」→ 同上 |
+
+### 14.3 API 对接
+
+| 接口 | 封装 | 说明 |
+|------|------|------|
+| `GET /cleaning-orders/:id` | `fetchOrderDetail('cleaning', id)` | 加载保洁详情 |
+| `GET /recycling-orders/:id` | `fetchOrderDetail('recycling', id)` | 加载废品详情 |
+| `POST /cleaning-orders/:id/accept` | `acceptOrder(...)` | ASSIGNED 接单 |
+| `POST /cleaning-orders/:id/gps-checkin` | `gpsCheckin(..., lat, lng, operatorId)` | ACCEPTED GPS 签到 |
+
+### 14.4 时间轴三态设计
+
+| 态 | 视觉 | 含义 |
+|----|------|------|
+| `done` | 蓝色实心圆 + 白色 ✓ | 已完成节点 |
+| `active` | 白色圆 + 蓝边框 + 蓝实心小点 | 当前进行中节点 |
+| `pending` | 灰色空圆 | 未到达节点 |
+
+状态与节点映射（保洁/废品）：
+
+| 订单状态 | active 节点 |
+|---------|------------|
+| ASSIGNED / ACCEPTED | 「待服务」 |
+| IN_SERVICE | 「服务中」 |
+| PENDING_REVIEW | 「已完成」 |
+| REVIEWED | 「已评价」（done） |
+
+### 14.5 代下单展示
+
+- 普通订单：联系人 / 联系电话
+- 代下单订单：代下单人 / 联系电话 + 分隔区「代下单 · 以下为实际被服务人」+ 被服务人 / 联系方式
+- 手机号完整展示，不脱敏
+
+### 14.6 地图导航
+
+`addressSnapshot` 无经纬度时，点击导航按钮将完整地址复制到剪贴板，弹窗提示粘贴至地图 App 搜索。
+
+### 14.7 GPS 签到与开发联调
+
+1. 真机：`uni.getLocation({ type: 'gcj02' })` 获取坐标 → 提交 `gpsCheckin`
+2. 微信开发者工具：定位失败时弹窗提供「模拟签到」（北京朝阳区坐标 39.9219, 116.4434）
+3. 超距：`gpsRemark` 非空时前端 Modal 提示，不阻断流程
+
+### 14.8 作业记录区
+
+ASSIGNED / ACCEPTED 状态下上传区域灰色禁用，提示「开始服务后可上传」。实际上传功能在 P4.5（IN_SERVICE 态）实现。
+
+---
+
+> **文档版本**：v1.5（P4.4 员工端任务详情验收通过）  
 > **生成日期**：2026-06-21  
-> **修订日期**：2026-06-21（v1.4：P4.3 任务列表 fetchWorkerOrders；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
-> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.3 员工端  
-> **下一阶段**：P4.4 任务详情（已派单/已接单态）
+> **修订日期**：2026-06-21（v1.5：P4.4 任务详情 fetchOrderDetail/gpsCheckin；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
+> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.4 员工端  
+> **下一阶段**：P4.5 任务详情（服务中态）
 
 ---
 

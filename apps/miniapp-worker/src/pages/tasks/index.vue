@@ -72,10 +72,11 @@
           </view>
         </view>
 
-        <!-- 操作按钮区：仅 ASSIGNED 状态显示 -->
-        <view v-if="item.status === 'ASSIGNED'" class="card-actions">
+        <!-- 操作按钮区：ASSIGNED 显示接单按钮，所有状态均显示查看详情 -->
+        <view class="card-actions">
           <button class="btn btn-outline" @tap="handleViewDetail(item)">查看详情</button>
           <button
+            v-if="item.status === 'ASSIGNED'"
             class="btn btn-primary"
             :disabled="acceptingOrderNo === item.orderNo"
             @tap="handleAccept(item)"
@@ -250,9 +251,12 @@ async function handleAccept(item: WorkerOrderItem): Promise<void> {
   }
 }
 
-/** 查看详情（P4.4 实现） */
-function handleViewDetail(_item: WorkerOrderItem): void {
-  uni.showToast({ title: '详情功能开发中', icon: 'none' });
+/** 查看详情：跳转到任务详情页 */
+function handleViewDetail(item: WorkerOrderItem): void {
+  console.info('[tasks] handleViewDetail, orderNo=', item.orderNo, 'type=', item.orderType);
+  uni.navigateTo({
+    url: `/pages/task-detail/index?orderId=${item.id}&orderType=${item.orderType}`,
+  });
 }
 </script>
 

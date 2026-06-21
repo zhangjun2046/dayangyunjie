@@ -236,3 +236,99 @@ export async function acceptOrder(
   console.info('[worker-order] acceptOrder, type=', orderType, 'orderId=', orderId);
   await request<unknown>('POST', path, { operatorId });
 }
+
+/** 作业照片 */
+export interface WorkPhoto {
+  id: number;
+  url: string;
+  photoType?: string;
+  createdAt?: string;
+}
+
+/** 订单详情通用字段（保洁 + 废品共用） */
+export interface OrderDetailDto {
+  id: number;
+  orderNo: string;
+  status: string;
+  /** 保洁：服务项目名；废品：回收类型名 */
+  serviceItem?: string;
+  serviceType?: string;
+  /** 保洁：服务时长（小时） */
+  serviceDuration?: number;
+  /** 废品：预估重量（kg） */
+  estimatedWeight?: number;
+  appointDate: string;
+  appointTimeSlot: string;
+  contactName: string;
+  contactPhone: string;
+  addressSnapshot?: AddressSnapshot;
+  /** 代下单字段 */
+  isProxyOrder?: boolean;
+  serviceContactName?: string;
+  serviceContactPhone?: string;
+  remark?: string;
+  /** 备注 */
+  notes?: string;
+  /** 状态时间戳（可选，后端按实际状态返回） */
+  createdAt?: string;
+  assignedAt?: string;
+  acceptedAt?: string;
+  gpsCheckinAt?: string;
+  completedAt?: string;
+  reviewedAt?: string;
+  /** GPS 签到信息 */
+  gpsLat?: number | null;
+  gpsLng?: number | null;
+  gpsDistance?: number | null;
+  gpsRemark?: string | null;
+  /** 作业照片 */
+  workPhotos?: WorkPhoto[];
+}
+
+/** GPS 签到结果（后端返回更新后的订单部分字段） */
+interface GpsCheckinResult {
+  gpsDistance?: number;
+  gpsRemark?: string | null;
+}
+
+/**
+ * 获取订单详情
+ * @param orderType  cleaning | recycling
+ * @param orderId    订单 ID
+ */
+export async function fetchOrderDetail(
+  orderType: 'cleaning' | 'recycling',
+  orderId: number,
+): Promise<OrderDetailDto> {
+  const path =
+    orderType === 'cleaning' ? `/cleaning-orders/${orderId}` : `/recycling-orders/${orderId}`;
+  console.info('[worker-order] fetchOrderDetail, type=', orderType, 'orderId=', orderId);
+  const result = await request<OrderDetailDto>('GET', path);
+  return result;
+}
+
+/**
+ * GPS 签到：ACCEPTED → IN_SERVICE
+ * 后端超距（>200m）时不阻断，仅写入 gpsRemark；前端按返回判断是否提示
+ * @param orderType  cleaning | recycling
+ * @param orderId    订单 ID
+ * @param lat        纬度（gcj02）
+ * @param lng        经度（gcj02）
+ * @param operatorId 员工 ID
+ * @returns 签到结果（含 gpsDistance / gpsRemark）
+ */
+export async function gpsCheckin(
+  orderType: 'cleaning' | 'recycling',
+  orderId: number,
+  lat: number,
+  lng: number,
+  operatorId: number,
+): Promise<GpsCheckinResult> {
+  const path =
+    orderType === 'cleaning'
+      ? `/cleaning-orders/${orderId}/gps-checkin`
+      : `/recycling-orders/${orderId}/gps-checkin`;
+  console.info('[worker-order] gpsCheckin, type=', orderType, 'orderId=', orderId, 'lat=', lat, 'lng=', lng);
+  const result = await request<GpsCheckinResult>('POST', path, { lat, lng, operatorId });
+  return result ?? {};
+}

@@ -124,9 +124,12 @@ async function handleAccept(item: AssignedOrderItem): Promise<void> {
   }
 }
 
-/** 查看详情（P4.2 阶段暂未实现详情页） */
-function handleViewDetail(_item: AssignedOrderItem): void {
-  uni.showToast({ title: '详情功能开发中', icon: 'none' });
+/** 查看详情：跳转到任务详情页 */
+function handleViewDetail(item: AssignedOrderItem): void {
+  console.info('[home] handleViewDetail, orderNo=', item.orderNo, 'type=', item.orderType);
+  uni.navigateTo({
+    url: `/pages/task-detail/index?orderId=${item.id}&orderType=${item.orderType}`,
+  });
 }
 </script>
 
