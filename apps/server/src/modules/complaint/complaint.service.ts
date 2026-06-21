@@ -31,7 +31,7 @@ export class ComplaintService {
    * 不限制订单状态，居民可随时投诉。
    */
   async create(dto: CreateComplaintDto): Promise<ComplaintDto> {
-    const { orderType, orderId, reason, description, evidenceImages } = dto;
+    const { orderType, orderId, reason, description, evidenceImages, residentId } = dto;
 
     // 验证订单存在
     await this.findOrderOrThrow(orderType, orderId);
@@ -45,6 +45,7 @@ export class ComplaintService {
         reason,
         description,
         ...(evidenceImages ? { evidenceImages: evidenceImages as Prisma.InputJsonValue } : {}),
+        ...(residentId ? { residentId } : {}),
         ...(orderType === 'CLEANING' ? { cleaningOrderId: orderId } : {}),
         ...(orderType === 'RECYCLING' ? { recyclingOrderId: orderId } : {}),
         ...(orderType === 'CONSULT' ? { consultOrderId: orderId } : {}),
@@ -56,11 +57,15 @@ export class ComplaintService {
   }
 
   async findAll(query: QueryComplaintDto) {
-    const { page = 1, pageSize = 10, status, orderType } = query;
+    const { page = 1, pageSize = 10, status, orderType, orderId, residentId } = query;
 
     const where: Prisma.ComplaintWhereInput = {
       ...(status ? { status } : {}),
       ...(orderType ? { orderType } : {}),
+      ...(residentId ? { residentId } : {}),
+      ...(orderId && orderType === 'CLEANING' ? { cleaningOrderId: orderId } : {}),
+      ...(orderId && orderType === 'RECYCLING' ? { recyclingOrderId: orderId } : {}),
+      ...(orderId && orderType === 'CONSULT' ? { consultOrderId: orderId } : {}),
     };
 
     const [rows, total] = await this.prismaService.$transaction([

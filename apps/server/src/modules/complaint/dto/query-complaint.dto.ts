@@ -16,6 +16,20 @@ export class QueryComplaintDto {
   @IsEnum(ORDER_TYPE_VALUES)
   orderType?: typeof ORDER_TYPE_VALUES[number];
 
+  @ApiPropertyOptional({ description: '订单ID筛选（需配合 orderType 使用）' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  orderId?: number;
+
+  @ApiPropertyOptional({ description: '居民ID筛选（查询指定居民的所有投诉）' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  residentId?: number;
+
   @ApiPropertyOptional({ description: '页码', example: 1 })
   @IsOptional()
   @Type(() => Number)

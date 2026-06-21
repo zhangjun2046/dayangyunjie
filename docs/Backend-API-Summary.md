@@ -1,6 +1,6 @@
 # Backend API Summary（P2 全接口交接文档）
 
-> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；**P3.5（2026-06-20）** 更新至 v2.9  
+> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；**P3.7（2026-06-21）** 更新至 v3.1  
 > **用途**：供居民端（P3）、员工端（P4）、管理后台（P5）对接后端 API，避免上下文丢失  
 > **Base URL**：`http://localhost:3000/api/v1`  
 > **统一响应格式**：`{ code: number, message: string, data: T | null }`  
@@ -294,13 +294,22 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | `/complaints` | 提交投诉（支持三类订单，初始 `PENDING`） |
-| GET | `/complaints` | 分页列表（Query：`status?`, `orderType?`） |
+| POST | `/complaints` | 提交投诉（支持三类订单，初始 `PENDING`；Body 可选 `residentId`） |
+| GET | `/complaints` | 分页列表（Query：`status?`, `orderType?`, `orderId?`, `residentId?`, `page`, `pageSize`） |
 | GET | `/complaints/:id` | 投诉详情（含 `followUps[]`） |
 | PATCH | `/complaints/:id/status` | 更新状态（`PENDING→PROCESSING→COMPLETED`，单向不可逆） |
 | POST | `/complaints/:id/follow-ups` | 添加跟进记录 |
 
+**创建必填**：`orderType`, `orderId`, `reason`, `description`  
+**创建可选**：`evidenceImages`（string[]）, `residentId`（居民 ID，P3.7 用于「我的投诉」归属查询）
+
+**列表 Query 补充（P3.7）**：
+- `residentId`（number，可选）：按居民过滤，居民端「我的投诉」必传
+- `orderId`（number，可选）：配合 `orderType` 按订单查投诉（订单详情展示投诉卡片）
+
 **reason 枚举**：`POOR_ATTITUDE` / `NOT_CLEAN` / `NOT_ON_TIME` / `ITEM_DAMAGED` / `EXTRA_CHARGE` / `OTHER`
+
+**居民端投诉入口规则（前端）**：订单状态 ≥ `ACCEPTED` 才显示投诉按钮（`PENDING_ASSIGN` / `ASSIGNED` 不可投诉）
 
 ---
 
@@ -520,7 +529,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 | 端 | 关键说明 |
 |----|---------|
-| **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED`；首页轮播图 `GET /banners/active?displayTarget=RESIDENT`（✅ P3.2 已对接）；客服电话 `GET /operators/contact`（✅ P3.2 已对接）；保洁预约 `POST /cleaning-orders`（✅ P3.3 已对接）；废品预约 `POST /recycling-orders`（✅ P3.4 已对接）；家政咨询 `POST /consult-orders`（✅ P3.5 已对接）；地址选择 `GET/POST /addresses`（✅ P3.3 已对接）；H5 走 Vite 代理 `/api/v1`，小程序走 `VITE_API_BASE` |
+| **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED`（✅ P3.7 已对接）；投诉 `POST /complaints` + 我的投诉 `GET /complaints?residentId=`（✅ P3.7 已对接）；地址管理 CRUD `GET/POST/PUT/DELETE /addresses`（✅ P3.7 已对接）；首页轮播图 `GET /banners/active?displayTarget=RESIDENT`（✅ P3.2 已对接）；客服电话 `GET /operators/contact`（✅ P3.2 已对接）；保洁预约 `POST /cleaning-orders`（✅ P3.3 已对接）；废品预约 `POST /recycling-orders`（✅ P3.4 已对接）；家政咨询 `POST /consult-orders`（✅ P3.5 已对接）；H5 走 Vite 代理 `/api/v1`，小程序走 `VITE_API_BASE` |
 | **员工端（P4）** | 接单用 `POST /cleaning-orders/:id/accept`；GPS 签到用 `POST /cleaning-orders/:id/gps-checkin`；完成服务先上传图片到 `/upload/image` 获取 URL，再调 `/cleaning-orders/:id/complete` |
 | **管理后台（P5）** | 看板接口均在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；配置管理走 `/service-catalogs`、`/banners`、`/operators` |
 
@@ -649,8 +658,53 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
-> **文档版本**：v3.0（P3.6 我的订单列表+详情页完成，新增 resident-confirm 端点，更新查询参数，记录兼容性修复）
-> **生成日期**：2026-06-20
-> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.6 前端对接说明
+## P3.7 完成说明（2026-06-21）
+
+居民端评价页、投诉页与我的页（P3.7）已完成：
+
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `POST /reviews` | 评价页提交星级/标签/文字/图片 | ✅ P3.7 已对接 |
+| `GET /reviews?orderId=&orderType=` | 订单详情展示评价卡片 | ✅ P3.7 已对接 |
+| `POST /upload/image` | 评价/投诉多图上传（含水印） | ✅ P3.7 已对接 |
+| `POST /complaints` | 投诉页提交（6 原因+描述+多图凭证） | ✅ P3.7 已对接 |
+| `GET /complaints?residentId=` | 我的投诉列表 | ✅ P3.7 已对接 |
+| `GET /complaints?orderType=&orderId=` | 订单详情展示投诉卡片 | ✅ P3.7 已对接 |
+| `GET /complaints/:id` | 投诉进度详情（含 followUps） | ✅ P3.7 已对接 |
+| `GET /addresses?residentId=` | 我的地址列表 | ✅ P3.7 已对接 |
+| `POST /addresses` | 新增地址 | ✅ P3.7 已对接 |
+| `PUT /addresses/:id` | 编辑地址 | ✅ P3.7 已对接 |
+| `PUT /addresses/:id/default` | 设为默认地址 | ✅ P3.7 已对接 |
+| `DELETE /addresses/:id` | 删除地址 | ✅ P3.7 已对接 |
+
+**P3.7 页面与导航**：
+
+| 路径 | 说明 |
+|------|------|
+| `pages/review/index` | 评价服务（PENDING_REVIEW 且 7 天内） |
+| `pages/complaint/index` | 投诉反馈（ACCEPTED 及之后状态入口） |
+| `pages/complaint-list/index` | 我的投诉列表（状态 Tab 筛选） |
+| `pages/complaint-detail/index` | 投诉进度详情 |
+| `pages/address-manage/index` | 我的地址 CRUD + 设默认 |
+| `pages/mine/index` | 我的页（完整手机号 + 入口） |
+
+**P3.7 关键新增/扩展文件**：
+- `src/pages/review/index.vue`、`src/pages/complaint/index.vue`
+- `src/pages/complaint-list/index.vue`、`src/pages/complaint-detail/index.vue`
+- `src/pages/address-manage/index.vue`、`src/pages/mine/index.vue`（重写）
+- `src/api/complaint.ts`、`src/api/review.ts`、`src/api/upload.ts`
+- `apps/server/.../complaint/dto/query-complaint.dto.ts`（新增 `residentId`）
+- `apps/server/.../complaint/dto/create-complaint.dto.ts`（新增可选 `residentId`）
+
+**P3.7 业务规则**：
+- 评价：仅 `PENDING_REVIEW` 且 7 天内可提交；成功后订单 → `REVIEWED`
+- 投诉：前端仅 `ACCEPTED`/`IN_SERVICE`/`PENDING_REVIEW`/`REVIEWED` 显示入口
+- 我的页：展示完整手机号（不展示微信昵称）
+
+---
+
+> **文档版本**：v3.1（P3.7 评价页+投诉页+我的页完成，Complaint 查询新增 residentId）
+> **生成日期**：2026-06-21
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.7 前端对接说明
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销

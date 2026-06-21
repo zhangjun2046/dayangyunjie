@@ -15,6 +15,8 @@ interface ResidentInfo {
   openid: string;
   nickname: string | null;
   avatar: string | null;
+  /** 完整手机号（用户授权后持久化） */
+  phone?: string | null;
 }
 
 interface PersistedState {
@@ -41,6 +43,19 @@ function loadFromStorage(): PersistedState {
     hasPhone: false,
     hasAgreedPrivacy: false,
   };
+}
+
+/** 安全日志：小程序无 fetch，静默降级 */
+function debugLog(payload: Record<string, unknown>) {
+  try {
+    fetch('http://127.0.0.1:7274/ingest/fee21d48-4d03-4852-be1e-1872cabcbb9a', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '1d02fc' },
+      body: JSON.stringify({ sessionId: '1d02fc', timestamp: Date.now(), ...payload }),
+    }).catch(() => {});
+  } catch (_e) {
+    // 小程序没有 fetch，静默忽略
+  }
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -79,19 +94,33 @@ export const useAuthStore = defineStore('auth', () => {
   async function wechatLogin(code: string): Promise<void> {
     console.info('[auth-store] wechatLogin start');
     const result = await apiWechatLogin(code);
+    // #region agent log
+    debugLog({ location: 'auth.ts:wechatLogin-beforeAssign', message: 'before resident assign', hypothesisId: 'H-B', runId: 'run2', data: { phoneBeforeOverwrite: resident.value?.phone, residentIsNull: resident.value === null, resultHasPhone: !!(result.resident as Record<string, unknown>)?.phone } });
+    // #endregion
     accessToken.value = result.tokens.accessToken;
     refreshToken.value = result.tokens.refreshToken;
     resident.value = result.resident;
+    // #region agent log
+    debugLog({ location: 'auth.ts:wechatLogin-afterAssign', message: 'after resident assign', hypothesisId: 'H-B', runId: 'run2', data: { residentPhoneAfter: resident.value?.phone, residentId: resident.value?.id } });
+    // #endregion
     persist();
     console.info('[auth-store] wechatLogin success, residentId=', result.resident.id);
   }
 
   /**
-   * 设置手机号补全完成标记
-   * （P3.2 起可扩展为传 phone 到后端更新 resident 资料）
+   * 设置手机号：同时标记 hasPhone 并将号码持久化到 resident.phone
    */
   function setPhone(phone: string) {
     hasPhone.value = true;
+    // #region agent log
+    debugLog({ location: 'auth.ts:setPhone', message: 'setPhone called', hypothesisId: 'H-A', runId: 'run2', data: { phone: phone.slice(0, 3) + '****', residentIsNull: resident.value === null, residentId: resident.value?.id } });
+    // #endregion
+    if (resident.value) {
+      resident.value = { ...resident.value, phone };
+    }
+    // #region agent log
+    debugLog({ location: 'auth.ts:setPhone-after', message: 'setPhone after assign', hypothesisId: 'H-A', runId: 'run2', data: { phoneWritten: resident.value?.phone === phone, residentIsNull: resident.value === null } });
+    // #endregion
     persist();
     console.info('[auth-store] phone set, phone=', phone.slice(0, 3) + '****');
   }

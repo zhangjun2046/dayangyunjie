@@ -26,12 +26,24 @@ const BASE_URL = '/api/v1';
 const BASE_URL = (import.meta.env.VITE_API_BASE as string) || 'http://127.0.0.1:3000/api/v1';
 // #endif
 
+/** 上传接口需要的绝对 base（H5 走 Vite 代理时返回空串，非 H5 使用绝对 URL） */
+export const UPLOAD_BASE_URL: string = (() => {
+  // 浏览器环境（H5）使用空串，uni.uploadFile 走 Vite 代理
+  if (typeof window !== 'undefined') return '';
+  // 小程序环境使用绝对 URL
+  try {
+    return (import.meta as { env?: Record<string, string> }).env?.VITE_API_BASE || 'http://127.0.0.1:3000/api/v1';
+  } catch {
+    return 'http://127.0.0.1:3000/api/v1';
+  }
+})();
+
 const AUTH_STORAGE_KEY = '__auth__';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 /** 从 storage 中直接读取 accessToken，不依赖 store */
-function getTokenFromStorage(): string | null {
+export function getTokenFromStorage(): string | null {
   try {
     const raw = uni.getStorageSync(AUTH_STORAGE_KEY);
     if (raw) {

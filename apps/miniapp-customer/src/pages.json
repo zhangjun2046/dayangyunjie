@@ -59,6 +59,36 @@
       "style": {
         "navigationBarTitleText": "订单详情"
       }
+    },
+    {
+      "path": "pages/review/index",
+      "style": {
+        "navigationBarTitleText": "评价服务"
+      }
+    },
+    {
+      "path": "pages/complaint/index",
+      "style": {
+        "navigationBarTitleText": "投诉反馈"
+      }
+    },
+    {
+      "path": "pages/complaint-detail/index",
+      "style": {
+        "navigationBarTitleText": "投诉进度"
+      }
+    },
+    {
+      "path": "pages/complaint-list/index",
+      "style": {
+        "navigationBarTitleText": "我的投诉"
+      }
+    },
+    {
+      "path": "pages/address-manage/index",
+      "style": {
+        "navigationBarTitleText": "我的地址"
+      }
     }
   ],
   "globalStyle": {

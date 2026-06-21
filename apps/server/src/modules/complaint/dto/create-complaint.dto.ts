@@ -53,4 +53,11 @@ export class CreateComplaintDto {
   @IsArray()
   @IsString({ each: true })
   evidenceImages?: string[];
+
+  @ApiPropertyOptional({ description: '居民用户 ID（用于记录投诉归属）' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  residentId?: number;
 }

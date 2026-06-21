@@ -14,12 +14,12 @@ export interface SubmitReviewParams {
   residentId: number;
   /** 星级 1–5 */
   rating: number;
-  /** 快捷标签，如 ['准时', '专业'] */
+  /** 快捷标签，如 ['准时到达', '打扫干净'] */
   tags?: string[];
   /** 文字评语 */
   content?: string;
   /** 评价图片 URL 列表 */
-  photoUrls?: string[];
+  images?: string[];
 }
 
 export interface ReviewDto {
@@ -30,6 +30,7 @@ export interface ReviewDto {
   rating: number;
   tags?: string[] | null;
   content?: string | null;
+  images?: string[] | null;
   createdAt: string;
 }
 
@@ -40,4 +41,20 @@ export interface ReviewDto {
  */
 export function submitReview(params: SubmitReviewParams): Promise<ReviewDto> {
   return request<ReviewDto>('POST', '/reviews', params as unknown as Record<string, unknown>);
+}
+
+/**
+ * 按订单查询评价记录
+ * GET /reviews?orderId=X&orderType=Y
+ * 订单处于 REVIEWED 状态时调用，返回该订单的评价，无记录时返回 null
+ */
+export function fetchReviewByOrder(
+  orderId: number,
+  orderType: 'CLEANING' | 'RECYCLING',
+): Promise<ReviewDto | null> {
+  return request<{ items: ReviewDto[]; total: number; page: number; pageSize: number }>(
+    'GET',
+    '/reviews',
+    { orderId, orderType, pageSize: 1 } as unknown as Record<string, unknown>,
+  ).then((res) => res.items[0] ?? null);
 }

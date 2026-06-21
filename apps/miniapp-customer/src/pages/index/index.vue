@@ -288,9 +288,17 @@ function navigateToServiceDetail(type: string) {
 
 async function onProfileCompleted(payload: { phone: string }) {
   console.info('[home] profile completed, phone=', payload.phone.slice(0, 3) + '****', 'pendingServiceType=', pendingServiceType);
+  // #region agent log
+  try{fetch('http://127.0.0.1:7274/ingest/fee21d48-4d03-4852-be1e-1872cabcbb9a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1d02fc'},body:JSON.stringify({sessionId:'1d02fc',location:'index.vue:onProfileCompleted',message:'onProfileCompleted entry',data:{isLoggedIn:authStore.isLoggedIn,residentPhone:authStore.resident?.phone,residentId:authStore.resident?.id},timestamp:Date.now(),hypothesisId:'H-A-B',runId:'run2'})}).catch(()=>{});}catch(_e){}
+  // #endregion
 
   if (!authStore.isLoggedIn) {
     await doWechatLogin();
+    // #region agent log
+    try{fetch('http://127.0.0.1:7274/ingest/fee21d48-4d03-4852-be1e-1872cabcbb9a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1d02fc'},body:JSON.stringify({sessionId:'1d02fc',location:'index.vue:afterWechatLogin',message:'after doWechatLogin',data:{isLoggedIn:authStore.isLoggedIn,residentPhoneAfterLogin:authStore.resident?.phone,residentId:authStore.resident?.id},timestamp:Date.now(),hypothesisId:'H-B',runId:'run2'})}).catch(()=>{});}catch(_e){}
+    // #endregion
+    // resident.value 已由 wechatLogin 填入，现在再写一次 phone 确保持久化
+    authStore.setPhone(payload.phone);
     console.info('[home] initial login completed via phone auth, isLoggedIn=', authStore.isLoggedIn);
     return;
   }

@@ -130,6 +130,62 @@
         </view>
       </view>
 
+      <!-- 我的评价（订单已完成时展示） -->
+      <view v-if="review && orderType !== 'consult'" class="info-card review-card">
+        <view class="card-title-row review-card-header">
+          <text class="card-title">我的评价</text>
+          <text class="review-date-text">{{ formatDate(review.createdAt) }}</text>
+        </view>
+        <!-- 星级 -->
+        <view class="review-stars-row">
+          <text
+            v-for="n in 5"
+            :key="n"
+            class="review-star"
+            :class="n <= review.rating ? 'star-lit' : 'star-dim'"
+          >★</text>
+          <text class="review-rating-label">{{ review.rating }}分</text>
+        </view>
+        <!-- 快捷标签 -->
+        <view v-if="review.tags && review.tags.length" class="review-tags-row">
+          <view v-for="tag in review.tags" :key="tag" class="review-tag">
+            <text class="review-tag-text">{{ tag }}</text>
+          </view>
+        </view>
+        <!-- 文字评价 -->
+        <text v-if="review.content" class="review-content-text">{{ review.content }}</text>
+        <!-- 评价图片 -->
+        <view v-if="review.images && review.images.length" class="review-images-row">
+          <image
+            v-for="(img, idx) in review.images"
+            :key="idx"
+            class="review-img"
+            :src="img"
+            mode="aspectFill"
+            @tap="onPreviewReviewImage(idx)"
+          />
+        </view>
+      </view>
+
+      <!-- 投诉进度卡片（有投诉记录时显示） -->
+      <view v-if="complaint" class="info-card complaint-card" @tap="onViewComplaintDetail">
+        <view class="card-title-row complaint-card-header">
+          <text class="card-title">投诉反馈</text>
+          <view class="complaint-status-badge" :class="getComplaintStatusClass(complaint.status)">
+            <text class="complaint-status-text">{{ COMPLAINT_STATUS_LABELS[complaint.status] }}</text>
+          </view>
+        </view>
+        <view class="info-row">
+          <text class="info-label">投诉原因</text>
+          <text class="info-value">
+            {{ COMPLAINT_REASON_LABELS[complaint.reason as ComplaintReason] || complaint.reason }}
+          </text>
+        </view>
+        <view class="complaint-view-more">
+          <text class="view-more-text">查看投诉进度 ›</text>
+        </view>
+      </view>
+
       <!-- 备注 -->
       <view v-if="order.remark" class="info-card">
         <view class="card-title-row">
@@ -164,13 +220,19 @@
         {{ actionLoading ? '处理中…' : '验收服务' }}
       </button>
 
-      <!-- 待评价（7天内）：去评价 -->
+      <!-- ACCEPTED 及以后（保洁/废品）：投诉反馈 + 联系客服 + 可选评价 -->
+      <template v-if="canComplaint">
+        <button class="btn-outline" @tap="onGoComplaint">投诉反馈</button>
+        <button class="btn-outline" @tap="onCallService">联系客服</button>
+      </template>
+
+      <!-- 待评价（7天内）：评价服务 -->
       <button
         v-if="canReview"
         class="btn-primary"
         @tap="onGoReview"
       >
-        去评价
+        评价服务
       </button>
     </view>
   </view>
@@ -195,6 +257,14 @@ import {
   fetchConsultOrderDetail,
   type ConsultOrderDto,
 } from '@/api/consult-order';
+import {
+  getComplaints,
+  COMPLAINT_STATUS_LABELS,
+  COMPLAINT_REASON_LABELS,
+  type ComplaintDto,
+  type ComplaintReason,
+} from '@/api/complaint';
+import { fetchReviewByOrder, type ReviewDto } from '@/api/review';
 import OrderStatusTimeline from '@/components/OrderStatusTimeline.vue';
 
 type OrderType = 'cleaning' | 'recycling' | 'consult';
@@ -217,6 +287,8 @@ const actionLoading = ref(false);
 const order = ref<AnyOrder | null>(null);
 const orderType = ref<OrderType>('cleaning');
 const orderId = ref<number>(0);
+const complaint = ref<ComplaintDto | null>(null);
+const review = ref<ReviewDto | null>(null);
 
 // uni-app 页面参数必须通过 onLoad 获取，onMounted 在 mp-weixin 无法读到路由参数
 onLoad((options) => {
@@ -224,6 +296,10 @@ onLoad((options) => {
   orderType.value = ((options as Record<string, string>)?.type || 'cleaning') as OrderType;
   console.info(`[order-detail] onLoad id=${orderId.value} type=${orderType.value}`);
   loadDetail();
+  loadComplaint();
+  if (orderType.value !== 'consult') {
+    loadReview();
+  }
 });
 
 async function loadDetail() {
@@ -245,16 +321,60 @@ async function loadDetail() {
   }
 }
 
+/** 加载当前订单的投诉记录（仅保洁/废品） */
+async function loadComplaint() {
+  if (orderType.value === 'consult') return;
+  try {
+    const res = await getComplaints({
+      orderId: orderId.value,
+      orderType: orderType.value.toUpperCase() as 'CLEANING' | 'RECYCLING',
+      pageSize: 1,
+    });
+    complaint.value = res.items[0] ?? null;
+    console.info(`[order-detail] loadComplaint orderId=${orderId.value} found=${!!complaint.value}`);
+  } catch (e) {
+    console.info('[order-detail] loadComplaint error', e);
+  }
+}
+
+/** 加载当前订单的评价记录（仅保洁/废品，REVIEWED 状态时有值） */
+async function loadReview() {
+  try {
+    const type = orderType.value === 'cleaning' ? 'CLEANING' : 'RECYCLING';
+    review.value = await fetchReviewByOrder(orderId.value, type);
+    console.info(`[order-detail] loadReview orderId=${orderId.value} found=${!!review.value}`);
+  } catch (e) {
+    console.info('[order-detail] loadReview error', e);
+  }
+}
+
+/** 预览评价图片 */
+function onPreviewReviewImage(startIdx: number) {
+  if (!review.value?.images?.length) return;
+  uni.previewImage({
+    current: startIdx,
+    urls: review.value.images as string[],
+  });
+}
+
+/** 跳转投诉进度详情页 */
+function onViewComplaintDetail() {
+  if (!complaint.value) return;
+  uni.navigateTo({ url: `/pages/complaint-detail/index?complaintId=${complaint.value.id}` });
+  console.info(`[order-detail] view complaint detail id=${complaint.value.id}`);
+}
+
+/** 客服电话常量 */
+const CUSTOMER_SERVICE_PHONE = '400-888-0000';
+
 /** 是否有底部操作按钮 */
 const hasActionButton = computed(() => {
   if (!order.value) return false;
   const s = order.value.status;
-  // 待派单：取消
   if (s === 'PENDING_ASSIGN') return true;
-  // 废品服务中：验收
   if (orderType.value === 'recycling' && s === 'IN_SERVICE') return true;
-  // 待评价且7天内：评价
   if (canReview.value) return true;
+  if (canComplaint.value) return true;
   return false;
 });
 
@@ -263,11 +383,18 @@ const canReview = computed(() => {
   if (!order.value) return false;
   if (orderType.value === 'consult') return false;
   if (order.value.status !== 'PENDING_REVIEW') return false;
-  // 7天内校验：基于 updatedAt 或 createdAt
   const updated = (order.value as CleaningOrderDto).updatedAt || order.value.createdAt;
   if (!updated) return true;
   const diff = Date.now() - new Date(updated).getTime();
   return diff < 7 * 24 * 60 * 60 * 1000;
+});
+
+/** 是否可以投诉（ACCEPTED 及之后状态，仅保洁/废品） */
+const canComplaint = computed(() => {
+  if (!order.value) return false;
+  if (orderType.value === 'consult') return false;
+  const complaintStatuses = ['ACCEPTED', 'IN_SERVICE', 'PENDING_REVIEW', 'REVIEWED'];
+  return complaintStatuses.includes(order.value.status);
 });
 
 /** 取消订单 */
@@ -330,9 +457,28 @@ async function onResidentConfirm() {
   }
 }
 
-/** 跳转评价页（P3.7 实现，此处预留入口） */
+/** 跳转评价页 */
 function onGoReview() {
-  uni.showToast({ title: '评价功能即将上线', icon: 'none' });
+  if (!order.value) return;
+  uni.navigateTo({
+    url: `/pages/review/index?orderId=${orderId.value}&orderType=${orderType.value.toUpperCase()}&orderNo=${encodeURIComponent(order.value.orderNo || '')}`,
+  });
+  console.info(`[order-detail] go review orderId=${orderId.value}`);
+}
+
+/** 跳转投诉页 */
+function onGoComplaint() {
+  if (!order.value) return;
+  uni.navigateTo({
+    url: `/pages/complaint/index?orderId=${orderId.value}&orderType=${orderType.value.toUpperCase()}&orderNo=${encodeURIComponent(order.value.orderNo || '')}`,
+  });
+  console.info(`[order-detail] go complaint orderId=${orderId.value}`);
+}
+
+/** 联系客服 */
+function onCallService() {
+  uni.makePhoneCall({ phoneNumber: CUSTOMER_SERVICE_PHONE });
+  console.info('[order-detail] call service phone');
 }
 
 function getServiceName(): string {
@@ -399,6 +545,12 @@ function getStatusTip(status: string): string {
     COMPLETED: '服务已完成',
   };
   return tips[status] || '';
+}
+
+function getComplaintStatusClass(status: string): string {
+  if (status === 'PENDING') return 'cs-orange';
+  if (status === 'PROCESSING') return 'cs-blue';
+  return 'cs-green';
 }
 </script>
 
@@ -579,6 +731,18 @@ function getStatusTip(status: string): string {
   color: #ffffff;
 }
 
+.btn-outline {
+  flex: 1;
+  height: 88rpx;
+  border-radius: 44rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  line-height: 88rpx;
+  border: 1rpx solid #1677ff;
+  background: #ffffff;
+  color: #1677ff;
+}
+
 .btn-cancel[disabled],
 .btn-primary[disabled] {
   opacity: 0.6;
@@ -590,5 +754,149 @@ function getStatusTip(status: string): string {
 .status-card .badge-green,
 .status-card .badge-grey {
   background: rgba(255, 255, 255, 0.25);
+}
+
+/* 投诉进度卡片 */
+.complaint-card {
+  border-left: 6rpx solid #fa8c16;
+}
+
+.complaint-card-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.complaint-status-badge {
+  padding: 4rpx 16rpx;
+  border-radius: 16rpx;
+}
+
+.cs-orange {
+  background: #fff7e0;
+}
+
+.cs-blue {
+  background: #e6f4ff;
+}
+
+.cs-green {
+  background: #f6ffed;
+}
+
+.complaint-status-text {
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+.cs-orange .complaint-status-text {
+  color: #fa8c16;
+}
+
+.cs-blue .complaint-status-text {
+  color: #1677ff;
+}
+
+.cs-green .complaint-status-text {
+  color: #52c41a;
+}
+
+.complaint-view-more {
+  margin-top: 8rpx;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.view-more-text {
+  font-size: 24rpx;
+  color: #1677ff;
+}
+
+/* 我的评价卡片 */
+.review-card {
+  border-left: 6rpx solid #52c41a;
+}
+
+.review-card-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.review-date-text {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.review-stars-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4rpx;
+  margin-bottom: 16rpx;
+}
+
+.review-star {
+  font-size: 44rpx;
+  line-height: 1;
+}
+
+.star-lit {
+  color: #faad14;
+}
+
+.star-dim {
+  color: #e0e0e0;
+}
+
+.review-rating-label {
+  font-size: 26rpx;
+  color: #faad14;
+  font-weight: 600;
+  margin-left: 8rpx;
+}
+
+.review-tags-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.review-tag {
+  padding: 6rpx 20rpx;
+  border-radius: 24rpx;
+  background: #f6ffed;
+  border: 1rpx solid #b7eb8f;
+}
+
+.review-tag-text {
+  font-size: 24rpx;
+  color: #52c41a;
+}
+
+.review-content-text {
+  font-size: 26rpx;
+  color: #555;
+  line-height: 1.7;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.review-images-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-top: 4rpx;
+}
+
+.review-img {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 12rpx;
 }
 </style>
