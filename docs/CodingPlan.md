@@ -41,8 +41,9 @@
 | P3.6 我的订单列表 + 详情页                  | ✅ 已通过 | 2026-06-20 | 三类查询DTO加residentId+statuses多状态；新增`POST /recycling-orders/:id/resident-confirm`（IN_SERVICE→PENDING_REVIEW）；订单列表三Tab（保洁/废品/家政）+状态筛选胶囊+卡片+下拉刷新+上拉加载；OrderStatusTimeline时间轴组件；订单详情页三种模板+取消/验收/评价按钮+无价格；pages.json新增order-detail路由；修复详情页用`onLoad`替代`onMounted`获取路由参数（mp-weixin兼容）；修复筛选胶囊scroll-view横向滚动（white-space:nowrap+inline-flex内联方案）；`npm run build` 通过；使用 Sonnet 4.6 LLM 完成 |
 | P3.6_repair 废品回收验收改为员工触发        | ✅ 已通过 | 2026-06-21 | 废品回收「服务中→待评价」触发方从居民端验收回归为员工端完成服务，与保洁对称；删除后端 `POST /recycling-orders/:id/resident-confirm` 接口及 `ResidentConfirmDto`；删除前端「验收服务」按钮、`onResidentConfirm` 函数、`residentConfirmRecycling` API；更新 P4.5 开发计划（废品改为有完成服务按钮）；新增 4 项回归测试（共 29 项全通过）；`npm run build` 通过；使用 Sonnet 4.6 LLM 完成 |
 | P3.7 评价页 + 投诉页 + 我的页              | ✅ 已通过 | 2026-06-21 | 评价页（1–5星+标签+文字+多图上传，7天限时）；投诉页（6原因单选+描述必填+多图凭证，ACCEPTED后才可投诉）；我的页（完整手机号+我的地址CRUD+我的投诉列表/详情）；订单详情展示评价/投诉卡片；Complaint 查询DTO新增residentId；`npm run build` 通过；使用 Sonnet 4.6 LLM 完成 |
+| P3.8 代下单集成验证（保洁+废品+家政）        | ✅ 已通过 | 2026-06-21 | 三类代下单全流程闭环；保洁/废品 trim 一致性修复；家政详情页去除误显示「等待分配服务人员」；全量回归 240 项通过；生成 `MiniApp-Architecture.md`；`npm run build` 通过；使用 Sonnet 4.6 LLM 完成 |
 
-> **P2.1–P2.15 后端核心 API 全部完成（含 v2.0 补充）。P3.1–P3.7 居民端骨架、首页、预约向导、订单列表+详情、评价/投诉与我的页已完成；P3.6_repair 废品回收验收改为员工触发（与保洁对称）已通过。** 下一阶段：**P3.8** — 代下单集成验证。
+> **P2.1–P2.15 后端核心 API 全部完成（含 v2.0 补充）。P3.1–P3.8 居民端全部完成，含代下单闭环验证（保洁/废品/家政三类代下单字段一致性修复、订单详情页家政咨询模板修复）。** 下一阶段：**P4** — 员工端小程序。
 
 ---
 
@@ -1617,6 +1618,9 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 #### P3.8 代下单集成验证（2h）
 
+> **验收状态**：✅ **已通过**（2026-06-21）  
+> **验收依据**：① 保洁/废品/家政三类代下单全流程：`isProxyOrder=true` + 被服务人姓名/手机号正确写入订单；② 订单详情页「被服务人」完整展示（不脱敏）；③ 修复保洁/废品提交前 `serviceContactName`/`serviceContactPhone` trim 一致性（与家政对齐）；④ 修复家政咨询单详情页误显示「等待分配服务人员」占位（加 `orderType !== 'consult'`）；⑤ 全量回归 240 项 Jest 通过；⑥ `npm run build` 通过；⑦ 已生成 [`MiniApp-Architecture.md`](MiniApp-Architecture.md) 交接文档。  
+> 使用 Sonnet 4.6 LLM 完成；下一单元：[P4.1](#p41-登录页--员工身份认证2h)  
 > **需求来源**：`requirement_v2.0.md` §3.10、§3.2、§3.3、§3.4
 
 **干什么**
@@ -1647,8 +1651,8 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 **测试标准 — 通过后 P3 阶段完成**:
 
-1. 三类代下单订单 `isProxyOrder=true`，被服务人信息正确
-2. 微信开发者工具内完整走通「预约保洁（代下单）→ 下单成功 → 查看订单详情 → 废品验收 → 评价」闭环
+1. 三类代下单订单 `isProxyOrder=true`，被服务人信息正确 — ✅ 2026-06-21 已验
+2. 完整走通「预约保洁（代下单）→ 下单成功 → 查看订单详情 → 评价」闭环（废品/家政代下单列表与详情展示正确）— ✅ 2026-06-21 已验
 
 ---
 
@@ -2792,8 +2796,8 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 ---
 
-> **文档版本**: v2.7
+> **文档版本**: v2.9
 > **创建日期**: 2026-06-01
-> **修订日期**: 2026-06-21（v2.8：P3.6_repair 废品验收改为员工触发与保洁对称 | v2.7：P3.7 评价页+投诉页+我的页验收通过 | v2.6：P3.6 验收通过并补充 mp-weixin onLoad 兼容修复 + scroll-view 内联胶囊修复 | v2.5：P3.6 我的订单列表+详情页验收通过 | v2.4：P3.5 家政咨询提交流程验收通过 | v2.3：P3.3 + P3.4 预约向导验收通过 | v2.2：P3.2 首页验收通过 | v2.1：P3.1 骨架+登录验收通过 | v2.0：基于需求文档 v2.0 全面更新 | v1.3：废品流程调整 | v1.2：WorkBuddy → Cursor Agent）
+> **修订日期**: 2026-06-21（v2.9：P3.8 代下单集成验证通过，生成 MiniApp-Architecture.md | v2.8：P3.6_repair 废品验收改为员工触发与保洁对称 | v2.7：P3.7 评价页+投诉页+我的页验收通过 | v2.6：P3.6 验收通过并补充 mp-weixin onLoad 兼容修复 + scroll-view 内联胶囊修复 | v2.5：P3.6 我的订单列表+详情页验收通过 | v2.4：P3.5 家政咨询提交流程验收通过 | v2.3：P3.3 + P3.4 预约向导验收通过 | v2.2：P3.2 首页验收通过 | v2.1：P3.1 骨架+登录验收通过 | v2.0：基于需求文档 v2.0 全面更新 | v1.3：废品流程调整 | v1.2：WorkBuddy → Cursor Agent）
 > **适用范围**: 大洋云洁 (dayangyunjie-code) 社区服务平台一期 MVP（v2.0 基线）
-> **使用方式**: 按 P1 → P2 → P3 → P4 → P5 → P6 顺序，逐单元执行。每单元完成后按"测试标准"验收，通过后进入下一单元。P2.1–P2.15 已完成（v1.x + v2.0 阶段）；P3.1–P3.7 已完成，当前继续 P3.8。
+> **使用方式**: 按 P1 → P2 → P3 → P4 → P5 → P6 顺序，逐单元执行。每单元完成后按"测试标准"验收，通过后进入下一单元。P2.1–P2.15 已完成（v1.x + v2.0 阶段）；P3.1–P3.8 已全部完成（含代下单集成验证），当前进入 P4 员工端小程序。

@@ -120,8 +120,8 @@
         <OrderStatusTimeline :status="order.status" order-type="CONSULT" />
       </view>
 
-      <!-- 待派单：服务人员占位 -->
-      <view v-if="order.status === 'PENDING_ASSIGN'" class="info-card">
+      <!-- 待派单：服务人员占位（仅保洁/废品） -->
+      <view v-if="order.status === 'PENDING_ASSIGN' && orderType !== 'consult'" class="info-card">
         <view class="card-title-row">
           <text class="card-title">服务人员</text>
         </view>

@@ -1,6 +1,6 @@
 # Backend API Summary（P2 全接口交接文档）
 
-> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；**P3.6_repair（2026-06-21）** 更新至 v3.2（废品验收改为员工触发，删除 resident-confirm 接口）  
+> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；**P3.8（2026-06-21）** 更新至 v3.3（代下单集成验证闭环，居民端 P3 全部完成）  
 > **用途**：供居民端（P3）、员工端（P4）、管理后台（P5）对接后端 API，避免上下文丢失  
 > **Base URL**：`http://localhost:3000/api/v1`  
 > **统一响应格式**：`{ code: number, message: string, data: T | null }`  
@@ -525,7 +525,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 | 端 | 关键说明 |
 |----|---------|
-| **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED`（✅ P3.7 已对接）；投诉 `POST /complaints` + 我的投诉 `GET /complaints?residentId=`（✅ P3.7 已对接）；地址管理 CRUD `GET/POST/PUT/DELETE /addresses`（✅ P3.7 已对接）；首页轮播图 `GET /banners/active?displayTarget=RESIDENT`（✅ P3.2 已对接）；客服电话 `GET /operators/contact`（✅ P3.2 已对接）；保洁预约 `POST /cleaning-orders`（✅ P3.3 已对接）；废品预约 `POST /recycling-orders`（✅ P3.4 已对接）；家政咨询 `POST /consult-orders`（✅ P3.5 已对接）；H5 走 Vite 代理 `/api/v1`，小程序走 `VITE_API_BASE` |
+| **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED`（✅ P3.7 已对接）；投诉 `POST /complaints` + 我的投诉 `GET /complaints?residentId=`（✅ P3.7 已对接）；地址管理 CRUD `GET/POST/PUT/DELETE /addresses`（✅ P3.7 已对接）；首页轮播图 `GET /banners/active?displayTarget=RESIDENT`（✅ P3.2 已对接）；客服电话 `GET /operators/contact`（✅ P3.2 已对接）；保洁预约 `POST /cleaning-orders`（✅ P3.3 已对接，含代下单字段）；废品预约 `POST /recycling-orders`（✅ P3.4 已对接，含代下单字段）；家政咨询 `POST /consult-orders`（✅ P3.5 已对接，含代下单字段）；代下单闭环验证（✅ P3.8 已通过，详见 `MiniApp-Architecture.md`）；H5 走 Vite 代理 `/api/v1`，小程序走 `VITE_API_BASE` |
 | **员工端（P4）** | 接单用 `POST /cleaning-orders/:id/accept`；GPS 签到用 `POST /cleaning-orders/:id/gps-checkin`；完成服务先上传图片到 `/upload/image` 获取 URL，再调 `/cleaning-orders/:id/complete` |
 | **管理后台（P5）** | 看板接口均在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；配置管理走 `/service-catalogs`、`/banners`、`/operators` |
 
@@ -716,9 +716,46 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
-> **文档版本**：v3.2（P3.6_repair 废品验收改为员工触发，删除 resident-confirm 接口）
+## P3.8 完成说明（2026-06-21）
+
+代下单功能跨 P3.3（保洁）/ P3.4（废品）/ P3.5（家政）分散集成，P3.8 完成三类全流程闭环验证：
+
+| 验证项 | 说明 | 状态 |
+|--------|------|------|
+| 保洁代下单 | Step 2 勾选「为家人代下单」→ 填被服务人姓名/手机号 → `POST /cleaning-orders`（`isProxyOrder=true`）→ 详情页展示被服务人 | ✅ |
+| 废品代下单 | 同上流程 → `POST /recycling-orders` → 详情页展示被服务人 | ✅ |
+| 家政代下单 | Step 2 勾选代下单 → `POST /consult-orders` → 列表/详情展示代下单标记与被服务人 | ✅ |
+| 字段 trim 一致性 | 保洁/废品提交前 `serviceContactName`/`serviceContactPhone` 执行 `.trim()`（与家政对齐） | ✅ 代码修复 |
+| 家政详情模板 | 咨询单详情不再误显示「等待平台为您分配服务人员」（`orderType !== 'consult'`） | ✅ 代码修复 |
+| 后端回归 | 全量 Jest 240 项通过 | ✅ |
+
+**代下单 API 字段（三类订单创建接口共用）**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `isProxyOrder` | `boolean` | 是否为代家人下单 |
+| `serviceContactName` | `string` | 被服务人姓名（`isProxyOrder=true` 时必填） |
+| `serviceContactPhone` | `string` | 被服务人手机号（`isProxyOrder=true` 时必填，11 位） |
+| `source` | `'MINIPROGRAM' \| 'PHONE'` | 居民端固定传 `MINIPROGRAM` |
+
+**居民端对接文件**：
+
+| 页面 | 路径 | 代下单相关 |
+|------|------|----------|
+| 保洁预约 | `pages/booking-cleaning/index` | Yes/No 单选 + 服务对象信息区 |
+| 废品预约 | `pages/booking-recycling/index` | 同上 |
+| 家政咨询 | `pages/booking-consult/index` | Toggle 开关 + 服务对象信息区 |
+| 订单详情 | `pages/order-detail/index` | `isProxyOrder` 时展示「被服务人」姓名+手机号（完整不脱敏） |
+| 订单列表 | `pages/orders/index` | `isProxyOrder` 时展示「代下单」橙色标签 |
+
+**交接文档**：详见 [`docs/MiniApp-Architecture.md`](MiniApp-Architecture.md) §8 代下单数据流。
+
+---
+
+> **文档版本**：v3.3（P3.8 代下单集成验证闭环，居民端 P3 全部完成）
 > **生成日期**：2026-06-21
-> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.7 前端对接说明
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 前端对接说明
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销
 > **P3.6_repair 修正**：彻底删除居民验收接口及前端按钮，废品与保洁完全对称
+> **P3.8 新增**：三类代下单全流程闭环验证；保洁/废品 trim 一致性；家政详情模板修复；`MiniApp-Architecture.md` 交接文档

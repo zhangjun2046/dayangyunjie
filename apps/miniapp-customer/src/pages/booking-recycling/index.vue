@@ -510,8 +510,8 @@ async function submitOrder() {
       contactName: addr.contactName,
       contactPhone: addr.contactPhone,
       isProxyOrder: store.isProxy,
-      serviceContactName: store.isProxy ? store.serviceContactName : undefined,
-      serviceContactPhone: store.isProxy ? store.serviceContactPhone : undefined,
+      serviceContactName: store.isProxy ? store.serviceContactName.trim() : undefined,
+      serviceContactPhone: store.isProxy ? store.serviceContactPhone.trim() : undefined,
       source: 'MINIPROGRAM',
       remark: store.remark || undefined,
     });
