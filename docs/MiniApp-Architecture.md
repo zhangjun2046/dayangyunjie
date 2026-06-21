@@ -1,8 +1,8 @@
-# MiniApp-Architecture.md — 居民端小程序架构交接文档
+# MiniApp-Architecture.md — 小程序架构交接文档
 
-> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）  
-> **用途**：供 P4（员工端）、P5（管理后台）及后续维护对接，记录居民端已完成的页面结构、Store 设计、组件、API 封装与代下单数据流  
-> **应用目录**：`apps/miniapp-customer/`
+> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）；**P4.1（2026-06-21）** 补充员工端登录认证  
+> **用途**：供 P4（员工端）、P5（管理后台）及后续维护对接，记录居民端已完成的页面结构、Store 设计、组件、API 封装与代下单数据流；并记录员工端 P4.1 登录认证实现  
+> **应用目录**：`apps/miniapp-customer/`（居民端）、`apps/miniapp-worker/`（员工端）
 
 ---
 
@@ -18,6 +18,7 @@
 8. [代下单数据流](#8-代下单数据流)
 9. [双端 API 配置](#9-双端-api-配置)
 10. [关键业务规则](#10-关键业务规则)
+11. [员工端 P4.1 登录认证（miniapp-worker）](#11-员工端-p41-登录认证miniapp-worker)
 
 ---
 
@@ -377,11 +378,85 @@ baseURL = import.meta.env.VITE_API_BASE;
 
 ---
 
-> **文档版本**：v1.1（P3.8 验收通过）  
+---
+
+## 11. 员工端 P4.1 登录认证（miniapp-worker）
+
+> **验收状态**：✅ 已通过（2026-06-21）  
+> **应用目录**：`apps/miniapp-worker/`
+
+### 11.1 目录结构（P4.1 新增）
+
+```
+apps/miniapp-worker/
+├── src/
+│   ├── App.vue                  # 入口：路由守卫 + 未登录跳转登录页
+│   ├── api/
+│   │   ├── request.ts           # uni.request 封装（storage key: __worker_auth__）
+│   │   └── auth.ts              # workerLogin()
+│   ├── store/
+│   │   └── auth.ts              # Pinia Worker auth store
+│   ├── composables/
+│   │   └── useRouteGuard.ts     # 路由守卫（仅 login 页公开）
+│   └── pages/
+│       └── login/index.vue      # 员工登录页
+├── vite.config.ts               # H5 proxy /api/v1 → localhost:3000
+├── .env.development
+└── .env.production
+```
+
+### 11.2 页面路由
+
+| 路径 | 说明 | 需登录 |
+|------|------|--------|
+| `pages/login/index` | 手机号+密码登录，协议勾选，「开始服务」按钮 | 否 |
+| `pages/index/index` | 首页（tabBar，P1.4 骨架） | 是 |
+| `pages/tasks/index` | 任务（tabBar，P1.4 骨架） | 是 |
+| `pages/mine/index` | 我的（tabBar，P1.4 骨架） | 是 |
+
+### 11.3 Auth Store 设计
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `accessToken` | `string \| null` | Worker JWT access token |
+| `refreshToken` | `string \| null` | Worker JWT refresh token |
+| `worker` | `{ id, phone, name, employeeNo } \| null` | 当前登录员工信息 |
+| `isLoggedIn` | `computed boolean` | 是否已登录 |
+
+**持久化**：`uni.setStorageSync('__worker_auth__', JSON.stringify(state))`
+
+### 11.4 API 对接
+
+| 接口 | 封装函数 | 用途 |
+|------|---------|------|
+| `POST /auth/worker-login` | `workerLogin(phone, password)` | 登录获取 JWT |
+
+### 11.5 双端 API 配置
+
+与居民端一致：
+- H5：`request.ts` 使用 `/api/v1`，Vite proxy 转发至 `http://127.0.0.1:3000`
+- 小程序：`VITE_API_BASE=http://127.0.0.1:3000/api/v1`（开发）
+
+### 11.6 认证流程
+
+```
+App Launch → installRouteGuard()
+          → isLoggedIn? 否 → redirectTo /pages/login/index
+          → 是 → 正常进入 tabBar 页面
+
+Login Page → 校验协议+手机号+密码
+          → POST /auth/worker-login
+          → authStore.login(result)
+          → switchTab /pages/index/index
+```
+
+---
+
+> **文档版本**：v1.2（P4.1 员工端登录认证验收通过）  
 > **生成日期**：2026-06-21  
-> **修订日期**：2026-06-21（v1.1：P3.8 代下单集成验证闭环 — trim 一致性修复、家政详情模板修复、验收通过）  
-> **覆盖范围**：P3.1–P3.8 居民端小程序全部功能  
-> **下一阶段**：P4 员工端小程序 — 参考本文档了解居民端已实现的 API、Store 模式和代下单字段规范
+> **修订日期**：2026-06-21（v1.2：P4.1 员工端登录页 + auth store + 路由守卫；v1.1：P3.8 代下单集成验证闭环）  
+> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1 员工端登录认证  
+> **下一阶段**：P4.2 员工端首页 — 待接单任务列表（ASSIGNED 状态）
 
 ---
 
