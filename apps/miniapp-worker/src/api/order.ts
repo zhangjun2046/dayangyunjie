@@ -78,6 +78,28 @@ export interface AssignedOrderItem {
   status: string;
 }
 
+/** 统一的任务列表卡片数据（用于任务页渲染，含全状态） */
+export interface WorkerOrderItem {
+  id: number;
+  orderNo: string;
+  orderType: 'cleaning' | 'recycling';
+  serviceName: string;
+  appointDate: string;
+  appointTimeSlot: string;
+  address: string;
+  status: string;
+}
+
+/** 员工端可见的状态列表（排除 PENDING_ASSIGN） */
+const WORKER_VISIBLE_STATUSES = [
+  'ASSIGNED',
+  'ACCEPTED',
+  'IN_SERVICE',
+  'PENDING_REVIEW',
+  'REVIEWED',
+  'CANCELLED',
+].join(',');
+
 /** 从 addressSnapshot 提取可显示的地址字符串：省市区 + 详细地址 + 楼栋信息 */
 function resolveAddress(snapshot: AddressSnapshot | undefined): string {
   if (!snapshot) return '';
@@ -152,6 +174,48 @@ export async function fetchAssignedOrders(workerId: number): Promise<AssignedOrd
 
   console.info('[worker-order] fetchAssignedOrders done, count=', merged.length);
   return merged;
+}
+
+/**
+ * 获取员工任务列表（任务页使用，支持按 orderType 和 statuses 筛选）
+ * statuses 为空数组时自动传全部员工可见状态（排除 PENDING_ASSIGN）
+ */
+export async function fetchWorkerOrders(
+  workerId: number,
+  orderType: 'cleaning' | 'recycling',
+  statuses: string[],
+  page: number,
+  pageSize: number,
+): Promise<{ items: WorkerOrderItem[]; total: number }> {
+  const statusParam = statuses.length > 0 ? statuses.join(',') : WORKER_VISIBLE_STATUSES;
+  const path = orderType === 'cleaning' ? '/cleaning-orders' : '/recycling-orders';
+
+  console.info('[worker-order] fetchWorkerOrders, type=', orderType, 'statuses=', statusParam, 'page=', page);
+
+  const result = await request<PagedResult<CleaningOrderDto | RecyclingOrderDto>>(
+    'GET',
+    path,
+    { workerId, statuses: statusParam, page, pageSize } as unknown as Record<string, unknown>,
+  );
+
+  const items: WorkerOrderItem[] = (result?.items ?? []).map((o) => {
+    const serviceName =
+      orderType === 'cleaning'
+        ? (o as CleaningOrderDto).serviceItem
+        : (o as RecyclingOrderDto).serviceType;
+    return {
+      id: o.id,
+      orderNo: o.orderNo,
+      orderType,
+      serviceName,
+      appointDate: formatAppointDate(o.appointDate),
+      appointTimeSlot: o.appointTimeSlot,
+      address: resolveAddress(o.addressSnapshot),
+      status: o.status,
+    };
+  });
+
+  return { items, total: result?.total ?? 0 };
 }
 
 /**

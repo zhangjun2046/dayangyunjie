@@ -8,7 +8,8 @@
 
     <!-- 加载中占位 -->
     <view v-if="loading" class="status-wrap">
-      <uni-load-more status="loading" />
+      <view class="loading-spinner" />
+      <text class="loading-text">加载中…</text>
     </view>
 
     <!-- 空状态 -->
@@ -311,5 +312,25 @@ function handleViewDetail(_item: AssignedOrderItem): void {
 /* 消除 uni-app button 默认样式 */
 .btn::after {
   border: none;
+}
+
+/* 加载动画 */
+.loading-spinner {
+  width: 48rpx;
+  height: 48rpx;
+  border: 4rpx solid #e0eaff;
+  border-top-color: #1677ff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16rpx;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 26rpx;
+  color: #999;
 }
 </style>

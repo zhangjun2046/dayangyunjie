@@ -1,6 +1,6 @@
 # MiniApp-Architecture.md — 小程序架构交接文档
 
-> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）；P4.1（2026-06-21）补充员工端登录认证；**P4.2（2026-06-21）** 补充员工端首页待接单任务列表  
+> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）；P4.1（2026-06-21）补充员工端登录认证；P4.2（2026-06-21）补充员工端首页待接单任务列表；**P4.3（2026-06-21）** 补充员工端任务列表（双 Tab + 精确状态筛选）  
 > **用途**：供 P4（员工端）、P5（管理后台）及后续维护对接，记录居民端已完成的页面结构、Store 设计、组件、API 封装与代下单数据流；并记录员工端 P4.1 登录认证实现  
 > **应用目录**：`apps/miniapp-customer/`（居民端）、`apps/miniapp-worker/`（员工端）
 
@@ -20,6 +20,7 @@
 10. [关键业务规则](#10-关键业务规则)
 11. [员工端 P4.1 登录认证（miniapp-worker）](#11-员工端-p41-登录认证miniapp-worker)
 12. [员工端 P4.2 首页待接单列表（miniapp-worker）](#12-员工端-p42-首页待接单列表miniapp-worker)
+13. [员工端 P4.3 任务列表（miniapp-worker）](#13-员工端-p43-任务列表miniapp-worker)
 
 ---
 
@@ -412,7 +413,7 @@ apps/miniapp-worker/
 |------|------|--------|
 | `pages/login/index` | 手机号+密码登录，协议勾选，「开始服务」按钮 | 否 |
 | `pages/index/index` | 首页（tabBar，P4.2 待接单 ASSIGNED 列表） | 是 |
-| `pages/tasks/index` | 任务（tabBar，P1.4 骨架） | 是 |
+| `pages/tasks/index` | 任务（tabBar，P4.3 双 Tab + 状态筛选列表） | 是 |
 | `pages/mine/index` | 我的（tabBar，P1.4 骨架） | 是 |
 
 ### 11.3 Auth Store 设计
@@ -500,11 +501,63 @@ Login Page → 校验协议+手机号+密码
 
 ---
 
-> **文档版本**：v1.3（P4.2 员工端首页待接单列表验收通过）  
+## 13. 员工端 P4.3 任务列表（miniapp-worker）
+
+> **验收状态**：✅ 已通过（2026-06-21）
+
+### 13.1 功能概述
+
+任务 Tab 页展示当前员工被分配的全部任务历史（保洁 / 废品分 Tab），支持按**精确系统状态值**筛选，**不包含** `PENDING_ASSIGN`。
+
+### 13.2 关键文件
+
+| 文件 | 说明 |
+|------|------|
+| `src/api/order.ts` | `fetchWorkerOrders()` / `WorkerOrderItem`；复用 `acceptOrder` |
+| `src/pages/tasks/index.vue` | 双 Tab、状态筛选胶囊、分页卡片、接单按钮 |
+
+### 13.3 API 对接
+
+| 接口 | 封装 | 说明 |
+|------|------|------|
+| `GET /cleaning-orders?workerId=&statuses=&page=&pageSize=` | `fetchWorkerOrders(..., 'cleaning', ...)` | 保洁 Tab 分页列表 |
+| `GET /recycling-orders?workerId=&statuses=&page=&pageSize=` | `fetchWorkerOrders(..., 'recycling', ...)` | 废品 Tab 分页列表 |
+| `POST /cleaning-orders/:id/accept` | `acceptOrder('cleaning', ...)` | ASSIGNED 卡片接单 |
+| `POST /recycling-orders/:id/accept` | `acceptOrder('recycling', ...)` | 同上 |
+
+**员工可见状态（排除 PENDING_ASSIGN）**：`ASSIGNED` / `ACCEPTED` / `IN_SERVICE` / `PENDING_REVIEW` / `REVIEWED` / `CANCELLED`
+
+**状态筛选胶囊**（精确系统状态名）：
+
+| 显示名 | statuses 传参 |
+|--------|---------------|
+| 全部 | 上述 6 状态逗号拼接 |
+| 已派单 | `ASSIGNED` |
+| 已接单 | `ACCEPTED` |
+| 服务中 | `IN_SERVICE` |
+| 待评价 | `PENDING_REVIEW` |
+| 已评价 | `REVIEWED` |
+| 已取消 | `CANCELLED` |
+
+### 13.4 页面交互
+
+- `onShow`：每次显示刷新第 1 页
+- `onPullDownRefresh`：下拉重置列表
+- `onReachBottom`：上拉追加下一页（pageSize=20）
+- 仅 `ASSIGNED` 卡片显示「查看详情」「立即接单」（详情页 P4.4 待实现）
+- 筛选胶囊使用 `scroll-view` 横向 + `white-space:nowrap` + `display:inline-flex`（mp-weixin 兼容）
+
+### 13.5 数据映射（WorkerOrderItem）
+
+与 P4.2 `AssignedOrderItem` 字段一致：`serviceName` / `appointDate`（点分格式）/ `address`（`addressSnapshot` 拼接）/ `status`
+
+---
+
+> **文档版本**：v1.4（P4.3 员工端任务列表验收通过）  
 > **生成日期**：2026-06-21  
-> **修订日期**：2026-06-21（v1.3：P4.2 首页 ASSIGNED 列表 + order.ts；v1.2：P4.1 员工端登录；v1.1：P3.8 代下单）  
-> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.2 员工端  
-> **下一阶段**：P4.3 我的任务列表（双 Tab + 精确状态筛选）
+> **修订日期**：2026-06-21（v1.4：P4.3 任务列表 fetchWorkerOrders；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
+> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.3 员工端  
+> **下一阶段**：P4.4 任务详情（已派单/已接单态）
 
 ---
 

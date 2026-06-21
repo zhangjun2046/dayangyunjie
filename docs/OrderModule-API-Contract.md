@@ -55,6 +55,12 @@
 > - 列表 Query DTO 新增 `workerId` 筛选；响应分页字段为 `items`
 > - 接单：`POST /cleaning-orders/:id/accept` / `POST /recycling-orders/:id/accept`（Body: `operatorId`）
 > - 地址展示取自订单 `addressSnapshot`；`appointDate` 为 ISO 字符串需前端格式化
+>
+> **v3.0 小程序对接补充（P4.3·2026-06-21）**：
+> - 员工端任务页按 Tab 分别调用 `GET /cleaning-orders?workerId=&statuses=&page=&pageSize=` 与废品同名接口
+> - `statuses` 逗号多值；「全部」传 `ASSIGNED,ACCEPTED,IN_SERVICE,PENDING_REVIEW,REVIEWED,CANCELLED`（**排除 PENDING_ASSIGN**）
+> - 前端封装 `fetchWorkerOrders(workerId, orderType, statuses[], page, pageSize)` → `WorkerOrderItem[]`
+> - ASSIGNED 卡片复用 `acceptOrder` 接单；详情页跳转留 P4.4
 
 ---
 
@@ -2085,6 +2091,63 @@ PENDING_ASSIGN ? ASSIGNED ? ACCEPTED ? IN_SERVICE ? PENDING_REVIEW ? REVIEWED
 
 ---
 
-> **文档版本**：v3.2（P4.2 员工端首页待接单列表验收通过）  
+## 29. P4.3 员工端任务列表（2026-06-21 ✅）
+
+> **状态**：✅ 已通过  
+> **用途**：记录 P4.3 任务页与后端列表接口的对接约定
+
+### 29.1 列表查询（按 Tab 单类型分页）
+
+| 方法 | 路径 | 前端封装 |
+|------|------|---------|
+| `GET /cleaning-orders?workerId={id}&statuses={csv}&page=&pageSize=` | 保洁任务列表 | `fetchWorkerOrders(workerId, 'cleaning', statuses, page, pageSize)` |
+| `GET /recycling-orders?workerId={id}&statuses={csv}&page=&pageSize=` | 废品任务列表 | `fetchWorkerOrders(workerId, 'recycling', statuses, page, pageSize)` |
+
+**Query 参数**：
+
+| 参数 | 说明 |
+|------|------|
+| `workerId` | 当前登录员工 ID（必传） |
+| `statuses` | 逗号分隔多状态；「全部」传 `ASSIGNED,ACCEPTED,IN_SERVICE,PENDING_REVIEW,REVIEWED,CANCELLED`（不含 `PENDING_ASSIGN`） |
+| `page` / `pageSize` | 分页，任务页默认 pageSize=20 |
+
+**状态筛选胶囊映射**：
+
+| 胶囊 | statuses 传参 |
+|------|---------------|
+| 全部 | 6 个可见状态（见上） |
+| 已派单 | `ASSIGNED` |
+| 已接单 | `ACCEPTED` |
+| 服务中 | `IN_SERVICE` |
+| 待评价 | `PENDING_REVIEW` |
+| 已评价 | `REVIEWED` |
+| 已取消 | `CANCELLED` |
+
+**Response `data`**：`{ items: OrderDto[], total, page, pageSize }`（字段同 P4.2 §28.1）
+
+### 29.2 接单（复用 P4.2）
+
+ASSIGNED 状态卡片「立即接单」调用 §28.2 同名接口，成功后刷新任务列表。
+
+### 29.3 前端文件
+
+| 路径 | 说明 |
+|------|------|
+| `apps/miniapp-worker/src/api/order.ts` | `WorkerOrderItem`、`fetchWorkerOrders` |
+| `apps/miniapp-worker/src/pages/tasks/index.vue` | 双 Tab + 筛选胶囊 + 分页列表 UI |
+
+### 29.4 P4.3 验收清单（2026-06-21）
+
+| 验收项 | 结果 |
+|--------|------|
+| 双 Tab 切换保洁/废品列表 | ✅ |
+| 状态筛选使用精确系统状态名，无 PENDING_ASSIGN | ✅ |
+| ASSIGNED 卡片可接单 | ✅ |
+| 下拉刷新 + 上拉加载更多 | ✅ |
+| `npm run build` 通过 | ✅ |
+
+---
+
+> **文档版本**：v3.3（P4.3 员工端任务列表验收通过）  
 > **修订日期**：2026-06-21  
-> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.2 员工端
+> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.3 员工端

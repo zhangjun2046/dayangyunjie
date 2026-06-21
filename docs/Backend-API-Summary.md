@@ -1,6 +1,6 @@
 # Backend API Summary（P2 全接口交接文档）
 
-> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；**P4.2（2026-06-21）** 更新至 v3.5（员工端首页待接单列表对接完成）  
+> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；P4.2（2026-06-21）更新至 v3.5；**P4.3（2026-06-21）** 更新至 v3.6（员工端任务列表对接完成）  
 > **用途**：供居民端（P3）、员工端（P4）、管理后台（P5）对接后端 API，避免上下文丢失  
 > **Base URL**：`http://localhost:3000/api/v1`  
 > **统一响应格式**：`{ code: number, message: string, data: T | null }`  
@@ -541,7 +541,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 | 端 | 关键说明 |
 |----|---------|
 | **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED`（✅ P3.7 已对接）；投诉 `POST /complaints` + 我的投诉 `GET /complaints?residentId=`（✅ P3.7 已对接）；地址管理 CRUD `GET/POST/PUT/DELETE /addresses`（✅ P3.7 已对接）；首页轮播图 `GET /banners/active?displayTarget=RESIDENT`（✅ P3.2 已对接）；客服电话 `GET /operators/contact`（✅ P3.2 已对接）；保洁预约 `POST /cleaning-orders`（✅ P3.3 已对接，含代下单字段）；废品预约 `POST /recycling-orders`（✅ P3.4 已对接，含代下单字段）；家政咨询 `POST /consult-orders`（✅ P3.5 已对接，含代下单字段）；代下单闭环验证（✅ P3.8 已通过，详见 `MiniApp-Architecture.md`）；H5 走 Vite 代理 `/api/v1`，小程序走 `VITE_API_BASE` |
-| **员工端（P4）** | 登录走 `POST /auth/worker-login`（✅ P4.1）；首页待接单列表 `GET /cleaning-orders?workerId=&statuses=ASSIGNED` + `GET /recycling-orders?workerId=&statuses=ASSIGNED`（✅ P4.2）；接单 `POST /cleaning-orders/:id/accept` 或废品同名接口（✅ P4.2）；GPS 签到用 `POST /cleaning-orders/:id/gps-checkin`；完成服务先上传图片到 `/upload/image` 获取 URL，再调 `/cleaning-orders/:id/complete` |
+| **员工端（P4）** | 登录走 `POST /auth/worker-login`（✅ P4.1）；首页待接单列表 `GET /cleaning-orders?workerId=&statuses=ASSIGNED` + `GET /recycling-orders?workerId=&statuses=ASSIGNED`（✅ P4.2）；任务列表 `GET /cleaning-orders?workerId=&statuses=` / `GET /recycling-orders?workerId=&statuses=` 分页多状态筛选，排除 PENDING_ASSIGN（✅ P4.3）；接单 `POST /cleaning-orders/:id/accept` 或废品同名接口（✅ P4.2/P4.3）；GPS 签到用 `POST /cleaning-orders/:id/gps-checkin`；完成服务先上传图片到 `/upload/image` 获取 URL，再调 `/cleaning-orders/:id/complete` |
 | **管理后台（P5）** | 看板接口均在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；配置管理走 `/service-catalogs`、`/banners`、`/operators` |
 
 ---
@@ -831,12 +831,42 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
-> **文档版本**：v3.5（P4.2 员工端首页待接单列表对接完成）
+## P4.3 完成说明（2026-06-21）
+
+员工端任务列表（P4.3）已完成，以下接口已在前端完成对接：
+
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `GET /cleaning-orders?workerId=&statuses=&page=&pageSize=` | 任务页保洁 Tab 分页列表（精确系统状态筛选） | ✅ P4.3 已对接 |
+| `GET /recycling-orders?workerId=&statuses=&page=&pageSize=` | 任务页废品 Tab 分页列表（精确系统状态筛选） | ✅ P4.3 已对接 |
+| `POST /cleaning-orders/:id/accept` | ASSIGNED 卡片「立即接单」（保洁） | ✅ P4.3 已对接（复用 P4.2） |
+| `POST /recycling-orders/:id/accept` | ASSIGNED 卡片「立即接单」（废品） | ✅ P4.3 已对接（复用 P4.2） |
+
+**P4.3 页面与导航**：
+
+| 路径 | 说明 |
+|------|------|
+| `pages/tasks/index` | 任务列表：双 Tab + 状态筛选胶囊 + 分页卡片列表 |
+
+**P4.3 关键新增/扩展文件**：
+- `apps/miniapp-worker/src/api/order.ts`（新增 `fetchWorkerOrders` / `WorkerOrderItem`）
+- `apps/miniapp-worker/src/pages/tasks/index.vue`（完整任务列表 UI）
+
+**P4.3 业务规则**：
+- 状态筛选使用精确系统状态值：全部 / ASSIGNED / ACCEPTED / IN_SERVICE / PENDING_REVIEW / REVIEWED / CANCELLED
+- **员工端不可见** `PENDING_ASSIGN`；「全部」筛选时 API 传 6 个可见状态逗号拼接
+- 仅 ASSIGNED 状态卡片显示「查看详情」「立即接单」按钮
+- 支持下拉刷新（重置第 1 页）与上拉加载更多（追加分页）
+
+---
+
+> **文档版本**：v3.6（P4.3 员工端任务列表对接完成）
 > **生成日期**：2026-06-21
-> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.2 员工端对接说明
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.3 员工端对接说明
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销
 > **P3.6_repair 修正**：彻底删除居民验收接口及前端按钮，废品与保洁完全对称
 > **P3.8 新增**：三类代下单全流程闭环验证；保洁/废品 trim 一致性；家政详情模板修复；`MiniApp-Architecture.md` 交接文档
 > **P4.1 新增**：员工端登录页 + Pinia auth store + 路由守卫；`POST /auth/worker-login` 前端对接完成
 > **P4.2 新增**：员工端首页 ASSIGNED 待接单列表；列表 Query 新增 `workerId`；`fetchAssignedOrders` / `acceptOrder` 前端对接完成
+> **P4.3 新增**：员工端任务列表双 Tab + 精确状态筛选；`fetchWorkerOrders` 分页查询；排除 PENDING_ASSIGN
