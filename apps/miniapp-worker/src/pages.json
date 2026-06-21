@@ -17,7 +17,11 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "首页"
+        "navigationBarTitleText": "大洋云洁·智享社区",
+        "navigationBarBackgroundColor": "#1677ff",
+        "navigationBarTextStyle": "white",
+        "enablePullDownRefresh": true,
+        "backgroundColor": "#f0f5ff"
       }
     },
     {

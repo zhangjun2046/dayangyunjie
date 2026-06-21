@@ -53,6 +53,14 @@ export class QueryCleaningOrderDto {
   @Min(1)
   residentId?: number;
 
+  /** 员工 ID 过滤，员工端仅查看分配给自己的订单 */
+  @ApiPropertyOptional({ description: '员工 ID', example: 2 })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  workerId?: number;
+
   @ApiPropertyOptional({ description: '预约日期起（ISO 日期）', example: '2026-06-01' })
   @IsOptional()
   @IsDateString()

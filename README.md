@@ -8,7 +8,7 @@
 | ----------------------- | -------------------------------------------------------------- |
 | `apps/server`           | NestJS 后端 API                                                |
 | `apps/miniapp-customer` | 居民端小程序（P1.4 完善；含 shared 验收桩）                    |
-| `apps/miniapp-worker`   | 员工端小程序（P4.1 登录认证已完成；含 auth store + 路由守卫） |
+| `apps/miniapp-worker`   | 员工端小程序（P4.2 首页待接单列表已完成；含 auth store + order API） |
 | `apps/admin`            | 管理后台（P1.5 完善；含 shared 验收桩）                        |
 | `packages/shared`       | 共享枚举、DTO、`ApiResponse`（`@dayangyunjie/shared`）         |
 | `docs/`                 | CodingPlan、tech、Schema 等技术文档                            |
@@ -73,3 +73,4 @@ npx prisma migrate dev
 - 使用Sonnet4.6 LLM完成P3.6_repair，废品回收的验收改为由员工触发,与保洁一致
 - 使用Sonnet4.6 LLM完成P3.8,代下单集成验证（保洁+废品+家政三类代下单全流程闭环）
 - 使用Sonnet4.6 LLM完成P4.1，实现员工端手机号+密码登录页（调 /auth/worker-login）
+- 使用Sonnet4.6 LLM完成P4.2，实现员工端首页—仅展示 ASSIGNED 待接单任务列表（无统计卡片）

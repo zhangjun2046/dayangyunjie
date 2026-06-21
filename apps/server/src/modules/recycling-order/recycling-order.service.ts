@@ -91,7 +91,7 @@ export class RecyclingOrderService {
   }
 
   async findAll(query: QueryRecyclingOrderDto) {
-    const { page = 1, pageSize = 10, status, statuses, residentId, appointDateFrom, appointDateTo, keyword } = query;
+    const { page = 1, pageSize = 10, status, statuses, residentId, workerId, appointDateFrom, appointDateTo, keyword } = query;
 
     // statuses（逗号分隔）优先级高于 status 单值，供居民端「待服务」聚合 Tab 使用
     const statusList = statuses
@@ -100,6 +100,7 @@ export class RecyclingOrderService {
 
     const where: Prisma.RecyclingOrderWhereInput = {
       ...(residentId ? { residentId } : {}),
+      ...(workerId ? { workerId } : {}),
       ...(statusList && statusList.length > 0
         ? { status: { in: statusList } }
         : status

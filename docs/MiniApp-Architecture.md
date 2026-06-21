@@ -1,6 +1,6 @@
 # MiniApp-Architecture.md — 小程序架构交接文档
 
-> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）；**P4.1（2026-06-21）** 补充员工端登录认证  
+> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）；P4.1（2026-06-21）补充员工端登录认证；**P4.2（2026-06-21）** 补充员工端首页待接单任务列表  
 > **用途**：供 P4（员工端）、P5（管理后台）及后续维护对接，记录居民端已完成的页面结构、Store 设计、组件、API 封装与代下单数据流；并记录员工端 P4.1 登录认证实现  
 > **应用目录**：`apps/miniapp-customer/`（居民端）、`apps/miniapp-worker/`（员工端）
 
@@ -19,6 +19,7 @@
 9. [双端 API 配置](#9-双端-api-配置)
 10. [关键业务规则](#10-关键业务规则)
 11. [员工端 P4.1 登录认证（miniapp-worker）](#11-员工端-p41-登录认证miniapp-worker)
+12. [员工端 P4.2 首页待接单列表（miniapp-worker）](#12-员工端-p42-首页待接单列表miniapp-worker)
 
 ---
 
@@ -410,7 +411,7 @@ apps/miniapp-worker/
 | 路径 | 说明 | 需登录 |
 |------|------|--------|
 | `pages/login/index` | 手机号+密码登录，协议勾选，「开始服务」按钮 | 否 |
-| `pages/index/index` | 首页（tabBar，P1.4 骨架） | 是 |
+| `pages/index/index` | 首页（tabBar，P4.2 待接单 ASSIGNED 列表） | 是 |
 | `pages/tasks/index` | 任务（tabBar，P1.4 骨架） | 是 |
 | `pages/mine/index` | 我的（tabBar，P1.4 骨架） | 是 |
 
@@ -452,11 +453,58 @@ Login Page → 校验协议+手机号+密码
 
 ---
 
-> **文档版本**：v1.2（P4.1 员工端登录认证验收通过）  
+## 12. 员工端 P4.2 首页待接单列表（miniapp-worker）
+
+> **验收状态**：✅ 已通过（2026-06-21）
+
+### 12.1 功能概述
+
+首页**仅**展示当前登录员工被分配的 **ASSIGNED（已派单/待接单）** 任务，无统计卡片、无待反馈列表（符合 v2.0 §4.1）。
+
+### 12.2 关键文件
+
+| 文件 | 说明 |
+|------|------|
+| `src/api/order.ts` | `fetchAssignedOrders(workerId)` / `acceptOrder(type, id, operatorId)` |
+| `src/pages/index/index.vue` | 任务卡片 UI、下拉刷新、接单乐观移除 |
+| `src/pages.json` | navigationBar 蓝色品牌色 `#1677ff` |
+
+### 12.3 API 对接
+
+| 接口 | 封装 | 说明 |
+|------|------|------|
+| `GET /cleaning-orders?workerId=&statuses=ASSIGNED&pageSize=100` | `fetchAssignedOrders` | 与废品单并发 `Promise.all` |
+| `GET /recycling-orders?workerId=&statuses=ASSIGNED&pageSize=100` | 同上 | 合并后按预约时间升序 |
+| `POST /cleaning-orders/:id/accept` | `acceptOrder('cleaning', ...)` | Body: `{ operatorId: worker.id }` |
+| `POST /recycling-orders/:id/accept` | `acceptOrder('recycling', ...)` | 同上 |
+
+### 12.4 数据映射（AssignedOrderItem）
+
+| 卡片字段 | 来源 |
+|---------|------|
+| `serviceName` | 保洁 `serviceItem` / 废品 `serviceType` |
+| `appointDate` | ISO 日期截取前 10 位，`YYYY-MM-DD` → `YYYY.MM.DD` |
+| `appointTimeSlot` | 原样展示 |
+| `address` | `addressSnapshot`：区 + detail + buildingInfo 拼接 |
+| `orderType` | `'cleaning' \| 'recycling'` |
+
+### 12.5 页面生命周期
+
+- `onShow`：每次显示刷新列表（从其他 Tab 返回时更新）
+- `onPullDownRefresh`：下拉刷新后 `uni.stopPullDownRefresh()`
+- 接单成功：本地 `filter` 移除该卡片，Toast「接单成功」
+
+### 12.6 后端依赖（P4.2 补充）
+
+列表 Query DTO 新增 `workerId`（`QueryCleaningOrderDto` / `QueryRecyclingOrderDto`），`findAll` 按员工 ID 过滤。分页响应字段为 **`items`**（与居民端一致）。
+
+---
+
+> **文档版本**：v1.3（P4.2 员工端首页待接单列表验收通过）  
 > **生成日期**：2026-06-21  
-> **修订日期**：2026-06-21（v1.2：P4.1 员工端登录页 + auth store + 路由守卫；v1.1：P3.8 代下单集成验证闭环）  
-> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1 员工端登录认证  
-> **下一阶段**：P4.2 员工端首页 — 待接单任务列表（ASSIGNED 状态）
+> **修订日期**：2026-06-21（v1.3：P4.2 首页 ASSIGNED 列表 + order.ts；v1.2：P4.1 员工端登录；v1.1：P3.8 代下单）  
+> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.2 员工端  
+> **下一阶段**：P4.3 我的任务列表（双 Tab + 精确状态筛选）
 
 ---
 

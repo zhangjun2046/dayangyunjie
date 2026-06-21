@@ -1,0 +1,174 @@
+/**
+ * 员工端订单相关 API
+ * - 获取 ASSIGNED（待接单）订单列表（保洁 + 废品回收并发拉取后合并）
+ * - 接单操作（ASSIGNED → ACCEPTED）
+ */
+
+import { request } from './request';
+
+/** 后端分页响应结构 */
+interface PagedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** 地址嵌套对象（后端可能返回对象或已格式化字符串） */
+interface AddressDto {
+  province?: string;
+  city?: string;
+  district?: string;
+  detail?: string;
+  building?: string;
+  unit?: string;
+  room?: string;
+  fullAddress?: string;
+}
+
+/** 后端 addressSnapshot 结构（下单时快照，包含省市区+详细地址+楼栋信息） */
+interface AddressSnapshot {
+  province?: string;
+  city?: string;
+  district?: string;
+  detail?: string;
+  buildingInfo?: string;
+  addressTag?: string;
+  contactName?: string;
+  contactPhone?: string;
+}
+
+/** 保洁订单原始 DTO */
+interface CleaningOrderDto {
+  id: number;
+  orderNo: string;
+  status: string;
+  serviceItem: string;
+  appointDate: string;
+  appointTimeSlot: string;
+  workerId: number | null;
+  contactName: string;
+  contactPhone: string;
+  addressSnapshot?: AddressSnapshot;
+}
+
+/** 废品回收订单原始 DTO */
+interface RecyclingOrderDto {
+  id: number;
+  orderNo: string;
+  status: string;
+  serviceType: string;
+  appointDate: string;
+  appointTimeSlot: string;
+  workerId: number | null;
+  contactName: string;
+  contactPhone: string;
+  addressSnapshot?: AddressSnapshot;
+}
+
+/** 统一的待接单卡片数据（用于首页渲染） */
+export interface AssignedOrderItem {
+  id: number;
+  orderNo: string;
+  orderType: 'cleaning' | 'recycling';
+  serviceName: string;
+  appointDate: string;
+  appointTimeSlot: string;
+  address: string;
+  status: string;
+}
+
+/** 从 addressSnapshot 提取可显示的地址字符串：省市区 + 详细地址 + 楼栋信息 */
+function resolveAddress(snapshot: AddressSnapshot | undefined): string {
+  if (!snapshot) return '';
+  const parts: string[] = [];
+  if (snapshot.district) parts.push(snapshot.district);
+  if (snapshot.detail) parts.push(snapshot.detail);
+  if (snapshot.buildingInfo) parts.push(snapshot.buildingInfo);
+  if (parts.length > 0) return parts.join('');
+  // 降级：省市区拼接
+  return [snapshot.province, snapshot.city, snapshot.district].filter(Boolean).join('');
+}
+
+/** 将 ISO 日期截取日期部分再格式化：2026-06-17T00:00:00.000Z → 2026.06.17 */
+function formatAppointDate(dateStr: string): string {
+  if (!dateStr) return dateStr;
+  // 截取前 10 位 YYYY-MM-DD，再将横杠替换为点
+  return dateStr.slice(0, 10).replace(/-/g, '.');
+}
+
+/**
+ * 获取当前员工的 ASSIGNED（待接单）任务列表
+ * 并发拉取保洁订单与废品回收订单，按预约时间升序合并
+ */
+export async function fetchAssignedOrders(workerId: number): Promise<AssignedOrderItem[]> {
+  console.info('[worker-order] fetchAssignedOrders, workerId=', workerId);
+
+  const [cleaningResult, recyclingResult] = await Promise.all([
+    request<PagedResult<CleaningOrderDto>>('GET', '/cleaning-orders', {
+      workerId,
+      statuses: 'ASSIGNED',
+      page: 1,
+      pageSize: 100,
+    } as unknown as Record<string, unknown>),
+    request<PagedResult<RecyclingOrderDto>>('GET', '/recycling-orders', {
+      workerId,
+      statuses: 'ASSIGNED',
+      page: 1,
+      pageSize: 100,
+    } as unknown as Record<string, unknown>),
+  ]);
+
+  const cleaningItems: AssignedOrderItem[] = (cleaningResult?.items ?? []).map((o) => ({
+    id: o.id,
+    orderNo: o.orderNo,
+    orderType: 'cleaning' as const,
+    serviceName: o.serviceItem,
+    appointDate: formatAppointDate(o.appointDate),
+    appointTimeSlot: o.appointTimeSlot,
+    address: resolveAddress(o.addressSnapshot),
+    status: o.status,
+  }));
+
+  const recyclingItems: AssignedOrderItem[] = (recyclingResult?.items ?? []).map((o) => ({
+    id: o.id,
+    orderNo: o.orderNo,
+    orderType: 'recycling' as const,
+    serviceName: o.serviceType,
+    appointDate: formatAppointDate(o.appointDate),
+    appointTimeSlot: o.appointTimeSlot,
+    address: resolveAddress(o.addressSnapshot),
+    status: o.status,
+  }));
+
+  const merged = [...cleaningItems, ...recyclingItems];
+
+  // 按预约日期 + 时间段升序排列（ISO / 点分格式字典序均有效）
+  merged.sort((a, b) => {
+    const keyA = `${a.appointDate} ${a.appointTimeSlot}`;
+    const keyB = `${b.appointDate} ${b.appointTimeSlot}`;
+    return keyA.localeCompare(keyB);
+  });
+
+  console.info('[worker-order] fetchAssignedOrders done, count=', merged.length);
+  return merged;
+}
+
+/**
+ * 员工接单：ASSIGNED → ACCEPTED
+ * @param orderType  订单类型（cleaning | recycling）
+ * @param orderId    订单 ID
+ * @param operatorId 操作员 ID（员工本人 worker.id）
+ */
+export async function acceptOrder(
+  orderType: 'cleaning' | 'recycling',
+  orderId: number,
+  operatorId: number,
+): Promise<void> {
+  const path =
+    orderType === 'cleaning'
+      ? `/cleaning-orders/${orderId}/accept`
+      : `/recycling-orders/${orderId}/accept`;
+  console.info('[worker-order] acceptOrder, type=', orderType, 'orderId=', orderId);
+  await request<unknown>('POST', path, { operatorId });
+}

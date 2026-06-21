@@ -105,7 +105,7 @@ export class CleaningOrderService {
   }
 
   async findAll(query: QueryCleaningOrderDto) {
-    const { page = 1, pageSize = 10, status, statuses, residentId, appointDateFrom, appointDateTo, keyword } = query;
+    const { page = 1, pageSize = 10, status, statuses, residentId, workerId, appointDateFrom, appointDateTo, keyword } = query;
 
     // statuses（逗号分隔）优先级高于 status 单值，供居民端「待服务」聚合 Tab 使用
     const statusList = statuses
@@ -114,6 +114,7 @@ export class CleaningOrderService {
 
     const where: Prisma.CleaningOrderWhereInput = {
       ...(residentId ? { residentId } : {}),
+      ...(workerId ? { workerId } : {}),
       ...(statusList && statusList.length > 0
         ? { status: { in: statusList } }
         : status
