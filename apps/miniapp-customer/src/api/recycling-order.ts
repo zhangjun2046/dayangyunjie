@@ -105,16 +105,3 @@ export function cancelRecyclingOrder(id: number, operatorId: number): Promise<Re
     remark: '居民主动取消',
   });
 }
-
-/**
- * 居民验收废品服务（废品 IN_SERVICE → PENDING_REVIEW）
- * POST /recycling-orders/:id/resident-confirm
- */
-export function residentConfirmRecycling(
-  id: number,
-  operatorId: number,
-): Promise<RecyclingOrderDto> {
-  return request<RecyclingOrderDto>('POST', `/recycling-orders/${id}/resident-confirm`, {
-    operatorId,
-  });
-}

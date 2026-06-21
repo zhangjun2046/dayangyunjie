@@ -1,6 +1,6 @@
 # Backend API Summary（P2 全接口交接文档）
 
-> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；**P3.7（2026-06-21）** 更新至 v3.1  
+> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；**P3.6_repair（2026-06-21）** 更新至 v3.2（废品验收改为员工触发，删除 resident-confirm 接口）  
 > **用途**：供居民端（P3）、员工端（P4）、管理后台（P5）对接后端 API，避免上下文丢失  
 > **Base URL**：`http://localhost:3000/api/v1`  
 > **统一响应格式**：`{ code: number, message: string, data: T | null }`  
@@ -220,14 +220,10 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 | POST | `/recycling-orders/:id/assign` | 派单（管理员，PENDING_ASSIGN→ASSIGNED） |
 | POST | `/recycling-orders/:id/accept` | 接单（员工，ASSIGNED→ACCEPTED） |
 | POST | `/recycling-orders/:id/gps-checkin` | GPS签到（员工，ACCEPTED→IN_SERVICE） |
-| POST | `/recycling-orders/:id/complete` | 完成服务（员工上传照片，IN_SERVICE→PENDING_REVIEW） |
+| POST | `/recycling-orders/:id/complete` | 完成服务（员工上传照片，IN_SERVICE→PENDING_REVIEW，与保洁对称） |
 | POST | `/recycling-orders/:id/cancel` | 取消（仅 PENDING_ASSIGN 状态） |
-| POST | `/recycling-orders/:id/resident-confirm` | **居民验收服务**（IN_SERVICE→PENDING_REVIEW，P3.6 新增） |
 
-**`POST /recycling-orders/:id/resident-confirm` 说明**（P3.6 新增）：  
-居民端「验收服务」按钮触发，将废品订单从 `IN_SERVICE` 流转至 `PENDING_REVIEW`。  
-**Body**：`{ operatorId: number }` (居民 ID)  
-**错误**：非 `IN_SERVICE` 状态返回 HTTP 400
+> **P3.6_repair（2026-06-21）**：`POST /recycling-orders/:id/resident-confirm`（居民验收）已删除。废品 `IN_SERVICE→PENDING_REVIEW` 现在唯一由员工端 `/complete` 触发，与保洁完全对称。
 
 **`GET /recycling-orders` 居民端查询参数**：
 - `residentId`（number，可选）：按居民过滤，居民端必传
@@ -640,7 +636,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 | `POST /cleaning-orders/:id/cancel` | 待派单取消 | ✅ P3.6 已对接 |
 | `GET /recycling-orders?residentId=&statuses=` | 废品订单列表 | ✅ P3.6 已对接 |
 | `GET /recycling-orders/:id` | 废品订单详情 | ✅ P3.6 已对接 |
-| `POST /recycling-orders/:id/resident-confirm` | 废品「验收服务」（IN_SERVICE→PENDING_REVIEW） | ✅ P3.6 新增并对接 |
+| ~~`POST /recycling-orders/:id/resident-confirm`~~ | ~~废品「验收服务」（IN_SERVICE→PENDING_REVIEW）~~ | ❌ P3.6_repair 已删除 |
 | `GET /consult-orders?residentId=` | 家政咨询订单列表 | ✅ P3.6 已对接 |
 | `GET /consult-orders/:id` | 家政咨询订单详情 | ✅ P3.6 已对接 |
 
@@ -650,7 +646,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 - `src/components/OrderStatusTimeline.vue`（状态时间轴）
 - `src/api/review.ts`（评价提交 API）
 
-**P3.6 后端新增端点**：`POST /recycling-orders/:id/resident-confirm`（居民验收废品服务，P3.6）
+**P3.6 后端新增端点**：~~`POST /recycling-orders/:id/resident-confirm`~~（已在 P3.6_repair 删除，废品验收改为员工端 `/complete` 触发，与保洁对称）
 
 **P3.6 兼容性修复**：
 - 详情页使用 `onLoad`（uni-app）替代 `onMounted`（Vue）获取路由参数，解决 mp-weixin 下参数读取失败问题
@@ -703,8 +699,26 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
-> **文档版本**：v3.1（P3.7 评价页+投诉页+我的页完成，Complaint 查询新增 residentId）
+---
+
+## P3.6_repair 完成说明（2026-06-21）
+
+废品回收「服务中→待评价」触发方回归员工端，与保洁完全对称：
+
+| 变更项 | 说明 |
+|--------|------|
+| 删除接口 | `POST /recycling-orders/:id/resident-confirm`（居民验收，已移除） |
+| 删除前端 | 居民小程序「验收服务」按钮、`onResidentConfirm` 函数、`residentConfirmRecycling` API |
+| 保留接口 | `POST /recycling-orders/:id/complete`（员工完成服务，IN_SERVICE→PENDING_REVIEW） |
+| 新增测试 | 4 项回归测试，全套 29 项通过 |
+
+**废品最终状态链**：`PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE →（员工 /complete）→ PENDING_REVIEW → REVIEWED`
+
+---
+
+> **文档版本**：v3.2（P3.6_repair 废品验收改为员工触发，删除 resident-confirm 接口）
 > **生成日期**：2026-06-21
 > **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.7 前端对接说明
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销
+> **P3.6_repair 修正**：彻底删除居民验收接口及前端按钮，废品与保洁完全对称

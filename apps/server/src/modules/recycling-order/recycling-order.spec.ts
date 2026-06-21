@@ -8,6 +8,7 @@
  *  4. completeOrder     — 完成服务（照片写入 / 非法状态）；员工触发 IN_SERVICE→PENDING_REVIEW
  *  5. cancelOrder       — 取消（合法 / 非法状态）
  *  6. haversineMeters   — 距离计算精度（通过 gpsCheckin 间接覆盖）
+ *  7. residentConfirm 已移除 — 方案B回归：居民端验收接口已删除，员工 completeOrder 是唯一路径
  */
 
 import { BadRequestException, NotFoundException } from '@nestjs/common';
@@ -361,6 +362,52 @@ describe('RecyclingOrderService — cancelOrder（取消订单）', () => {
     const { svc, prisma } = makeService();
     prisma.recyclingOrder.findUnique = jest.fn().mockResolvedValue(null);
     await expect(svc.cancelOrder(1, residentDto)).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
+
+// ─── 7. residentConfirm 已移除（方案B回归）────────────────────────────────────
+
+describe('RecyclingOrderService — residentConfirm 已移除（方案B：废品与保洁对称）', () => {
+  it('服务实例不具备 residentConfirm 方法', () => {
+    const { svc } = makeService();
+    // 方案B删除了居民验收接口，服务层不再暴露该方法
+    expect(typeof (svc as unknown as Record<string, unknown>)['residentConfirm']).toBe('undefined');
+  });
+
+  it('completeOrder 是 IN_SERVICE→PENDING_REVIEW 的唯一路径，operatorType 为 WORKER', async () => {
+    const { svc, stateMachine } = makeService();
+    await svc.completeOrder(1, { photoUrls: ['https://cdn.example.com/a.jpg'], operatorId: 5 });
+
+    const call = (stateMachine.transition as jest.Mock).mock.calls[0][1];
+    expect(call.toStatus).toBe('PENDING_REVIEW');
+    expect(call.operatorType).toBe('WORKER');
+    expect(call.orderType).toBe('RECYCLING');
+  });
+
+  it('completeOrder operatorType 不为 RESIDENT（不允许居民端触发完成）', async () => {
+    const { svc, stateMachine } = makeService();
+    await svc.completeOrder(1, { photoUrls: ['https://cdn.example.com/a.jpg'], operatorId: 5 });
+
+    const call = (stateMachine.transition as jest.Mock).mock.calls[0][1];
+    expect(call.operatorType).not.toBe('RESIDENT');
+  });
+
+  it('回归：IN_SERVICE 状态下 completeOrder 完整流转（照片 + 状态机）不受方案B影响', async () => {
+    const inServiceOrder = makeOrderRow({ status: 'IN_SERVICE', workerId: 2 });
+    const prisma = makePrismaMock();
+    prisma.recyclingOrder.findUnique = jest.fn().mockResolvedValue(inServiceOrder);
+    const stateMachine = makeStateMachineMock();
+    // @ts-expect-error — 测试注入
+    const svc = new RecyclingOrderService(prisma, stateMachine, new GeoService());
+
+    const dto = { photoUrls: ['https://cdn.example.com/photo.jpg'], operatorId: 2 };
+    await svc.completeOrder(1, dto);
+
+    expect(prisma._tx.workPhoto.createMany).toHaveBeenCalledTimes(1);
+    expect(stateMachine.transition).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ toStatus: 'PENDING_REVIEW', operatorType: 'WORKER' }),
+    );
   });
 });
 

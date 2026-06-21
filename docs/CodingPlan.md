@@ -39,9 +39,10 @@
 | P3.4 废品回收预约三步向导                   | ✅ 已通过 | 2026-06-20 | 复用 P3.3 向导框架；动态回收类型 + 预估重量步进器（默认 5kg）；地址选择/代下单/日历/时段与保洁一致；`POST /recycling-orders` 生成 RCY 订单号；无价格展示；使用 Sonnet 4.6 LLM 完成 |
 | P3.5 家政咨询提交流程                       | ✅ 已通过 | 2026-06-20 | 两步向导（类型选择 + 需求填写）；动态服务类型（`GET /service-catalogs?bizType=CONSULT`）；代下单开关 + 服务对象信息；无地址字段；`POST /consult-orders` 生成 CNS 前缀订单号；`npm run build` 通过；使用 Sonnet 4.6 LLM 完成 |
 | P3.6 我的订单列表 + 详情页                  | ✅ 已通过 | 2026-06-20 | 三类查询DTO加residentId+statuses多状态；新增`POST /recycling-orders/:id/resident-confirm`（IN_SERVICE→PENDING_REVIEW）；订单列表三Tab（保洁/废品/家政）+状态筛选胶囊+卡片+下拉刷新+上拉加载；OrderStatusTimeline时间轴组件；订单详情页三种模板+取消/验收/评价按钮+无价格；pages.json新增order-detail路由；修复详情页用`onLoad`替代`onMounted`获取路由参数（mp-weixin兼容）；修复筛选胶囊scroll-view横向滚动（white-space:nowrap+inline-flex内联方案）；`npm run build` 通过；使用 Sonnet 4.6 LLM 完成 |
+| P3.6_repair 废品回收验收改为员工触发        | ✅ 已通过 | 2026-06-21 | 废品回收「服务中→待评价」触发方从居民端验收回归为员工端完成服务，与保洁对称；删除后端 `POST /recycling-orders/:id/resident-confirm` 接口及 `ResidentConfirmDto`；删除前端「验收服务」按钮、`onResidentConfirm` 函数、`residentConfirmRecycling` API；更新 P4.5 开发计划（废品改为有完成服务按钮）；新增 4 项回归测试（共 29 项全通过）；`npm run build` 通过；使用 Sonnet 4.6 LLM 完成 |
 | P3.7 评价页 + 投诉页 + 我的页              | ✅ 已通过 | 2026-06-21 | 评价页（1–5星+标签+文字+多图上传，7天限时）；投诉页（6原因单选+描述必填+多图凭证，ACCEPTED后才可投诉）；我的页（完整手机号+我的地址CRUD+我的投诉列表/详情）；订单详情展示评价/投诉卡片；Complaint 查询DTO新增residentId；`npm run build` 通过；使用 Sonnet 4.6 LLM 完成 |
 
-> **P2.1–P2.15 后端核心 API 全部完成（含 v2.0 补充）。P3.1–P3.7 居民端骨架、首页、预约向导、订单列表+详情、评价/投诉与我的页已完成。** 下一阶段：**P3.8** — 代下单集成验证。
+> **P2.1–P2.15 后端核心 API 全部完成（含 v2.0 补充）。P3.1–P3.7 居民端骨架、首页、预约向导、订单列表+详情、评价/投诉与我的页已完成；P3.6_repair 废品回收验收改为员工触发（与保洁对称）已通过。** 下一阶段：**P3.8** — 代下单集成验证。
 
 ---
 
@@ -1552,6 +1553,13 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 ---
 
+#### P3.6_repair 废品回收验收改为员工触发
+
+> **验收状态**：✅ **已通过**（2026-06-21）  
+> **验收依据**：① 删除后端 `POST /recycling-orders/:id/resident-confirm` 接口及 `ResidentConfirmDto` DTO 文件；② 删除前端居民小程序「验收服务」按钮、`onResidentConfirm` 函数及 `residentConfirmRecycling` API 函数；③ 废品 `IN_SERVICE→PENDING_REVIEW` 仅保留员工端 `POST /recycling-orders/:id/complete`（与保洁完全对称）；④ 新增 4 项回归测试，全套 29 项通过；⑤ 更新 P4.5 计划（废品改为有完成服务按钮）；`npx tsc --noEmit` 后端 0 错误；使用 Sonnet 4.6 LLM 完成。
+
+---
+
 #### P3.7 评价页 + 投诉页 + 我的页（3h）
 
 > **验收状态**：✅ **已通过**（2026-06-21）  
@@ -1818,20 +1826,20 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 - ✏️ **无 SOP 弹窗**（已从 v2.0 删除，进入 IN_SERVICE 后直接可操作）
 - 作业记录区解锁：上传打扫前照片 + 打扫后照片（拍照/相册）；照片有水印（订单号+时间）
 - **保洁订单**：新增「**完成服务**」按钮 → 弹窗「确认已完成本次服务？」→ 确认后调 `/cleaning-orders/:id/complete` → 状态变 PENDING_REVIEW
-- **废品订单**：无「完成服务」按钮，等待居民端点击「验收服务」触发状态变更；不展示实际重量/核定金额/已收款字段
+- **废品订单**：与保洁对称，新增「**完成服务**」按钮 → 弹窗确认 → 调 `POST /recycling-orders/:id/complete` → 状态变 PENDING_REVIEW；不展示实际重量/核定金额/已收款字段
 
 **Cursor Agent 干什么**
 
 - IN_SERVICE 状态下条件渲染（保洁/废品分支）
 - 作业拍照+上传（调 `/upload/image`，含水印）
 - 保洁：「完成服务」按钮+确认弹窗
-- 废品：展示预估重量（居民预约时填写）；不展示实际重量/金额
+- 废品：「完成服务」按钮+确认弹窗（与保洁对称）；展示预估重量；不展示实际重量/金额
 
 **人工干什么**
 
 - ✅ 进入服务中：无 SOP 弹窗，直接可上传照片
 - ✅ 保洁：上传照片后点「完成服务」→ 状态变 PENDING_REVIEW
-- ✅ 废品：无「完成服务」按钮；等居民验收后状态变 PENDING_REVIEW
+- ✅ 废品：有「完成服务」按钮，点击后状态变 PENDING_REVIEW（与保洁对称）
 - ✅ 无实际重量、核定金额、已收款字段
 
 **使用模型**: **强模型**
@@ -1842,7 +1850,7 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 1. 进入 IN_SERVICE 无 SOP 弹窗
 2. 保洁「完成服务」正确触发 IN_SERVICE → PENDING_REVIEW
-3. 废品无「完成服务」按钮，页面无重量/金额字段
+3. 废品「完成服务」正确触发 IN_SERVICE → PENDING_REVIEW（与保洁对称），页面无重量/金额字段
 4. 照片上传成功（含水印）
 
 ---
@@ -2786,6 +2794,6 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 > **文档版本**: v2.7
 > **创建日期**: 2026-06-01
-> **修订日期**: 2026-06-21（v2.7：P3.7 评价页+投诉页+我的页验收通过 | v2.6：P3.6 验收通过并补充 mp-weixin onLoad 兼容修复 + scroll-view 内联胶囊修复 | v2.5：P3.6 我的订单列表+详情页验收通过 | v2.4：P3.5 家政咨询提交流程验收通过 | v2.3：P3.3 + P3.4 预约向导验收通过 | v2.2：P3.2 首页验收通过 | v2.1：P3.1 骨架+登录验收通过 | v2.0：基于需求文档 v2.0 全面更新 | v1.3：废品流程调整 | v1.2：WorkBuddy → Cursor Agent）
+> **修订日期**: 2026-06-21（v2.8：P3.6_repair 废品验收改为员工触发与保洁对称 | v2.7：P3.7 评价页+投诉页+我的页验收通过 | v2.6：P3.6 验收通过并补充 mp-weixin onLoad 兼容修复 + scroll-view 内联胶囊修复 | v2.5：P3.6 我的订单列表+详情页验收通过 | v2.4：P3.5 家政咨询提交流程验收通过 | v2.3：P3.3 + P3.4 预约向导验收通过 | v2.2：P3.2 首页验收通过 | v2.1：P3.1 骨架+登录验收通过 | v2.0：基于需求文档 v2.0 全面更新 | v1.3：废品流程调整 | v1.2：WorkBuddy → Cursor Agent）
 > **适用范围**: 大洋云洁 (dayangyunjie-code) 社区服务平台一期 MVP（v2.0 基线）
 > **使用方式**: 按 P1 → P2 → P3 → P4 → P5 → P6 顺序，逐单元执行。每单元完成后按"测试标准"验收，通过后进入下一单元。P2.1–P2.15 已完成（v1.x + v2.0 阶段）；P3.1–P3.7 已完成，当前继续 P3.8。

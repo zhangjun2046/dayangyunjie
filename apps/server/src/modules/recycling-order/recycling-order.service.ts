@@ -334,29 +334,6 @@ export class RecyclingOrderService {
   }
 
   /**
-   * 居民验收服务：居民端触发 IN_SERVICE → PENDING_REVIEW。
-   * 仅需 operatorId（无需照片），供废品回收「验收服务」按钮使用。
-   */
-  async residentConfirm(id: number, dto: { operatorId: number }): Promise<RecyclingOrderDto> {
-    const order = await this.findOneOrThrow(id);
-
-    await this.prismaService.$transaction(async (tx) => {
-      await this.stateMachine.transition(tx, {
-        orderId: id,
-        orderType: 'RECYCLING',
-        fromStatus: order.status,
-        toStatus: 'PENDING_REVIEW',
-        operatorId: dto.operatorId,
-        operatorType: 'RESIDENT',
-        remark: '居民验收服务',
-      });
-    });
-
-    console.info(`[RecyclingOrder] residentConfirm orderId=${id} operatorId=${dto.operatorId}`);
-    return this.toDto(await this.findOneOrThrow(id));
-  }
-
-  /**
    * 取消订单：仅允许 PENDING_ASSIGN → CANCELLED，其他状态由状态机抛出 400。
    */
   async cancelOrder(id: number, dto: CancelOrderDto): Promise<RecyclingOrderDto> {

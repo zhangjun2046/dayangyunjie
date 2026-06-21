@@ -210,16 +210,6 @@
         {{ actionLoading ? '处理中…' : '取消订单' }}
       </button>
 
-      <!-- 废品服务中：验收服务 -->
-      <button
-        v-if="orderType === 'recycling' && order.status === 'IN_SERVICE'"
-        class="btn-primary"
-        @tap="onResidentConfirm"
-        :disabled="actionLoading"
-      >
-        {{ actionLoading ? '处理中…' : '验收服务' }}
-      </button>
-
       <!-- ACCEPTED 及以后（保洁/废品）：投诉反馈 + 联系客服 + 可选评价 -->
       <template v-if="canComplaint">
         <button class="btn-outline" @tap="onGoComplaint">投诉反馈</button>
@@ -250,7 +240,6 @@ import {
 import {
   fetchRecyclingOrderDetail,
   cancelRecyclingOrder,
-  residentConfirmRecycling,
   type RecyclingOrderDto,
 } from '@/api/recycling-order';
 import {
@@ -372,7 +361,6 @@ const hasActionButton = computed(() => {
   if (!order.value) return false;
   const s = order.value.status;
   if (s === 'PENDING_ASSIGN') return true;
-  if (orderType.value === 'recycling' && s === 'IN_SERVICE') return true;
   if (canReview.value) return true;
   if (canComplaint.value) return true;
   return false;
@@ -423,34 +411,6 @@ async function onCancelOrder() {
     console.info(`[order-detail] cancelled orderId=${orderId.value}`);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : '取消失败';
-    uni.showToast({ title: msg, icon: 'none' });
-  } finally {
-    actionLoading.value = false;
-  }
-}
-
-/** 废品验收服务 */
-async function onResidentConfirm() {
-  const residentId = authStore.resident?.id;
-  if (!residentId || !order.value) return;
-
-  const confirmed = await new Promise<boolean>((resolve) => {
-    uni.showModal({
-      title: '确认验收',
-      content: '确认服务人员已完成服务，提交验收吗？',
-      success: (res) => resolve(res.confirm),
-    });
-  });
-
-  if (!confirmed) return;
-
-  actionLoading.value = true;
-  try {
-    order.value = (await residentConfirmRecycling(orderId.value, residentId)) as unknown as AnyOrder;
-    uni.showToast({ title: '验收成功', icon: 'success' });
-    console.info(`[order-detail] residentConfirm orderId=${orderId.value}`);
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : '验收失败';
     uni.showToast({ title: msg, icon: 'none' });
   } finally {
     actionLoading.value = false;
