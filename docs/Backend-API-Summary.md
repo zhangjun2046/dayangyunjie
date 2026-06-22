@@ -1,11 +1,11 @@
 # Backend API Summary（P2 全接口交接文档）
 
-> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；P4.2（2026-06-21）更新至 v3.5；P4.3（2026-06-21）更新至 v3.6；P4.4（2026-06-21）更新至 v3.7；P4.5（2026-06-22）更新至 v3.8；P4.6（2026-06-22）更新至 v3.9；**P4.7（2026-06-22）** 更新至 v4.0（员工端我的页—员工详情+修改密码对接完成）  
+> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；P4.2（2026-06-21）更新至 v3.5；P4.3（2026-06-21）更新至 v3.6；P4.4（2026-06-21）更新至 v3.7；P4.5（2026-06-22）更新至 v3.8；P4.6（2026-06-22）更新至 v3.9；P4.7（2026-06-22）更新至 v4.0；**P5.1（2026-06-22）** 更新至 v4.1（管理后台 Admin 登录 + 布局框架对接完成）  
 > **用途**：供居民端（P3）、员工端（P4）、管理后台（P5）对接后端 API，避免上下文丢失  
 > **Base URL**：`http://localhost:3000/api/v1`  
 > **统一响应格式**：`{ code: number, message: string, data: T | null }`  
 > **Swagger**：`http://localhost:3000/api/docs`  
-> **鉴权**：当前所有接口均为公开（管理端/员工端 JWT 鉴权留 P3/P4/P5 阶段实现）
+> **鉴权**：居民端/员工端/管理端 JWT 已分别对接（`/auth/wechat-login`、`/auth/worker-login`、`/auth/admin-login`）；其余业务接口当前仍为公开，RBAC 留后续阶段
 
 ---
 
@@ -51,6 +51,7 @@
 | POST | `/auth/refresh` | 使用 refreshToken 换取新 accessToken |
 | GET | `/auth/profile` | 获取当前登录居民信息（需 Bearer Token） |
 | POST | `/auth/worker-login` | **员工登录**（phone + password → JWT，role=worker，P2.13；✅ P4.1 员工端已对接） |
+| POST | `/auth/admin-login` | **管理员登录**（email + password → JWT，role=admin，P5.1；✅ 管理后台已对接） |
 
 ### POST `/auth/worker-login`
 
@@ -64,6 +65,21 @@
 ```
 
 **员工端对接（P4.1）**：`apps/miniapp-worker/src/api/auth.ts` → `workerLogin()`；登录态持久化 key `__worker_auth__`；JWT 中 `role=worker`，与居民端 token 隔离。
+
+---
+
+### POST `/auth/admin-login`
+
+**Body**：`{ email: string, password: string }`  
+**Response**：
+```typescript
+{
+  tokens: { accessToken: string; refreshToken: string; expiresIn: number };
+  admin: { id: number; email: string; name: string };
+}
+```
+
+**管理后台对接（P5.1）**：`apps/admin/src/api/auth.ts` → `adminLogin()`；Pinia `useUserStore.login()` 存储 JWT；localStorage key `dayangyunjie_admin_token`；JWT 中 `role=admin`。开发默认账号 `admin@dayunyunjie.com` / `admin123`（见 `prisma/seed.ts`）。H5 开发 API 基址 `/api/v1`（Vite 代理至 `localhost:3000`）。
 
 ---
 
@@ -544,7 +560,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 |----|---------|
 | **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED`（✅ P3.7 已对接）；投诉 `POST /complaints` + 我的投诉 `GET /complaints?residentId=`（✅ P3.7 已对接）；地址管理 CRUD `GET/POST/PUT/DELETE /addresses`（✅ P3.7 已对接）；首页轮播图 `GET /banners/active?displayTarget=RESIDENT`（✅ P3.2 已对接）；客服电话 `GET /operators/contact`（✅ P3.2 已对接）；保洁预约 `POST /cleaning-orders`（✅ P3.3 已对接，含代下单字段）；废品预约 `POST /recycling-orders`（✅ P3.4 已对接，含代下单字段）；家政咨询 `POST /consult-orders`（✅ P3.5 已对接，含代下单字段）；代下单闭环验证（✅ P3.8 已通过，详见 `MiniApp-Architecture.md`）；H5 走 Vite 代理 `/api/v1`，小程序走 `VITE_API_BASE` |
 | **员工端（P4）** | 登录走 `POST /auth/worker-login`（✅ P4.1）；首页待接单列表 `GET /cleaning-orders?workerId=&statuses=ASSIGNED` + `GET /recycling-orders?workerId=&statuses=ASSIGNED`（✅ P4.2）；任务列表 `GET /cleaning-orders?workerId=&statuses=` / `GET /recycling-orders?workerId=&statuses=` 分页多状态筛选，排除 PENDING_ASSIGN（✅ P4.3）；任务详情 `GET /cleaning-orders/:id` / `GET /recycling-orders/:id`（✅ P4.4）；接单 `POST /cleaning-orders/:id/accept` 或废品同名接口（✅ P4.2/P4.3/P4.4）；GPS 签到 `POST /cleaning-orders/:id/gps-checkin`（✅ P4.4，仅 ACCEPTED 状态）；IN_SERVICE 态上传作业照片 `POST /upload/image?orderNo=`（含水印，✅ P4.5）；完成服务 `POST /cleaning-orders/:id/complete` / 废品同名接口（Body：`beforePhotoUrls[]`, `afterPhotoUrls[]`, `operatorId`，✅ P4.5）；PENDING_REVIEW/REVIEWED 只读详情 + `GET /reviews?orderType=&orderId=` 展示居民评价（✅ P4.6）；我的页 `GET /workers/:id`（个人信息/评分/证书）+ 今日订单统计（复用订单列表 API）+ `PUT /workers/:id/change-password`（✅ P4.7） |
-| **管理后台（P5）** | 看板接口均在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；配置管理走 `/service-catalogs`、`/banners`、`/operators` |
+| **管理后台（P5）** | 登录走 `POST /auth/admin-login`（✅ P5.1）；API 基址 `/api/v1`；二级折叠菜单布局 + 全部路由占位（含配置管理 P5.9–P5.11）；看板接口在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；配置管理走 `/service-catalogs`、`/banners`、`/operators` |
 
 ---
 
@@ -1002,10 +1018,63 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
-> **文档版本**：v4.0（P4.7 员工端我的页对接完成）
+## P5.1 完成说明（2026-06-22）
+
+管理后台登录与布局框架（P5.1）已完成，以下接口与前端已对接：
+
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `POST /auth/admin-login` | 登录页邮箱+密码登录，获取 Admin JWT | ✅ P5.1 已对接 |
+
+**P5.1 页面与路由**：
+
+| 路径 | 说明 |
+|------|------|
+| `/login` | 登录页（公开） |
+| `/dashboard` | 首页 |
+| `/orders/cleaning` | 保洁订单（P5.3 占位） |
+| `/orders/recycling` | 废品订单（P5.4 占位） |
+| `/orders/consult` | 家政订单（P5.5 占位） |
+| `/orders/complaint` | 投诉反馈（P5.7 占位） |
+| `/data/dashboard` | 数据看板（P5.2 占位） |
+| `/workers` | 服务人员管理（P5.6 占位） |
+| `/config/services` | 服务配置（P5.9 占位） |
+| `/config/operators` | 运营人员配置（P5.10 占位） |
+| `/config/banners` | 轮播图管理（P5.11 占位） |
+| `/settings` | 系统设置（P5.8 占位） |
+
+**P5.1 侧栏菜单结构**（二级折叠 `el-sub-menu`）：
+
+- 订单管理 → 保洁/废品/家政/投诉
+- 数据管理 → 数据看板
+- 员工管理 → 服务人员管理
+- 配置管理 → 服务配置 / 运营人员配置 / 轮播图管理
+- 系统设置（一级菜单项）
+
+**P5.1 关键新增/扩展文件**：
+
+- `apps/server/src/modules/auth/dto/admin-login.dto.ts`（AdminLoginDto）
+- `apps/server/src/modules/auth/auth.service.ts`（`adminLogin` / `issueAdminTokens`）
+- `apps/server/src/modules/auth/auth.controller.ts`（`POST /auth/admin-login`）
+- `apps/admin/src/api/auth.ts`（`adminLogin`）
+- `apps/admin/src/store/index.ts`（真实 JWT login）
+- `apps/admin/src/layout/index.vue`（二级折叠侧栏 + 顶栏 + 底部用户信息）
+- `apps/admin/src/router/index.ts`（P5 全部路由 + 守卫）
+- `apps/admin/.env.development`（`VITE_API_BASE_URL=/api/v1`）
+
+**P5.1 业务规则**：
+
+- 未登录访问受保护路由 → 跳转 `/login?redirect=...`
+- 已登录访问 `/login` → 重定向 `/dashboard`
+- Token 存 localStorage `dayangyunjie_admin_token`；管理员 name/email 持久化
+- seed 默认管理员：`admin@dayunyunjie.com` / `admin123`
+
+---
+
+> **文档版本**：v4.1（P5.1 管理后台 Admin 登录+布局框架对接完成）
 > **生成日期**：2026-06-21
-> **修订日期**：2026-06-22（v4.0：P4.7 我的页员工详情+证书预览+修改密码；v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
-> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.7 员工端对接说明
+> **修订日期**：2026-06-22（v4.1：P5.1 Admin 登录+二级折叠菜单+配置管理路由占位；v4.0：P4.7 我的页员工详情+证书预览+修改密码；v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1 管理后台对接说明
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销
 > **P3.6_repair 修正**：彻底删除居民验收接口及前端按钮，废品与保洁完全对称
@@ -1017,3 +1086,4 @@ PENDING → PROCESSING → COMPLETED（终态）
 > **P4.5 新增**：IN_SERVICE 作业照片上传（`/upload/image` 含水印）；`completeOrder` 完成服务；`beforePhotoUrls`/`afterPhotoUrls` DTO 适配；修复 H5 `UPLOAD_BASE_URL` 代理路径
 > **P4.6 新增**：员工端任务详情 PENDING_REVIEW/REVIEWED 只读模板；新增 `apps/miniapp-worker/src/api/review.ts`（`fetchOrderReview`）；REVIEWED 状态条件渲染用户评价 card（星级/标签/文字/图片/时间）；调 `GET /reviews?orderType=&orderId=` 懒加载
 > **P4.7 新增**：员工端我的页完整实现；新增 `apps/miniapp-worker/src/api/worker.ts`（`fetchWorkerDetail` / `changePassword`）；`pages/mine/index` 重写（今日订单/今日已完成统计、健康证/技能证书预览、无服务记录入口）；`pages/settings/index` 修改密码页；对接 `GET /workers/:id` + `PUT /workers/:id/change-password`
+> **P5.1 新增**：后端 `POST /auth/admin-login`（Admin JWT，role=admin）；管理后台真实登录+二级折叠菜单布局；P5.2–P5.11 路由占位（含配置管理）；`apps/admin/src/api/auth.ts` + Pinia store + layout/router；API 基址 `/api/v1`；seed 默认管理员 `admin@dayunyunjie.com` / `admin123`

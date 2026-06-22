@@ -8,6 +8,7 @@ import {
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { CurrentUserDecorator } from './decorators/current-user.decorator';
+import { AdminLoginDto } from './dto/admin-login.dto';
 import { ApiResponseDto, LoginResultDto } from './dto/auth-response.dto';
 import { DecryptPhoneDto } from './dto/decrypt-phone.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -103,6 +104,37 @@ export class AuthController {
       message: 'ok',
       data,
     };
+  }
+
+  @Post('admin-login')
+  @ApiOperation({ summary: '管理员邮箱+密码登录，签发 Admin JWT' })
+  @ApiOkResponse({
+    description: '登录成功',
+    schema: {
+      example: {
+        code: 0,
+        message: 'ok',
+        data: {
+          tokens: {
+            accessToken: 'admin_access_token',
+            refreshToken: 'admin_refresh_token',
+            expiresIn: 7200,
+          },
+          admin: {
+            id: 1,
+            email: 'admin@dayunyunjie.com',
+            name: '管理员',
+          },
+        },
+      },
+    },
+  })
+  @ApiUnauthorizedResponse({ description: '邮箱或密码错误' })
+  async adminLogin(
+    @Body() body: AdminLoginDto,
+  ): Promise<ApiResponseDto<Awaited<ReturnType<AuthService['adminLogin']>>>> {
+    const data = await this.authService.adminLogin(body);
+    return { code: 0, message: 'ok', data };
   }
 
   @Post('refresh')

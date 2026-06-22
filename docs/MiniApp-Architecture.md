@@ -1,8 +1,8 @@
 # MiniApp-Architecture.md — 小程序架构交接文档
 
-> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）；P4.1（2026-06-21）补充员工端登录认证；P4.2（2026-06-21）补充员工端首页待接单任务列表；P4.3（2026-06-21）补充员工端任务列表；P4.4（2026-06-21）补充员工端任务详情（已派单/已接单态 + GPS 签到）；P4.5（2026-06-22）补充员工端任务详情（服务中态 + 照片上传含水印 + 完成服务）；P4.6（2026-06-22）补充员工端任务详情（待评价/已完成态 + 用户评价展示）；**P4.7（2026-06-22）** 补充员工端我的页（技能证书 + 修改密码 + 无服务记录入口）  
-> **用途**：供 P4（员工端）、P5（管理后台）及后续维护对接，记录居民端已完成的页面结构、Store 设计、组件、API 封装与代下单数据流；并记录员工端 P4.1 登录认证实现  
-> **应用目录**：`apps/miniapp-customer/`（居民端）、`apps/miniapp-worker/`（员工端）
+> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）；P4.1（2026-06-21）补充员工端登录认证；P4.2（2026-06-21）补充员工端首页待接单任务列表；P4.3（2026-06-21）补充员工端任务列表；P4.4（2026-06-21）补充员工端任务详情（已派单/已接单态 + GPS 签到）；P4.5（2026-06-22）补充员工端任务详情（服务中态 + 照片上传含水印 + 完成服务）；P4.6（2026-06-22）补充员工端任务详情（待评价/已完成态 + 用户评价展示）；P4.7（2026-06-22）补充员工端我的页（技能证书 + 修改密码 + 无服务记录入口）；**P5.1（2026-06-22）** 补充管理后台 Admin 登录 + 二级折叠菜单布局框架  
+> **用途**：供 P4（员工端）、P5（管理后台）及后续维护对接，记录居民端已完成的页面结构、Store 设计、组件、API 封装与代下单数据流；并记录员工端 P4.1 登录认证实现及管理后台 P5.1 布局框架  
+> **应用目录**：`apps/miniapp-customer/`（居民端）、`apps/miniapp-worker/`（员工端）、`apps/admin/`（管理后台）
 
 ---
 
@@ -25,6 +25,7 @@
 15. [员工端 P4.5 任务详情—服务中态（miniapp-worker）](#15-员工端-p45-任务详情服务中态miniapp-worker)
 16. [员工端 P4.6 任务详情—待评价/已完成态（miniapp-worker）](#16-员工端-p46-任务详情待评价已完成态miniapp-worker)
 17. [员工端 P4.7 我的页（miniapp-worker）](#17-员工端-p47-我的页miniapp-worker)
+18. [管理后台 P5.1 登录与布局框架（admin）](#18-管理后台-p51-登录与布局框架admin)
 
 ---
 
@@ -806,11 +807,73 @@ loadData()
 
 ---
 
-> **文档版本**：v1.8（P4.7 员工端我的页验收通过）  
+## 18. 管理后台 P5.1 登录与布局框架（admin）
+
+> **应用目录**：`apps/admin/`  
+> **技术栈**：Vue 3 + Vite + Element Plus + Pinia + vue-router + axios  
+> **开发端口**：5173（H5）；API 代理 `/api/v1` → `http://localhost:3000`
+
+### 18.1 登录认证
+
+```
+登录页 form(email, password)
+  → adminLogin()  POST /api/v1/auth/admin-login
+  → useUserStore.login() 存 accessToken + admin.name/email
+  → router.push(redirect || '/dashboard')
+```
+
+| 项 | 说明 |
+|---|---|
+| Token 存储 | localStorage `dayangyunjie_admin_token` |
+| 管理员信息 | localStorage `dayangyunjie_admin_name` / `dayangyunjie_admin_email` |
+| 默认开发账号 | `admin@dayunyunjie.com` / `admin123`（seed） |
+| 401 处理 | axios 拦截器清除 token → 跳转 `/login` |
+
+**关键文件**：
+- `src/api/auth.ts` — `adminLogin`
+- `src/store/index.ts` — `login()` / `logout()`
+- `src/views/login/index.vue` — 登录表单
+- `src/utils/auth.ts` — token 存取
+
+### 18.2 布局与侧栏菜单
+
+`src/layout/index.vue` 采用 `el-container` + 深色侧栏（`#304156`）：
+
+| 一级菜单 | 子菜单 | 路由 |
+|---------|--------|------|
+| 订单管理 | 保洁订单 / 废品订单 / 家政订单 / 投诉反馈 | `/orders/*` |
+| 数据管理 | 数据看板 | `/data/dashboard` |
+| 员工管理 | 服务人员管理 | `/workers` |
+| 配置管理 | 服务配置 / 运营人员配置 / 轮播图管理 | `/config/*` |
+| 系统设置 | — | `/settings` |
+
+侧栏底部展示当前管理员头像（首字母）、姓名、邮箱；顶栏含折叠按钮、面包屑、退出。
+
+### 18.3 路由守卫
+
+`src/router/index.ts`：
+
+- `meta.public = true` 的路由（`/login`）无需 token
+- 其余路由无 token → `/login?redirect=...`
+- 已登录访问 `/login` → 重定向 `/dashboard`
+
+### 18.4 P5.2–P5.11 占位页
+
+各业务路由已注册，视图文件使用 `el-empty` 展示「功能开发中」，便于后续单元直接替换：
+
+- `views/orders/{cleaning,recycling,consult,complaint}/index.vue`
+- `views/data/dashboard/index.vue`
+- `views/workers/index.vue`
+- `views/config/{services,operators,banners}/index.vue`
+- `views/settings/index.vue`
+
+---
+
+> **文档版本**：v1.9（P5.1 管理后台登录+二级折叠菜单布局验收通过）  
 > **生成日期**：2026-06-21  
-> **修订日期**：2026-06-22（v1.8：P4.7 我的页+设置改密+证书预览；v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
-> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.7 员工端  
-> **下一阶段**：P5 管理后台
+> **修订日期**：2026-06-22（v1.9：P5.1 Admin 登录+布局+配置管理路由占位；v1.8：P4.7 我的页+设置改密+证书预览；v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
+> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.7 员工端 + P5.1 管理后台  
+> **下一阶段**：P5.2 数据看板
 
 ---
 

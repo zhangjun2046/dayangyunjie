@@ -4,7 +4,7 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 /** 默认管理员密码（仅开发种子，生产须修改） */
-const ADMIN_DEFAULT_PASSWORD = 'Admin@123';
+const ADMIN_DEFAULT_PASSWORD = 'admin123';
 
 const serviceCatalogSeed = [
   // 保洁

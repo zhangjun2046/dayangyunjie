@@ -1,11 +1,12 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Resident, Worker } from '@prisma/client';
+import { Admin, Resident, Worker } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { createHash } from 'crypto';
 import { EnvConfigService } from '../../common/config/env-config.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { AUTH_ROLE_RESIDENT, AUTH_ROLE_WORKER } from './auth.constants';
+import { AUTH_ROLE_ADMIN, AUTH_ROLE_RESIDENT, AUTH_ROLE_WORKER } from './auth.constants';
+import { AdminLoginDto } from './dto/admin-login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { WechatLoginDto } from './dto/wechat-login.dto';
 import { WorkerLoginDto } from './dto/worker-login.dto';
@@ -112,6 +113,31 @@ export class AuthService {
     };
   }
 
+  async adminLogin(loginDto: AdminLoginDto): Promise<{
+    tokens: TokenPair;
+    admin: Pick<Admin, 'id' | 'email' | 'name'>;
+  }> {
+    const admin = await this.prismaService.admin.findUnique({
+      where: { email: loginDto.email },
+    });
+
+    if (!admin) {
+      throw new UnauthorizedException('邮箱或密码错误');
+    }
+
+    const isPasswordValid = await bcrypt.compare(loginDto.password, admin.passwordHash);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('邮箱或密码错误');
+    }
+
+    const tokens = await this.issueAdminTokens(admin.id, admin.email);
+
+    return {
+      tokens,
+      admin: { id: admin.id, email: admin.email, name: admin.name },
+    };
+  }
+
   async getProfile(user: CurrentUser): Promise<{
     resident: Pick<Resident, 'id' | 'openid' | 'nickname' | 'avatar'>;
   }> {
@@ -132,6 +158,36 @@ export class AuthService {
       sub: workerId,
       phone,
       role: AUTH_ROLE_WORKER,
+      tokenType: 'access',
+    };
+    const refreshPayload: JwtPayload = {
+      ...accessPayload,
+      tokenType: 'refresh',
+    };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(accessPayload, {
+        secret: this.envConfigService.jwtAccessSecret,
+        expiresIn: this.envConfigService.jwtAccessExpiresIn as never,
+      }),
+      this.jwtService.signAsync(refreshPayload, {
+        secret: this.envConfigService.jwtRefreshSecret,
+        expiresIn: this.envConfigService.jwtRefreshExpiresIn as never,
+      }),
+    ]);
+
+    return {
+      accessToken,
+      refreshToken,
+      expiresIn: this.parseExpiresInToSeconds(this.envConfigService.jwtAccessExpiresIn),
+    };
+  }
+
+  private async issueAdminTokens(adminId: number, email: string): Promise<TokenPair> {
+    const accessPayload: JwtPayload = {
+      sub: adminId,
+      email,
+      role: AUTH_ROLE_ADMIN,
       tokenType: 'access',
     };
     const refreshPayload: JwtPayload = {

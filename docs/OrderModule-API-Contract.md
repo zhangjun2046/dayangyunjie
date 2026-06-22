@@ -2464,6 +2464,91 @@ ASSIGNED 状态卡片「立即接单」调用 §28.2 同名接口，成功后刷
 
 ---
 
-> **文档版本**：v3.7（P4.7 员工端我的页验收通过）  
+## 34. P5.1 管理后台 Admin 登录 + 布局框架（2026-06-22 ✅）
+
+> **验收状态**：✅ **已通过**（2026-06-22）  
+> **需求来源**：`requirement_v2.0.md` §5.0、§10.2 #14；`docs/CodingPlan.md` P5.1
+
+### 34.1 功能概述
+
+管理后台（`apps/admin`）P5.1 交付：
+
+- 管理员邮箱+密码登录（替换 P1.5 mock 登录）
+- 二级折叠侧栏菜单（订单/数据/员工/配置/系统设置）
+- 全部业务路由占位（P5.2–P5.11，含配置管理 P5.9–P5.11）
+- 路由守卫（未登录跳转登录页）
+
+### 34.2 POST `/auth/admin-login` — 管理员登录
+
+**Body**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `email` | string | ✅ | 管理员邮箱 |
+| `password` | string | ✅ | 登录密码 |
+
+**Response `data`**
+
+```typescript
+{
+  tokens: { accessToken: string; refreshToken: string; expiresIn: number };
+  admin: { id: number; email: string; name: string };
+}
+```
+
+**JWT Payload**：`{ sub: adminId, email, role: 'admin', tokenType: 'access' | 'refresh' }`
+
+**错误**：邮箱或密码错误 → HTTP 401
+
+**后端实现**：
+- `apps/server/src/modules/auth/dto/admin-login.dto.ts`
+- `AuthService.adminLogin()` — 查 Admin 表 → bcrypt 对比 → 签发 JWT
+- `AuthController` — `POST /auth/admin-login`
+
+**前端封装**：`apps/admin/src/api/auth.ts` → `adminLogin(email, password)`
+
+### 34.3 管理后台路由表（P5.1）
+
+| 路由 | 组件 | 菜单入口 | 阶段 |
+|------|------|---------|------|
+| `/login` | `views/login/index.vue` | — | P5.1 |
+| `/dashboard` | `views/dashboard/index.vue` | — | P1.5 |
+| `/orders/cleaning` | `views/orders/cleaning/index.vue` | 订单管理 > 保洁订单 | P5.3 占位 |
+| `/orders/recycling` | `views/orders/recycling/index.vue` | 订单管理 > 废品订单 | P5.4 占位 |
+| `/orders/consult` | `views/orders/consult/index.vue` | 订单管理 > 家政订单 | P5.5 占位 |
+| `/orders/complaint` | `views/orders/complaint/index.vue` | 订单管理 > 投诉反馈 | P5.7 占位 |
+| `/data/dashboard` | `views/data/dashboard/index.vue` | 数据管理 > 数据看板 | P5.2 占位 |
+| `/workers` | `views/workers/index.vue` | 员工管理 > 服务人员管理 | P5.6 占位 |
+| `/config/services` | `views/config/services/index.vue` | 配置管理 > 服务配置 | P5.9 占位 |
+| `/config/operators` | `views/config/operators/index.vue` | 配置管理 > 运营人员配置 | P5.10 占位 |
+| `/config/banners` | `views/config/banners/index.vue` | 配置管理 > 轮播图管理 | P5.11 占位 |
+| `/settings` | `views/settings/index.vue` | 系统设置 | P5.8 占位 |
+
+### 34.4 前端关键文件
+
+| 路径 | 说明 |
+|------|------|
+| `apps/admin/src/api/auth.ts` | **新增**：`adminLogin` |
+| `apps/admin/src/api/request.ts` | axios 基址 `/api/v1` |
+| `apps/admin/src/store/index.ts` | Pinia `login()` / `logout()` |
+| `apps/admin/src/layout/index.vue` | **重写**：二级折叠侧栏 + 顶栏 + 底部用户区 |
+| `apps/admin/src/router/index.ts` | P5 全部路由 + beforeEach 守卫 |
+| `apps/admin/.env.development` | `VITE_API_BASE_URL=/api/v1` |
+| `apps/server/prisma/seed.ts` | 默认管理员 `admin@dayunyunjie.com` / `admin123` |
+
+### 34.5 P5.1 验收清单（2026-06-22）
+
+| 验收项 | 结果 |
+|--------|------|
+| `admin@dayunyunjie.com` + `admin123` 登录成功 | ✅ |
+| 五大一级菜单可见，展开后子菜单正确 | ✅ |
+| 配置管理展开后有三个子菜单 | ✅ |
+| 侧栏可折叠/展开 | ✅ |
+| 各占位页路由可访问不报错 | ✅ |
+| `npm run build` 通过 | ✅ |
+
+---
+
+> **文档版本**：v3.8（P5.1 管理后台 Admin 登录+布局框架验收通过）  
 > **修订日期**：2026-06-22  
-> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端
+> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1 管理后台
