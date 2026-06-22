@@ -5,10 +5,14 @@ import { DashboardQueryDto } from './dto/dashboard-query.dto';
 // ─── 返回类型 ────────────────────────────────────────────────────────────────
 
 export interface SummaryResult {
-  todayOrders: number;
-  weekOrders: number;
-  activeWorkers: number;
-  avgRating: number;
+  /** 时间范围内保洁+废品订单合计（不含家政咨询） */
+  total: number;
+  /** 时间范围内已完成（COMPLETED / REVIEWED） */
+  completed: number;
+  /** 时间范围内进行中（ACCEPTED / IN_PROGRESS） */
+  inProgress: number;
+  /** 时间范围内待接单（PENDING） */
+  pending: number;
 }
 
 export interface OrderTrendResult {
@@ -59,41 +63,42 @@ export class DashboardService {
   // ── 公开方法 ────────────────────────────────────────────────────────────────
 
   /**
-   * 统计卡：今日订单总量、本周订单总量、在岗员工数、平均评分。
-   * 此接口不受 startDate/endDate 控制，始终返回固定时段的统计数据。
+   * 统计卡：时间范围内保洁+废品订单的总数、已完成、进行中、待接单。
+   * 缺省时间范围默认统计本日（当天）数据。
+   * 不含家政咨询单。
    */
-  async getSummary(): Promise<SummaryResult> {
-    const now = new Date();
-    const todayStart = this.startOfDay(now);
-    const weekStart = this.startOfWeek(now);
+  async getSummary(query: DashboardQueryDto): Promise<SummaryResult> {
+    // 默认范围：本日
+    const { start, end } = this.resolveRange(query, 1);
+    const endNext = this.nextDay(end);
 
-    const [todayCleaning, todayRecycling, todayConsult] = await Promise.all([
-      this.prisma.cleaningOrder.count({ where: { createdAt: { gte: todayStart } } }),
-      this.prisma.recyclingOrder.count({ where: { createdAt: { gte: todayStart } } }),
-      this.prisma.consultOrder.count({ where: { createdAt: { gte: todayStart } } }),
+    const COMPLETED_STATUSES   = ['PENDING_REVIEW', 'REVIEWED'] as any[];
+    const IN_PROGRESS_STATUSES = ['ACCEPTED', 'IN_SERVICE'] as any[];
+    const PENDING_STATUSES     = ['PENDING_ASSIGN', 'ASSIGNED'] as any[];
+
+    const [
+      cleaningTotal,    recyclingTotal,
+      cleaningCompleted, recyclingCompleted,
+      cleaningInProgress, recyclingInProgress,
+      cleaningPending,  recyclingPending,
+    ] = await Promise.all([
+      this.prisma.cleaningOrder.count({ where: { createdAt: { gte: start, lt: endNext } } }),
+      this.prisma.recyclingOrder.count({ where: { createdAt: { gte: start, lt: endNext } } }),
+      this.prisma.cleaningOrder.count({ where: { createdAt: { gte: start, lt: endNext }, status: { in: COMPLETED_STATUSES } } }),
+      this.prisma.recyclingOrder.count({ where: { createdAt: { gte: start, lt: endNext }, status: { in: COMPLETED_STATUSES } } }),
+      this.prisma.cleaningOrder.count({ where: { createdAt: { gte: start, lt: endNext }, status: { in: IN_PROGRESS_STATUSES } } }),
+      this.prisma.recyclingOrder.count({ where: { createdAt: { gte: start, lt: endNext }, status: { in: IN_PROGRESS_STATUSES } } }),
+      this.prisma.cleaningOrder.count({ where: { createdAt: { gte: start, lt: endNext }, status: { in: PENDING_STATUSES } } }),
+      this.prisma.recyclingOrder.count({ where: { createdAt: { gte: start, lt: endNext }, status: { in: PENDING_STATUSES } } }),
     ]);
 
-    const [weekCleaning, weekRecycling, weekConsult] = await Promise.all([
-      this.prisma.cleaningOrder.count({ where: { createdAt: { gte: weekStart } } }),
-      this.prisma.recyclingOrder.count({ where: { createdAt: { gte: weekStart } } }),
-      this.prisma.consultOrder.count({ where: { createdAt: { gte: weekStart } } }),
-    ]);
+    const total      = cleaningTotal + recyclingTotal;
+    const completed  = cleaningCompleted + recyclingCompleted;
+    const inProgress = cleaningInProgress + recyclingInProgress;
+    const pending    = cleaningPending + recyclingPending;
 
-    const activeWorkers = await this.prisma.worker.count({
-      where: { status: { in: ['IDLE', 'BUSY'] } },
-    });
-
-    // 所有评价的平均星级
-    const ratingAgg = await this.prisma.review.aggregate({ _avg: { rating: true } });
-    const avgRating = Number((ratingAgg._avg.rating ?? 0).toFixed(1));
-
-    console.info(`[Dashboard] getSummary todayOrders=${todayCleaning + todayRecycling + todayConsult}`);
-    return {
-      todayOrders: todayCleaning + todayRecycling + todayConsult,
-      weekOrders: weekCleaning + weekRecycling + weekConsult,
-      activeWorkers,
-      avgRating,
-    };
+    console.info(`[Dashboard] getSummary range=${this.fmtDate(start)}~${this.fmtDate(end)} total=${total}`);
+    return { total, completed, inProgress, pending };
   }
 
   /**

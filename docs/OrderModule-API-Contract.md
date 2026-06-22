@@ -1154,21 +1154,22 @@ GET   /complaints/:id                     ??? ????? followUps ????
 
 ---
 
-### 16.2 GET `/dashboard/summary` ??? ????
+### 16.2 GET `/dashboard/summary` — 统计卡
 
-**?????**???????????? startDate/endDate ???????????????????????????????????
+**Query 参数**：`startDate?`、`endDate?`（ISO 日期）；缺省统计本日。  
+**统计范围**：仅保洁 + 废品订单（不含家政咨询），按 `createdAt` 过滤。
 
 **Response `data`**
 ```typescript
 {
-  todayOrders: number;      // ??????????????
-  weekOrders: number;       // ???????????????
-  activeWorkers: number;    // status=IDLE|BUSY ??????????
-  avgRating: number;        // ?????????????????????? 1 ???????
+  total: number;       // 时间范围内保洁+废品订单合计
+  completed: number;   // PENDING_REVIEW | REVIEWED
+  inProgress: number;  // ACCEPTED | IN_SERVICE
+  pending: number;     // PENDING_ASSIGN | ASSIGNED
 }
 ```
 
-**????????????2026-06-08??**??`{ todayOrders: 8, weekOrders: 8, activeWorkers: 3, avgRating: 5 }` ???
+**P5.2 前端对接**：管理后台 `/data/dashboard` 4 张统计卡；本日/本周/本月切换时传 `startDate`+`endDate` 联动刷新。
 
 ---
 
@@ -2517,7 +2518,7 @@ ASSIGNED 状态卡片「立即接单」调用 §28.2 同名接口，成功后刷
 | `/orders/recycling` | `views/orders/recycling/index.vue` | 订单管理 > 废品订单 | P5.4 占位 |
 | `/orders/consult` | `views/orders/consult/index.vue` | 订单管理 > 家政订单 | P5.5 占位 |
 | `/orders/complaint` | `views/orders/complaint/index.vue` | 订单管理 > 投诉反馈 | P5.7 占位 |
-| `/data/dashboard` | `views/data/dashboard/index.vue` | 数据管理 > 数据看板 | P5.2 占位 |
+| `/data/dashboard` | `views/data/dashboard/index.vue` | 数据管理 > 数据看板 | P5.2 已完成 |
 | `/workers` | `views/workers/index.vue` | 员工管理 > 服务人员管理 | P5.6 占位 |
 | `/config/services` | `views/config/services/index.vue` | 配置管理 > 服务配置 | P5.9 占位 |
 | `/config/operators` | `views/config/operators/index.vue` | 配置管理 > 运营人员配置 | P5.10 占位 |
@@ -2549,6 +2550,27 @@ ASSIGNED 状态卡片「立即接单」调用 §28.2 同名接口，成功后刷
 
 ---
 
-> **文档版本**：v3.8（P5.1 管理后台 Admin 登录+布局框架验收通过）  
+### 34.6 P5.2 数据看板验收清单（2026-06-22）
+
+| 验收项 | 结果 |
+|--------|------|
+| 4 张统计卡（总数/已完成/进行中/待接单）显示正确 | ✅ |
+| 订单趋势/服务类型/满意度/时段图表渲染正常 | ✅ |
+| 员工绩效表格无「创收金额」列 | ✅ |
+| 本日/本周/本月切换后数据刷新 | ✅ |
+| `npm run build` 通过 | ✅ |
+
+**P5.2 关键文件**：
+
+| 路径 | 说明 |
+|------|------|
+| `apps/admin/src/api/dashboard.ts` | **新增**：6 个 dashboard API 封装 |
+| `apps/admin/src/views/data/dashboard/index.vue` | **重写**：ECharts 数据看板页 |
+| `apps/server/src/modules/dashboard/dashboard.service.ts` | `getSummary` 重构为时间范围统计 |
+| `apps/server/src/modules/dashboard/dashboard.controller.ts` | `summary` 支持 Query 参数 |
+
+---
+
+> **文档版本**：v3.9（P5.2 管理后台数据看板验收通过）  
 > **修订日期**：2026-06-22  
-> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1 管理后台
+> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.2 管理后台

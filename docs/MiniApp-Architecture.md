@@ -857,23 +857,32 @@ loadData()
 - 其余路由无 token → `/login?redirect=...`
 - 已登录访问 `/login` → 重定向 `/dashboard`
 
-### 18.4 P5.2–P5.11 占位页
+### 18.4 P5.2 数据看板（已完成）
 
-各业务路由已注册，视图文件使用 `el-empty` 展示「功能开发中」，便于后续单元直接替换：
+`views/data/dashboard/index.vue` 已实现完整数据看板：
+
+- **4 张统计卡**：总数 / 已完成 / 进行中 / 待接单（仅保洁+废品，不含家政咨询）
+- **ECharts 图表**：订单趋势折线图、服务类型环形图、客户满意度柱状图、服务时段柱状图
+- **员工绩效排名表格**：排名 / 员工 / 完成订单 / 评分 / 完成率（无「创收金额」列）
+- **时间范围切换**：本日 / 本周 / 本月，统计卡与图表联动刷新
+- **API 封装**：`apps/admin/src/api/dashboard.ts`（6 个 `/dashboard/*` 端点）
+
+### 18.5 P5.3–P5.11 占位页
+
+其余业务路由已注册，视图文件使用 `el-empty` 展示「功能开发中」，便于后续单元直接替换：
 
 - `views/orders/{cleaning,recycling,consult,complaint}/index.vue`
-- `views/data/dashboard/index.vue`
 - `views/workers/index.vue`
 - `views/config/{services,operators,banners}/index.vue`
 - `views/settings/index.vue`
 
 ---
 
-> **文档版本**：v1.9（P5.1 管理后台登录+二级折叠菜单布局验收通过）  
+> **文档版本**：v2.0（P5.2 管理后台数据看板验收通过）  
 > **生成日期**：2026-06-21  
-> **修订日期**：2026-06-22（v1.9：P5.1 Admin 登录+布局+配置管理路由占位；v1.8：P4.7 我的页+设置改密+证书预览；v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
-> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.7 员工端 + P5.1 管理后台  
-> **下一阶段**：P5.2 数据看板
+> **修订日期**：2026-06-22（v2.0：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v1.9：P5.1 Admin 登录+布局+配置管理路由占位；v1.8：P4.7 我的页+设置改密+证书预览；v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
+> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.7 员工端 + P5.1–P5.2 管理后台  
+> **下一阶段**：P5.3 保洁订单管理
 
 ---
 

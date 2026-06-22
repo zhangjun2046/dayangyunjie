@@ -13,12 +13,14 @@ export class DashboardController {
   @ApiOperation({
     summary: '统计卡汇总',
     description:
-      '返回今日订单总量、本周订单总量、在岗员工数、全量评价平均星级。' +
-      '此接口不受 startDate/endDate 控制，始终反映固定时段的实时统计值。',
+      '返回时间范围内保洁+废品订单的总数、已完成、进行中、待接单。' +
+      '不含家政咨询单。缺省时默认统计当日数据。支持 startDate/endDate 过滤。',
   })
   @ApiOkResponse({ description: '查询成功，返回统计卡数据' })
-  async getSummary(): Promise<ApiResponseDto<Awaited<ReturnType<DashboardService['getSummary']>>>> {
-    const data = await this.dashboardService.getSummary();
+  async getSummary(
+    @Query() query: DashboardQueryDto,
+  ): Promise<ApiResponseDto<Awaited<ReturnType<DashboardService['getSummary']>>>> {
+    const data = await this.dashboardService.getSummary(query);
     return { code: 0, message: 'ok', data };
   }
 

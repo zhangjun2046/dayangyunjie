@@ -9,7 +9,7 @@
 | `apps/server`           | NestJS 后端 API                                                |
 | `apps/miniapp-customer` | 居民端小程序（P1.4 完善；含 shared 验收桩）                    |
 | `apps/miniapp-worker`   | 员工端小程序（P4.7 我的页已完成；含 auth store + order/upload/review/worker API） |
-| `apps/admin`            | 管理后台（P5.1 登录+二级折叠菜单布局；含 auth API + 全部 P5 路由占位）        |
+| `apps/admin`            | 管理后台（P5.2 数据看板已完成；含 auth + dashboard API + ECharts 看板页）        |
 | `packages/shared`       | 共享枚举、DTO、`ApiResponse`（`@dayangyunjie/shared`）         |
 | `docs/`                 | CodingPlan、tech、Schema 等技术文档                            |
 | `requirement.md`        | 需求文档（主稿；原型图仍在资料区 `dayangyunjie\requirement\`） |
@@ -81,3 +81,4 @@ npx prisma migrate dev
 - 使用Sonnet4.6 LLM完成P4.6，实现任务详情—待评价/已完成态（只读模板 + 时间轴 + 照片网格 + REVIEWED 展示居民评价）
 - 使用Sonnet4.6 LLM完成P4.7，实现员工端我的页（技能证书 + 修改密码 + 无服务记录入口）
 - 使用Sonnet4.6 LLM完成P5.1，实现管理后台登录和二级折叠菜单布局（含配置管理一级菜单 + P5.9–P5.11 路由）
+- 使用Sonnet4.6 LLM完成P4.3，实现数据看板

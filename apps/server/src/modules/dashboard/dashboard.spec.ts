@@ -69,40 +69,43 @@ describe('DashboardService', () => {
   // ── 1. getSummary ──────────────────────────────────────────────────────────
 
   describe('getSummary', () => {
-    it('应返回全部字段为 0 / 0.0 当数据库为空', async () => {
-      const result = await service.getSummary();
+    it('应返回全部字段为 0 当数据库为空', async () => {
+      const result = await service.getSummary({});
       expect(result).toEqual({
-        todayOrders: 0,
-        weekOrders: 0,
-        activeWorkers: 0,
-        avgRating: 0,
+        total: 0,
+        completed: 0,
+        inProgress: 0,
+        pending: 0,
       });
     });
 
-    it('应正确聚合今日订单（三类之和）', async () => {
+    it('应正确聚合时间范围内保洁+废品订单合计', async () => {
+      // count 调用顺序：cleaningTotal, recyclingTotal, cleaningCompleted, recyclingCompleted,
+      //                 cleaningInProgress, recyclingInProgress, cleaningPending, recyclingPending
       prisma.cleaningOrder.count
-        .mockResolvedValueOnce(3)  // 今日
-        .mockResolvedValueOnce(5); // 本周
+        .mockResolvedValueOnce(5)   // total cleaning
+        .mockResolvedValueOnce(3)   // completed cleaning
+        .mockResolvedValueOnce(1)   // inProgress cleaning
+        .mockResolvedValueOnce(1);  // pending cleaning
       prisma.recyclingOrder.count
-        .mockResolvedValueOnce(2)
-        .mockResolvedValueOnce(3);
-      prisma.consultOrder.count
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(2);
-      prisma.worker.count.mockResolvedValue(4);
-      prisma.review.aggregate.mockResolvedValue({ _avg: { rating: 4.75 } });
+        .mockResolvedValueOnce(4)   // total recycling
+        .mockResolvedValueOnce(2)   // completed recycling
+        .mockResolvedValueOnce(1)   // inProgress recycling
+        .mockResolvedValueOnce(1);  // pending recycling
 
-      const result = await service.getSummary();
-      expect(result.todayOrders).toBe(6);   // 3+2+1
-      expect(result.weekOrders).toBe(10);   // 5+3+2
-      expect(result.activeWorkers).toBe(4);
-      expect(result.avgRating).toBe(4.8);   // 保留1位小数
+      const result = await service.getSummary({ startDate: '2026-06-22', endDate: '2026-06-22' });
+      expect(result.total).toBe(9);       // 5+4
+      expect(result.completed).toBe(5);   // 3+2
+      expect(result.inProgress).toBe(2);  // 1+1
+      expect(result.pending).toBe(2);     // 1+1
     });
 
-    it('avgRating 在无评价时应返回 0', async () => {
-      prisma.review.aggregate.mockResolvedValue({ _avg: { rating: null } });
-      const result = await service.getSummary();
-      expect(result.avgRating).toBe(0);
+    it('缺省参数时应正常返回（默认本日）', async () => {
+      const result = await service.getSummary({});
+      expect(result).toHaveProperty('total');
+      expect(result).toHaveProperty('completed');
+      expect(result).toHaveProperty('inProgress');
+      expect(result).toHaveProperty('pending');
     });
   });
 

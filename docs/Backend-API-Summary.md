@@ -1,6 +1,6 @@
 # Backend API Summary（P2 全接口交接文档）
 
-> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；P4.2（2026-06-21）更新至 v3.5；P4.3（2026-06-21）更新至 v3.6；P4.4（2026-06-21）更新至 v3.7；P4.5（2026-06-22）更新至 v3.8；P4.6（2026-06-22）更新至 v3.9；P4.7（2026-06-22）更新至 v4.0；**P5.1（2026-06-22）** 更新至 v4.1（管理后台 Admin 登录 + 布局框架对接完成）  
+> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；P4.2（2026-06-21）更新至 v3.5；P4.3（2026-06-21）更新至 v3.6；P4.4（2026-06-21）更新至 v3.7；P4.5（2026-06-22）更新至 v3.8；P4.6（2026-06-22）更新至 v3.9；P4.7（2026-06-22）更新至 v4.0；P5.1（2026-06-22）更新至 v4.1（管理后台 Admin 登录 + 布局框架对接完成）；**P5.2（2026-06-22）** 更新至 v4.2（Dashboard `getSummary` 重构为时间范围统计 + 管理后台数据看板 ECharts 对接完成）  
 > **用途**：供居民端（P3）、员工端（P4）、管理后台（P5）对接后端 API，避免上下文丢失  
 > **Base URL**：`http://localhost:3000/api/v1`  
 > **统一响应格式**：`{ code: number, message: string, data: T | null }`  
@@ -349,7 +349,7 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 | 方法 | 路径 | 默认范围 | 说明 |
 |------|------|---------|------|
-| GET | `/dashboard/summary` | — | 统计卡（今日/本周订单、在岗员工、平均评分） |
+| GET | `/dashboard/summary` | 本日（缺省） | 统计卡（总数/已完成/进行中/待接单，仅保洁+废品） |
 | GET | `/dashboard/order-trend` | 近 7 天 | 订单趋势，适配 ECharts 折线图 |
 | GET | `/dashboard/service-type-distribution` | 近 30 天 | 服务类型分布，适配 ECharts 饼图/环形图 |
 | GET | `/dashboard/rating-distribution` | 近 30 天 | 满意度分布（5→1星），适配 ECharts 饼图/环形图 |
@@ -359,12 +359,15 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 ### 各接口返回数据结构
 
 **`GET /dashboard/summary`**
+
+支持 `startDate` / `endDate` Query；缺省统计本日。仅统计保洁 + 废品订单（不含家政咨询）。
+
 ```typescript
 {
-  todayOrders: number;      // 今日三类订单合计
-  weekOrders: number;       // 本周三类订单合计
-  activeWorkers: number;    // status=IDLE|BUSY 的员工数
-  avgRating: number;        // 全量评价平均星级（保留 1 位小数）
+  total: number;       // 时间范围内保洁+废品订单合计（createdAt 在范围内）
+  completed: number;   // 已完成：PENDING_REVIEW | REVIEWED
+  inProgress: number;  // 进行中：ACCEPTED | IN_SERVICE
+  pending: number;     // 待接单：PENDING_ASSIGN | ASSIGNED
 }
 ```
 
@@ -1036,7 +1039,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 | `/orders/recycling` | 废品订单（P5.4 占位） |
 | `/orders/consult` | 家政订单（P5.5 占位） |
 | `/orders/complaint` | 投诉反馈（P5.7 占位） |
-| `/data/dashboard` | 数据看板（P5.2 占位） |
+| `/data/dashboard` | 数据看板（P5.2 已完成） |
 | `/workers` | 服务人员管理（P5.6 占位） |
 | `/config/services` | 服务配置（P5.9 占位） |
 | `/config/operators` | 运营人员配置（P5.10 占位） |
@@ -1071,10 +1074,60 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
-> **文档版本**：v4.1（P5.1 管理后台 Admin 登录+布局框架对接完成）
+---
+
+## P5.2 完成说明（2026-06-22）
+
+管理后台数据看板（P5.2）已完成，以下接口与前端已对接：
+
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `GET /dashboard/summary` | 4 张统计卡（总数/已完成/进行中/待接单） | ✅ P5.2 已对接 |
+| `GET /dashboard/order-trend` | 订单趋势折线图 | ✅ P5.2 已对接 |
+| `GET /dashboard/service-type-distribution` | 服务类型环形图 | ✅ P5.2 已对接 |
+| `GET /dashboard/rating-distribution` | 客户满意度水平柱状图 | ✅ P5.2 已对接 |
+| `GET /dashboard/hourly-distribution` | 服务时段柱状图（09:00–19:00） | ✅ P5.2 已对接 |
+| `GET /dashboard/worker-performance` | 员工绩效排名表格 | ✅ P5.2 已对接 |
+
+**P5.2 页面**：`/data/dashboard`（数据管理 > 数据看板）
+
+**P5.2 统计卡规则**（仅保洁 + 废品，不含家政咨询）：
+
+| 卡片 | 字段 | 状态映射 |
+|------|------|---------|
+| 总数 | `total` | 时间范围内 createdAt 的保洁+废品订单合计 |
+| 已完成 | `completed` | `PENDING_REVIEW` \| `REVIEWED` |
+| 进行中 | `inProgress` | `ACCEPTED` \| `IN_SERVICE` |
+| 待接单 | `pending` | `PENDING_ASSIGN` \| `ASSIGNED` |
+
+**P5.2 时间范围**：本日 / 本周 / 本月（`startDate` + `endDate`），统计卡与全部图表联动刷新。
+
+**P5.2 员工绩效表格列**：排名 / 员工 / 完成订单 / 评分 / 完成率（**无「创收金额」列**）
+
+**P5.2 关键新增/扩展文件**：
+
+- `apps/server/src/modules/dashboard/dashboard.service.ts`（`getSummary` 重构为时间范围统计）
+- `apps/server/src/modules/dashboard/dashboard.controller.ts`（`summary` 支持 Query）
+- `apps/admin/src/api/dashboard.ts`（6 个 dashboard API 封装）
+- `apps/admin/src/views/data/dashboard/index.vue`（ECharts 看板页）
+- `apps/admin/package.json`（新增 `echarts` 依赖）
+
+**P5.2 验收清单**：
+
+| 验收项 | 结果 |
+|--------|------|
+| 4 张统计卡显示正确数据 | ✅ |
+| 订单趋势/服务类型/满意度/时段图表渲染正常 | ✅ |
+| 员工绩效表格无「创收金额」列 | ✅ |
+| 本日/本周/本月切换后数据刷新 | ✅ |
+| `npm run build` 通过 | ✅ |
+
+---
+
+> **文档版本**：v4.2（P5.2 管理后台数据看板对接完成）
 > **生成日期**：2026-06-21
-> **修订日期**：2026-06-22（v4.1：P5.1 Admin 登录+二级折叠菜单+配置管理路由占位；v4.0：P4.7 我的页员工详情+证书预览+修改密码；v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
-> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1 管理后台对接说明
+> **修订日期**：2026-06-22（v4.2：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v4.1：P5.1 Admin 登录+二级折叠菜单+配置管理路由占位；v4.0：P4.7 我的页员工详情+证书预览+修改密码；v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.2 管理后台对接说明
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销
 > **P3.6_repair 修正**：彻底删除居民验收接口及前端按钮，废品与保洁完全对称
@@ -1086,4 +1139,5 @@ PENDING → PROCESSING → COMPLETED（终态）
 > **P4.5 新增**：IN_SERVICE 作业照片上传（`/upload/image` 含水印）；`completeOrder` 完成服务；`beforePhotoUrls`/`afterPhotoUrls` DTO 适配；修复 H5 `UPLOAD_BASE_URL` 代理路径
 > **P4.6 新增**：员工端任务详情 PENDING_REVIEW/REVIEWED 只读模板；新增 `apps/miniapp-worker/src/api/review.ts`（`fetchOrderReview`）；REVIEWED 状态条件渲染用户评价 card（星级/标签/文字/图片/时间）；调 `GET /reviews?orderType=&orderId=` 懒加载
 > **P4.7 新增**：员工端我的页完整实现；新增 `apps/miniapp-worker/src/api/worker.ts`（`fetchWorkerDetail` / `changePassword`）；`pages/mine/index` 重写（今日订单/今日已完成统计、健康证/技能证书预览、无服务记录入口）；`pages/settings/index` 修改密码页；对接 `GET /workers/:id` + `PUT /workers/:id/change-password`
-> **P5.1 新增**：后端 `POST /auth/admin-login`（Admin JWT，role=admin）；管理后台真实登录+二级折叠菜单布局；P5.2–P5.11 路由占位（含配置管理）；`apps/admin/src/api/auth.ts` + Pinia store + layout/router；API 基址 `/api/v1`；seed 默认管理员 `admin@dayunyunjie.com` / `admin123`
+> **P5.1 新增**：后端 `POST /auth/admin-login`（Admin JWT，role=admin）；管理后台真实登录+二级折叠菜单布局；P5.3–P5.11 路由占位（含配置管理）；`apps/admin/src/api/auth.ts` + Pinia store + layout/router；API 基址 `/api/v1`；seed 默认管理员 `admin@dayunyunjie.com` / `admin123`
+> **P5.2 新增**：管理后台数据看板 `/data/dashboard`；`GET /dashboard/summary` 重构为时间范围统计（total/completed/inProgress/pending，仅保洁+废品）；ECharts 折线/环形/柱状图 + 员工绩效表格（无创收金额列）；本日/本周/本月切换联动刷新；`apps/admin/src/api/dashboard.ts`
