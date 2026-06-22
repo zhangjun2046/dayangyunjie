@@ -2385,6 +2385,85 @@ ASSIGNED 状态卡片「立即接单」调用 §28.2 同名接口，成功后刷
 
 ---
 
-> **文档版本**：v3.6（P4.6 员工端任务详情待评价/已完成态验收通过）  
+## 33. P4.7 员工端我的页（2026-06-22 ✅）
+
+> **验收状态**：✅ **已通过**（2026-06-22）  
+> **需求来源**：`requirement_v2.0.md` §4.8、§10.2 #17 #77；`docs/CodingPlan.md` P4.7
+
+### 33.1 功能概述
+
+员工端「我的」tabBar 页 `pages/mine/index` + 设置页 `pages/settings/index`：
+
+- 个人信息：姓名、评分（`GET /workers/:id`）
+- 统计双卡：今日订单（appointDate=今天，保洁+废品合计）、今日已完成（appointDate=今天 且 REVIEWED）
+- 我的证书：健康证 / 技能证书（`healthCertUrl` / `skillCertUrl`，`uni.previewImage` 大图预览）
+- 菜单：设置（修改密码）、用户协议与隐私政策（占位）
+- **无「服务记录」入口**
+- 退出登录
+
+### 33.2 GET `/workers/:id` — 员工详情（我的页）
+
+**Response `data`（WorkerDto，不含 passwordHash）**
+
+| 字段 | 类型 | 员工端用途 |
+|------|------|-----------|
+| `id` | number | 员工 ID |
+| `name` | string | 姓名展示 |
+| `phone` | string | 手机号 |
+| `employeeNo` | string | 工号 |
+| `rating` | number | 平均评分 |
+| `totalOrders` | number | 累计完成单数（评分旁展示） |
+| `healthCertUrl` | string \| null | 健康证图片 URL |
+| `skillCertUrl` | string \| null | 技能证书图片 URL |
+| `status` | string | IDLE / BUSY |
+
+**前端封装**：`apps/miniapp-worker/src/api/worker.ts` → `fetchWorkerDetail(id)`
+
+### 33.3 PUT `/workers/:id/change-password` — 员工修改密码
+
+**鉴权**：Worker JWT（`Authorization: Bearer`）
+
+**Body**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `oldPassword` | string | ✅ | 旧密码 |
+| `newPassword` | string | ✅ | 新密码 |
+
+**前端封装**：`changePassword(id, oldPassword, newPassword)` — 成功后 `authStore.logout()` → 跳转登录页
+
+### 33.4 今日订单统计（复用订单列表 API）
+
+并发调用（`pageSize` 最大 100）：
+
+- `GET /cleaning-orders?workerId=&statuses=ASSIGNED,ACCEPTED,IN_SERVICE,PENDING_REVIEW,REVIEWED,CANCELLED&pageSize=100`
+- `GET /recycling-orders?workerId=&statuses=...&pageSize=100`
+
+前端过滤 `appointDate` = 今天（`YYYY-MM-DD`）：
+- **今日订单**：今日 appointDate 的订单总数
+- **今日已完成**：今日 appointDate 且 `status === 'REVIEWED'`
+
+### 33.5 前端文件
+
+| 路径 | 说明 |
+|------|------|
+| `apps/miniapp-worker/src/api/worker.ts` | **新增**：`fetchWorkerDetail` / `changePassword` |
+| `apps/miniapp-worker/src/pages/mine/index.vue` | **重写**：我的页完整 UI |
+| `apps/miniapp-worker/src/pages/settings/index.vue` | **新增**：设置页 + 修改密码表单 |
+| `apps/miniapp-worker/src/pages.json` | 新增 `pages/settings/index` 路由 |
+
+### 33.6 P4.7 验收清单（2026-06-22）
+
+| 验收项 | 结果 |
+|--------|------|
+| 我的页展示姓名、评分、今日订单/今日已完成 | ✅ |
+| 证书名为「技能证书」（非家政服务员证） | ✅ |
+| 无「服务记录」菜单入口 | ✅ |
+| 设置页修改密码可用，成功后重新登录 | ✅ |
+| `npm run build` 通过 | ✅ |
+
+---
+
+> **文档版本**：v3.7（P4.7 员工端我的页验收通过）  
 > **修订日期**：2026-06-22  
-> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.6 员工端
+> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端

@@ -43,6 +43,14 @@
         "navigationBarBackgroundColor": "#1677ff",
         "navigationBarTextStyle": "white"
       }
+    },
+    {
+      "path": "pages/settings/index",
+      "style": {
+        "navigationBarTitleText": "设置",
+        "navigationBarBackgroundColor": "#1677ff",
+        "navigationBarTextStyle": "white"
+      }
     }
   ],
   "globalStyle": {

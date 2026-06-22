@@ -1,6 +1,6 @@
 # Backend API Summary（P2 全接口交接文档）
 
-> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；P4.2（2026-06-21）更新至 v3.5；P4.3（2026-06-21）更新至 v3.6；P4.4（2026-06-21）更新至 v3.7；P4.5（2026-06-22）更新至 v3.8；**P4.6（2026-06-22）** 更新至 v3.9（员工端任务详情—待评价/已完成态 + 居民评价展示对接完成）  
+> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；P4.2（2026-06-21）更新至 v3.5；P4.3（2026-06-21）更新至 v3.6；P4.4（2026-06-21）更新至 v3.7；P4.5（2026-06-22）更新至 v3.8；P4.6（2026-06-22）更新至 v3.9；**P4.7（2026-06-22）** 更新至 v4.0（员工端我的页—员工详情+修改密码对接完成）  
 > **用途**：供居民端（P3）、员工端（P4）、管理后台（P5）对接后端 API，避免上下文丢失  
 > **Base URL**：`http://localhost:3000/api/v1`  
 > **统一响应格式**：`{ code: number, message: string, data: T | null }`  
@@ -108,7 +108,9 @@ CRUD 标准五接口，另有 P2.13 新增的密码管理接口。
 
 **创建必填**：`openid`, `employeeNo`, `password`（服务端 bcrypt 入库）, `name`, `phone`, `skills`  
 **v2.0 可选扩展字段**：`nickname`, `gender`, `idCard`, `position`, `emergency`, `emergencyPhone`  
-**Response**：`WorkerDto`（**不含** `passwordHash`，含 `totalOrders`, `rating`, `status`, `skills`）
+**Response**：`WorkerDto`（**不含** `passwordHash`，含 `totalOrders`, `rating`, `status`, `skills`, `healthCertUrl`, `skillCertUrl`）
+
+**员工端对接（P4.7）**：`GET /workers/:id` → `apps/miniapp-worker/src/api/worker.ts` → `fetchWorkerDetail()`（我的页个人信息/评分/证书）；`PUT /workers/:id/change-password` → `changePassword()`（设置页修改密码，需 Worker JWT）。
 
 ---
 
@@ -541,7 +543,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 | 端 | 关键说明 |
 |----|---------|
 | **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED`（✅ P3.7 已对接）；投诉 `POST /complaints` + 我的投诉 `GET /complaints?residentId=`（✅ P3.7 已对接）；地址管理 CRUD `GET/POST/PUT/DELETE /addresses`（✅ P3.7 已对接）；首页轮播图 `GET /banners/active?displayTarget=RESIDENT`（✅ P3.2 已对接）；客服电话 `GET /operators/contact`（✅ P3.2 已对接）；保洁预约 `POST /cleaning-orders`（✅ P3.3 已对接，含代下单字段）；废品预约 `POST /recycling-orders`（✅ P3.4 已对接，含代下单字段）；家政咨询 `POST /consult-orders`（✅ P3.5 已对接，含代下单字段）；代下单闭环验证（✅ P3.8 已通过，详见 `MiniApp-Architecture.md`）；H5 走 Vite 代理 `/api/v1`，小程序走 `VITE_API_BASE` |
-| **员工端（P4）** | 登录走 `POST /auth/worker-login`（✅ P4.1）；首页待接单列表 `GET /cleaning-orders?workerId=&statuses=ASSIGNED` + `GET /recycling-orders?workerId=&statuses=ASSIGNED`（✅ P4.2）；任务列表 `GET /cleaning-orders?workerId=&statuses=` / `GET /recycling-orders?workerId=&statuses=` 分页多状态筛选，排除 PENDING_ASSIGN（✅ P4.3）；任务详情 `GET /cleaning-orders/:id` / `GET /recycling-orders/:id`（✅ P4.4）；接单 `POST /cleaning-orders/:id/accept` 或废品同名接口（✅ P4.2/P4.3/P4.4）；GPS 签到 `POST /cleaning-orders/:id/gps-checkin`（✅ P4.4，仅 ACCEPTED 状态）；IN_SERVICE 态上传作业照片 `POST /upload/image?orderNo=`（含水印，✅ P4.5）；完成服务 `POST /cleaning-orders/:id/complete` / 废品同名接口（Body：`beforePhotoUrls[]`, `afterPhotoUrls[]`, `operatorId`，✅ P4.5）；PENDING_REVIEW/REVIEWED 只读详情 + `GET /reviews?orderType=&orderId=` 展示居民评价（✅ P4.6） |
+| **员工端（P4）** | 登录走 `POST /auth/worker-login`（✅ P4.1）；首页待接单列表 `GET /cleaning-orders?workerId=&statuses=ASSIGNED` + `GET /recycling-orders?workerId=&statuses=ASSIGNED`（✅ P4.2）；任务列表 `GET /cleaning-orders?workerId=&statuses=` / `GET /recycling-orders?workerId=&statuses=` 分页多状态筛选，排除 PENDING_ASSIGN（✅ P4.3）；任务详情 `GET /cleaning-orders/:id` / `GET /recycling-orders/:id`（✅ P4.4）；接单 `POST /cleaning-orders/:id/accept` 或废品同名接口（✅ P4.2/P4.3/P4.4）；GPS 签到 `POST /cleaning-orders/:id/gps-checkin`（✅ P4.4，仅 ACCEPTED 状态）；IN_SERVICE 态上传作业照片 `POST /upload/image?orderNo=`（含水印，✅ P4.5）；完成服务 `POST /cleaning-orders/:id/complete` / 废品同名接口（Body：`beforePhotoUrls[]`, `afterPhotoUrls[]`, `operatorId`，✅ P4.5）；PENDING_REVIEW/REVIEWED 只读详情 + `GET /reviews?orderType=&orderId=` 展示居民评价（✅ P4.6）；我的页 `GET /workers/:id`（个人信息/评分/证书）+ 今日订单统计（复用订单列表 API）+ `PUT /workers/:id/change-password`（✅ P4.7） |
 | **管理后台（P5）** | 看板接口均在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；配置管理走 `/service-catalogs`、`/banners`、`/operators` |
 
 ---
@@ -967,10 +969,43 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
-> **文档版本**：v3.9（P4.6 员工端任务详情—待评价/已完成态对接完成）
+## P4.7 完成说明（2026-06-22）
+
+员工端我的页（P4.7）已完成，以下接口已在前端完成对接：
+
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `GET /workers/:id` | 我的页加载姓名、评分、累计单数、健康证/技能证书 URL | ✅ P4.7 已对接 |
+| `GET /cleaning-orders?workerId=&statuses=&pageSize=100` | 我的页统计今日订单/今日已完成（与废品订单并发拉取后前端过滤） | ✅ P4.7 已对接 |
+| `GET /recycling-orders?workerId=&statuses=&pageSize=100` | 同上（废品 Tab） | ✅ P4.7 已对接 |
+| `PUT /workers/:id/change-password` | 设置页修改密码（旧密码验证，成功后退出重新登录） | ✅ P4.7 已对接 |
+
+**P4.7 页面与导航**：
+
+| 路径 | 说明 |
+|------|------|
+| `pages/mine/index` | 我的页（tabBar）：个人信息+评分、今日订单/今日已完成、健康证/技能证书、设置入口、退出登录 |
+| `pages/settings/index` | 设置页：修改密码内联表单 |
+
+**P4.7 关键新增/扩展文件**：
+- `apps/miniapp-worker/src/api/worker.ts`（`fetchWorkerDetail` / `changePassword`）
+- `apps/miniapp-worker/src/pages/mine/index.vue`（完整重写）
+- `apps/miniapp-worker/src/pages/settings/index.vue`（修改密码）
+- `apps/miniapp-worker/src/pages.json`（新增 settings 路由）
+
+**P4.7 业务规则**：
+- 今日订单：appointDate = 今天（保洁+废品，任意可见状态）
+- 今日已完成：appointDate = 今天 且 status = REVIEWED
+- 证书命名：「健康证」「技能证书」（非「家政服务员证」）；无 URL 提示「暂未上传」
+- 无「服务记录」菜单入口（历史通过任务 Tab 查看）
+- 修改密码成功后强制退出并跳转登录页
+
+---
+
+> **文档版本**：v4.0（P4.7 员工端我的页对接完成）
 > **生成日期**：2026-06-21
-> **修订日期**：2026-06-22（v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
-> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.6 员工端对接说明
+> **修订日期**：2026-06-22（v4.0：P4.7 我的页员工详情+证书预览+修改密码；v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.7 员工端对接说明
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销
 > **P3.6_repair 修正**：彻底删除居民验收接口及前端按钮，废品与保洁完全对称
@@ -981,3 +1016,4 @@ PENDING → PROCESSING → COMPLETED（终态）
 > **P4.4 新增**：员工端任务详情页；`fetchOrderDetail` / `gpsCheckin`；ASSIGNED 接单 + ACCEPTED GPS 签到；P4.4 单元测试 36 项
 > **P4.5 新增**：IN_SERVICE 作业照片上传（`/upload/image` 含水印）；`completeOrder` 完成服务；`beforePhotoUrls`/`afterPhotoUrls` DTO 适配；修复 H5 `UPLOAD_BASE_URL` 代理路径
 > **P4.6 新增**：员工端任务详情 PENDING_REVIEW/REVIEWED 只读模板；新增 `apps/miniapp-worker/src/api/review.ts`（`fetchOrderReview`）；REVIEWED 状态条件渲染用户评价 card（星级/标签/文字/图片/时间）；调 `GET /reviews?orderType=&orderId=` 懒加载
+> **P4.7 新增**：员工端我的页完整实现；新增 `apps/miniapp-worker/src/api/worker.ts`（`fetchWorkerDetail` / `changePassword`）；`pages/mine/index` 重写（今日订单/今日已完成统计、健康证/技能证书预览、无服务记录入口）；`pages/settings/index` 修改密码页；对接 `GET /workers/:id` + `PUT /workers/:id/change-password`

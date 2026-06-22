@@ -8,7 +8,7 @@
 | ----------------------- | -------------------------------------------------------------- |
 | `apps/server`           | NestJS 后端 API                                                |
 | `apps/miniapp-customer` | 居民端小程序（P1.4 完善；含 shared 验收桩）                    |
-| `apps/miniapp-worker`   | 员工端小程序（P4.6 任务详情待评价/已完成态已完成；含 auth store + order/upload/review API） |
+| `apps/miniapp-worker`   | 员工端小程序（P4.7 我的页已完成；含 auth store + order/upload/review/worker API） |
 | `apps/admin`            | 管理后台（P1.5 完善；含 shared 验收桩）                        |
 | `packages/shared`       | 共享枚举、DTO、`ApiResponse`（`@dayangyunjie/shared`）         |
 | `docs/`                 | CodingPlan、tech、Schema 等技术文档                            |
@@ -78,3 +78,4 @@ npx prisma migrate dev
 - 使用Sonnet4.6 LLM完成P4.4，实现任务详情—已派单/已接单态（GPS签到 + ACCEPTED 状态作业区禁用 + 代下单展示）
 - 使用Sonnet4.6 LLM完成P4.5，实现任务详情—服务中态（无SOP弹窗 + 保洁「完成服务」按钮 + 废品也有「完成服务」按钮（与保洁对称） + 无重量/金额字段）
 - 使用Sonnet4.6 LLM完成P4.6，实现任务详情—待评价/已完成态（只读模板 + 时间轴 + 照片网格 + REVIEWED 展示居民评价）
+- 使用Sonnet4.6 LLM完成P4.7，实现员工端我的页（技能证书 + 修改密码 + 无服务记录入口）

@@ -1,6 +1,6 @@
 # MiniApp-Architecture.md — 小程序架构交接文档
 
-> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）；P4.1（2026-06-21）补充员工端登录认证；P4.2（2026-06-21）补充员工端首页待接单任务列表；P4.3（2026-06-21）补充员工端任务列表；P4.4（2026-06-21）补充员工端任务详情（已派单/已接单态 + GPS 签到）；P4.5（2026-06-22）补充员工端任务详情（服务中态 + 照片上传含水印 + 完成服务）；**P4.6（2026-06-22）** 补充员工端任务详情（待评价/已完成态 + 用户评价展示）  
+> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）；P4.1（2026-06-21）补充员工端登录认证；P4.2（2026-06-21）补充员工端首页待接单任务列表；P4.3（2026-06-21）补充员工端任务列表；P4.4（2026-06-21）补充员工端任务详情（已派单/已接单态 + GPS 签到）；P4.5（2026-06-22）补充员工端任务详情（服务中态 + 照片上传含水印 + 完成服务）；P4.6（2026-06-22）补充员工端任务详情（待评价/已完成态 + 用户评价展示）；**P4.7（2026-06-22）** 补充员工端我的页（技能证书 + 修改密码 + 无服务记录入口）  
 > **用途**：供 P4（员工端）、P5（管理后台）及后续维护对接，记录居民端已完成的页面结构、Store 设计、组件、API 封装与代下单数据流；并记录员工端 P4.1 登录认证实现  
 > **应用目录**：`apps/miniapp-customer/`（居民端）、`apps/miniapp-worker/`（员工端）
 
@@ -24,6 +24,7 @@
 14. [员工端 P4.4 任务详情—已派单/已接单态（miniapp-worker）](#14-员工端-p44-任务详情已派单已接单态miniapp-worker)
 15. [员工端 P4.5 任务详情—服务中态（miniapp-worker）](#15-员工端-p45-任务详情服务中态miniapp-worker)
 16. [员工端 P4.6 任务详情—待评价/已完成态（miniapp-worker）](#16-员工端-p46-任务详情待评价已完成态miniapp-worker)
+17. [员工端 P4.7 我的页（miniapp-worker）](#17-员工端-p47-我的页miniapp-worker)
 
 ---
 
@@ -418,7 +419,8 @@ apps/miniapp-worker/
 | `pages/index/index` | 首页（tabBar，P4.2 待接单 ASSIGNED 列表） | 是 |
 | `pages/tasks/index` | 任务（tabBar，P4.3 双 Tab + 状态筛选列表） | 是 |
 | `pages/task-detail/index` | 任务详情（P4.4–P4.5，Query: `orderId=&orderType=`） | 是 |
-| `pages/mine/index` | 我的（tabBar，P1.4 骨架） | 是 |
+| `pages/mine/index` | 我的（tabBar，P4.7 个人信息+统计+证书+设置入口） | 是 |
+| `pages/settings/index` | 设置页（P4.7 修改密码） | 是 |
 
 ### 11.3 Auth Store 设计
 
@@ -750,11 +752,65 @@ template v-if="order.status === 'REVIEWED' && review"
 
 ---
 
-> **文档版本**：v1.7（P4.6 员工端任务详情待评价/已完成态验收通过）  
+## 17. 员工端 P4.7 我的页（miniapp-worker）
+
+> **验收状态**：✅ 已通过（2026-06-22）
+
+### 17.1 功能概述
+
+员工端「我的」tabBar 页 + 设置子页：
+
+- 个人信息卡片：头像占位、姓名、评分（`rating`）+ 累计单数（`totalOrders`）
+- 统计双卡：今日订单 / 今日已完成（点击跳转任务 Tab）
+- 我的证书：健康证、技能证书（`uni.previewImage` 大图；无 URL 提示「暂未上传」）
+- 菜单：设置、用户协议与隐私政策（占位 toast）
+- **无「服务记录」入口**
+- 退出登录
+
+### 17.2 关键文件
+
+| 文件 | 说明 |
+|------|------|
+| `src/pages/mine/index.vue` | **重写**：我的页完整 UI + `onShow` 刷新数据 |
+| `src/pages/settings/index.vue` | **新增**：设置页 + 修改密码内联表单 |
+| `src/api/worker.ts` | **新增**：`fetchWorkerDetail` / `changePassword` |
+
+### 17.3 API 对接
+
+| 接口 | 封装 | 说明 |
+|------|------|------|
+| `GET /workers/:id` | `fetchWorkerDetail(id)` | 姓名、评分、证书 URL |
+| `GET /cleaning-orders?workerId=&statuses=&pageSize=100` | `fetchWorkerOrders(...)` | 今日订单统计（保洁） |
+| `GET /recycling-orders?workerId=&statuses=&pageSize=100` | `fetchWorkerOrders(...)` | 今日订单统计（废品） |
+| `PUT /workers/:id/change-password` | `changePassword(id, old, new)` | 设置页改密（需 Worker JWT） |
+
+### 17.4 今日统计逻辑
+
+```
+loadData()
+  → fetchWorkerDetail(workerId)
+  → 并发 fetchWorkerOrders(cleaning) + fetchWorkerOrders(recycling)
+  → todayPrefix = 今天 YYYY-MM-DD
+  → todayCount = appointDate === todayPrefix 的订单总数
+  → todayDoneCount = appointDate === todayPrefix 且 status === 'REVIEWED'
+```
+
+### 17.5 修改密码流程
+
+```
+设置页 → 展开表单 → 校验（旧密码非空、新密码≥6位、两次一致）
+  → changePassword(workerId, old, new)
+  → showModal「修改成功，请重新登录」
+  → authStore.logout() → redirectTo /pages/login/index
+```
+
+---
+
+> **文档版本**：v1.8（P4.7 员工端我的页验收通过）  
 > **生成日期**：2026-06-21  
-> **修订日期**：2026-06-22（v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
-> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.6 员工端  
-> **下一阶段**：P4.7 员工端我的页
+> **修订日期**：2026-06-22（v1.8：P4.7 我的页+设置改密+证书预览；v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
+> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.7 员工端  
+> **下一阶段**：P5 管理后台
 
 ---
 
