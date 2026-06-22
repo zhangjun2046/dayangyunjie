@@ -47,8 +47,9 @@
 | P4.3 我的任务列表                           | ✅ 已通过 | 2026-06-21 | 任务页双 Tab（保洁/废品）+ 精确系统状态筛选胶囊（全部/已派单/已接单/服务中/待评价/已评价/已取消，无 PENDING_ASSIGN）；`fetchWorkerOrders` 分页列表；ASSIGNED 卡片可接单；下拉刷新 + 上拉加载；`npm run build` 通过；使用 Sonnet 4.6 LLM 完成 |
 | P4.4 任务详情—已派单/已接单态               | ✅ 已通过 | 2026-06-21 | 任务详情页（`pages/task-detail/index`）；ASSIGNED 显示「立即接单」+ 提示，ACCEPTED 显示「开始服务」→ GPS 签到 → IN_SERVICE；作业区 ASSIGNED/ACCEPTED 禁用；代下单展示被服务人；时间轴 active/done 三态；完整手机号 + 地图导航；manifest `requiredPrivateInfos`；Jest 36 项 P4.4 测试通过；使用 Sonnet 4.6 LLM 完成 |
 | P4.5 任务详情—服务中态                       | ✅ 已通过 | 2026-06-22 | IN_SERVICE 作业区解锁；上传服务前/后照片（`uni.chooseImage` → `POST /api/v1/upload/image?orderNo=xxx` → sharp SVG 水印叠加订单号+时间戳至右下角）；保洁/废品均显示「完成服务」按钮+确认弹窗 → `/complete` → PENDING_REVIEW；不展示实际重量/金额字段；修复 `UPLOAD_BASE_URL` H5 模式返回空串导致上传 404 的 Bug（改为 `'/api/v1'` 条件编译）；`npm run build` 通过；使用 Sonnet 4.6 LLM 完成 |
+| P4.6 任务详情—待评价/已完成态                 | ✅ 已通过 | 2026-06-22 | PENDING_REVIEW/REVIEWED 状态只读详情模板（无操作按钮）；完整 6 节点时间轴（REVIEWED 全部 done）；作业照片网格只读展示（按 photoType 分服务前/后）；REVIEWED 额外展示「用户评价」区（星级 ★/☆ + 标签胶囊 + 文字 + 图片网格 + 评价时间），通过 `GET /reviews?orderType=&orderId=` 懒加载；新增 `apps/miniapp-worker/src/api/review.ts`（`fetchOrderReview`）；`npm run build` 通过；使用 Sonnet 4.6 LLM 完成 |
 
-> **P2.1–P2.15 后端核心 API 全部完成（含 v2.0 补充）。P3.1–P3.8 居民端全部完成。P4.1–P4.5 员工端登录/首页/任务列表/任务详情（已派单·已接单·服务中态）已完成。** 下一阶段：**P4.6** — 任务详情（待评价/已完成态）。
+> **P2.1–P2.15 后端核心 API 全部完成（含 v2.0 补充）。P3.1–P3.8 居民端全部完成。P4.1–P4.6 员工端登录/首页/任务列表/任务详情（已派单·已接单·服务中·待评价/已完成态）已完成。** 下一阶段：**P4.7** — 员工端我的页。
 
 ---
 
@@ -1882,6 +1883,9 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 #### P4.6 任务详情—待评价/已完成态（2h）
 
+> **验收状态**：✅ **已通过**（2026-06-22）  
+> **验收依据**：① PENDING_REVIEW/REVIEWED 状态详情页只读，无底部操作按钮；② 完整 6 节点时间轴（REVIEWED 全部 done）；③ 作业照片网格只读展示（按 `photoType` 分服务前/后）；④ REVIEWED 额外展示「用户评价」区（星级 ★/☆ + 标签胶囊 + 文字 + 图片网格 + 评价时间），通过 `GET /reviews?orderType=&orderId=` 懒加载；⑤ 新增 `apps/miniapp-worker/src/api/review.ts`（`fetchOrderReview`）；⑥ `npm run build` 通过；使用 Sonnet 4.6 LLM 完成。  
+> 下一单元：[P4.7](#p47-我的页2h)  
 > **需求来源**：`requirement_v2.0.md` §4.6、§4.5、§10.2 #84
 
 **干什么**
@@ -1913,8 +1917,8 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 **测试标准 — 通过后方可进入 P4.7**:
 
-1. 待评价/已评价状态详情页只读，无操作按钮
-2. 已评价状态展示居民评价内容
+1. 待评价/已评价状态详情页只读，无操作按钮 — ✅ 2026-06-22 已验
+2. 已评价状态展示居民评价内容 — ✅ 2026-06-22 已验
 
 ---
 
@@ -2817,8 +2821,8 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 ---
 
-> **文档版本**: v3.4
+> **文档版本**: v3.6
 > **创建日期**: 2026-06-01
-> **修订日期**: 2026-06-22（v3.5：P4.5 任务详情服务中态验收通过（照片水印）| v3.4：P4.4 任务详情已派单/已接单态验收通过 | v3.3：P4.3 任务列表 | v3.2：P4.2 首页 | v3.1：P4.2 进度表 | v3.0：P4.1 登录）
+> **修订日期**: 2026-06-22（v3.6：P4.6 任务详情待评价/已完成态验收通过（用户评价展示） | v3.5：P4.5 任务详情服务中态验收通过（照片水印）| v3.4：P4.4 任务详情已派单/已接单态验收通过 | v3.3：P4.3 任务列表 | v3.2：P4.2 首页 | v3.1：P4.2 进度表 | v3.0：P4.1 登录）
 > **适用范围**: 大洋云洁 (dayangyunjie-code) 社区服务平台一期 MVP（v2.0 基线）
-> **使用方式**: 按 P1 → P2 → P3 → P4 → P5 → P6 顺序，逐单元执行。每单元完成后按"测试标准"验收，通过后进入下一单元。P2.1–P2.15 已完成（v1.x + v2.0 阶段）；P3.1–P3.8 已全部完成（含代下单集成验证）；P4.1–P4.5 员工端登录/首页/任务列表/任务详情（已派单·已接单·服务中态）已完成，当前进入 P4.6 任务详情（待评价/已完成态）。
+> **使用方式**: 按 P1 → P2 → P3 → P4 → P5 → P6 顺序，逐单元执行。每单元完成后按"测试标准"验收，通过后进入下一单元。P2.1–P2.15 已完成（v1.x + v2.0 阶段）；P3.1–P3.8 已全部完成（含代下单集成验证）；P4.1–P4.6 员工端登录/首页/任务列表/任务详情（已派单·已接单·服务中·待评价/已完成态）已完成，当前进入 P4.7 员工端我的页。

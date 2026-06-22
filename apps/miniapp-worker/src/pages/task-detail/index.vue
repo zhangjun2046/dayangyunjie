@@ -276,6 +276,44 @@
           </template>
         </view>
 
+        <!-- ===== 用户评价（仅 REVIEWED 状态且已加载到评价数据时展示）===== -->
+        <view v-if="order.status === 'REVIEWED' && review" class="info-card">
+          <text class="info-card-title">用户评价</text>
+
+          <!-- 星级 -->
+          <view class="review-stars-row">
+            <text
+              v-for="n in 5"
+              :key="n"
+              :class="['review-star', n <= review.rating ? 'review-star--filled' : 'review-star--empty']"
+            >{{ n <= review.rating ? '★' : '☆' }}</text>
+            <text class="review-rating-text">{{ review.rating }}.0 分</text>
+          </view>
+
+          <!-- 标签 -->
+          <view v-if="review.tags && review.tags.length > 0" class="review-tags-row">
+            <text v-for="tag in review.tags" :key="tag" class="review-tag-chip">{{ tag }}</text>
+          </view>
+
+          <!-- 文字评价 -->
+          <text v-if="review.content" class="review-content">{{ review.content }}</text>
+
+          <!-- 图片网格（复用已有样式） -->
+          <view v-if="review.images && review.images.length > 0" class="photo-grid review-images-grid">
+            <view
+              v-for="(imgUrl, idx) in review.images"
+              :key="idx"
+              class="photo-thumb-wrap"
+              @tap="previewReviewImage(imgUrl)"
+            >
+              <image class="photo-thumb" :src="imgUrl" mode="aspectFill" />
+            </view>
+          </view>
+
+          <!-- 评价时间 -->
+          <text class="review-time">评价时间：{{ formatTs(review.createdAt) }}</text>
+        </view>
+
         <!-- 底部安全区占位 -->
         <view class="bottom-spacer" />
       </scroll-view>
@@ -328,6 +366,8 @@ import { useAuthStore } from '@/store/auth';
 import { fetchOrderDetail, acceptOrder, gpsCheckin, completeOrder } from '@/api/order';
 import type { OrderDetailDto } from '@/api/order';
 import { uploadImage } from '@/api/upload';
+import { fetchOrderReview } from '@/api/review';
+import type { ReviewDto } from '@/api/review';
 
 const authStore = useAuthStore();
 
@@ -344,6 +384,9 @@ const afterPhotos = ref<string[]>([]);
 const uploadingBefore = ref(false);
 const uploadingAfter = ref(false);
 const completingService = ref(false);
+
+// ===== REVIEWED 居民评价 =====
+const review = ref<ReviewDto | null>(null);
 
 // ===== 路由参数加载 =====
 onLoad((query) => {
@@ -362,6 +405,11 @@ async function loadDetail(): Promise<void> {
     if (order.value?.status !== 'IN_SERVICE') {
       beforePhotos.value = [];
       afterPhotos.value = [];
+    }
+    if (order.value?.status === 'REVIEWED') {
+      review.value = await fetchOrderReview(orderType.value, orderId.value);
+    } else {
+      review.value = null;
     }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : '加载失败';
@@ -384,6 +432,11 @@ async function refreshDetail(): Promise<void> {
     if (result.status !== 'IN_SERVICE') {
       beforePhotos.value = [];
       afterPhotos.value = [];
+    }
+    if (result.status === 'REVIEWED') {
+      review.value = await fetchOrderReview(orderType.value, orderId.value);
+    } else {
+      review.value = null;
     }
     console.info('[task-detail] refreshDetail done, status=', result.status);
   } catch (err: unknown) {
@@ -567,6 +620,14 @@ const timelineNodes = computed(() => {
     },
   ];
 });
+
+// ===== 评价辅助 =====
+
+/** 预览评价图片（单图预览） */
+function previewReviewImage(url: string): void {
+  const urls = review.value?.images ?? [];
+  uni.previewImage({ current: url, urls: urls.length > 0 ? urls : [url] });
+}
 
 // ===== 操作函数 =====
 
@@ -1440,5 +1501,69 @@ async function handleStartService(): Promise<void> {
 
 .photo-uploading-icon {
   font-size: 40rpx;
+}
+
+/* ===== 用户评价区 ===== */
+
+.review-stars-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 20rpx;
+}
+
+.review-star {
+  font-size: 48rpx;
+  line-height: 1;
+}
+
+.review-star--filled {
+  color: #1677ff;
+}
+
+.review-star--empty {
+  color: #d0d7e3;
+}
+
+.review-rating-text {
+  font-size: 26rpx;
+  color: #1677ff;
+  margin-left: 8rpx;
+  font-weight: 600;
+}
+
+.review-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.review-tag-chip {
+  font-size: 24rpx;
+  color: #1677ff;
+  background: #e8f0fe;
+  border-radius: 24rpx;
+  padding: 6rpx 20rpx;
+  line-height: 1.4;
+}
+
+.review-content {
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.6;
+  margin-bottom: 20rpx;
+  word-break: break-all;
+}
+
+.review-images-grid {
+  margin-bottom: 16rpx;
+}
+
+.review-time {
+  font-size: 24rpx;
+  color: #aaa;
+  margin-top: 8rpx;
+  display: block;
 }
 </style>

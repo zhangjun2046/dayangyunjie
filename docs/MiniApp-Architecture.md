@@ -1,6 +1,6 @@
 # MiniApp-Architecture.md — 小程序架构交接文档
 
-> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）；P4.1（2026-06-21）补充员工端登录认证；P4.2（2026-06-21）补充员工端首页待接单任务列表；P4.3（2026-06-21）补充员工端任务列表；P4.4（2026-06-21）补充员工端任务详情（已派单/已接单态 + GPS 签到）；**P4.5（2026-06-22）** 补充员工端任务详情（服务中态 + 照片上传含水印 + 完成服务）  
+> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）；P4.1（2026-06-21）补充员工端登录认证；P4.2（2026-06-21）补充员工端首页待接单任务列表；P4.3（2026-06-21）补充员工端任务列表；P4.4（2026-06-21）补充员工端任务详情（已派单/已接单态 + GPS 签到）；P4.5（2026-06-22）补充员工端任务详情（服务中态 + 照片上传含水印 + 完成服务）；**P4.6（2026-06-22）** 补充员工端任务详情（待评价/已完成态 + 用户评价展示）  
 > **用途**：供 P4（员工端）、P5（管理后台）及后续维护对接，记录居民端已完成的页面结构、Store 设计、组件、API 封装与代下单数据流；并记录员工端 P4.1 登录认证实现  
 > **应用目录**：`apps/miniapp-customer/`（居民端）、`apps/miniapp-worker/`（员工端）
 
@@ -23,6 +23,7 @@
 13. [员工端 P4.3 任务列表（miniapp-worker）](#13-员工端-p43-任务列表miniapp-worker)
 14. [员工端 P4.4 任务详情—已派单/已接单态（miniapp-worker）](#14-员工端-p44-任务详情已派单已接单态miniapp-worker)
 15. [员工端 P4.5 任务详情—服务中态（miniapp-worker）](#15-员工端-p45-任务详情服务中态miniapp-worker)
+16. [员工端 P4.6 任务详情—待评价/已完成态（miniapp-worker）](#16-员工端-p46-任务详情待评价已完成态miniapp-worker)
 
 ---
 
@@ -692,11 +693,68 @@ handleCompleteService()
 
 ---
 
-> **文档版本**：v1.6（P4.5 员工端任务详情服务中态验收通过）  
+## 16. 员工端 P4.6 任务详情—待评价/已完成态（miniapp-worker）
+
+> **验收状态**：✅ 已通过（2026-06-22）
+
+### 16.1 功能概述
+
+同一任务详情页在 `PENDING_REVIEW` / `REVIEWED` 状态下的只读展示：
+
+- 无操作按钮（底部 bar 不渲染）
+- 完整 6 节点时间轴：`PENDING_REVIEW` 时「已完成」高亮 active；`REVIEWED` 时全部 done
+- 作业照片网格只读（`workAreaState === 'readonly'`，按 BEFORE/AFTER 分组展示 `order.workPhotos`）
+- `REVIEWED` 状态额外渲染「用户评价」card：星级 + 标签胶囊 + 文字评语 + 图片网格 + 评价时间
+
+### 16.2 关键文件
+
+| 文件 | 说明 |
+|------|------|
+| `src/pages/task-detail/index.vue` | 新增评价 card 模板；`review` ref；`previewReviewImage`；`loadDetail`/`refreshDetail` 自动拉取 |
+| `src/api/review.ts` | **新增**：`fetchOrderReview(orderType, orderId)` — 查询订单评价 |
+
+### 16.3 API 对接
+
+| 接口 | 封装 | 说明 |
+|------|------|------|
+| `GET /reviews?orderType=CLEANING\|RECYCLING&orderId=&pageSize=1` | `fetchOrderReview(orderType, orderId)` | REVIEWED 状态自动调用；返回 `ReviewDto \| null` |
+
+### 16.4 ReviewDto 字段
+
+```typescript
+interface ReviewDto {
+  id: number;
+  rating: number;       // 1-5
+  tags: string[];       // 标签列表
+  content: string | null;
+  images: string[] | null;
+  createdAt: string;    // ISO 8601
+}
+```
+
+### 16.5 评价区渲染逻辑
+
+```
+loadDetail() / refreshDetail()
+  → order.status === 'REVIEWED'
+    ? review.value = await fetchOrderReview(orderType, orderId)
+    : review.value = null
+
+template v-if="order.status === 'REVIEWED' && review"
+  → 星级行（★/☆ × 5，蓝色）
+  → 标签胶囊（review.tags）
+  → 文字（v-if review.content）
+  → 图片网格（v-if review.images?.length，点击调 uni.previewImage）
+  → 评价时间（formatTs(review.createdAt)）
+```
+
+---
+
+> **文档版本**：v1.7（P4.6 员工端任务详情待评价/已完成态验收通过）  
 > **生成日期**：2026-06-21  
-> **修订日期**：2026-06-22（v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
-> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.5 员工端  
-> **下一阶段**：P4.6 任务详情（待评价/已完成态）
+> **修订日期**：2026-06-22（v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
+> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.6 员工端  
+> **下一阶段**：P4.7 员工端我的页
 
 ---
 

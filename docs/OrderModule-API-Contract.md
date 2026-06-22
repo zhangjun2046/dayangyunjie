@@ -2324,6 +2324,67 @@ ASSIGNED 状态卡片「立即接单」调用 §28.2 同名接口，成功后刷
 
 ---
 
-> **文档版本**：v3.5（P4.5 员工端任务详情服务中态验收通过）  
+## 32. P4.6 员工端任务详情—待评价/已完成态（2026-06-22 ✅）
+
+> **验收状态**：✅ **已通过**（2026-06-22）  
+> **需求来源**：`requirement_v2.0.md` §4.6、§4.5；`docs/CodingPlan.md` P4.6
+
+### 32.1 功能概述
+
+任务详情页 `pages/task-detail/index` 在 `PENDING_REVIEW` / `REVIEWED` 状态下的只读展示：
+
+- 无底部操作按钮（`action-bar` 不渲染）
+- 完整 6 节点时间轴：`PENDING_REVIEW` 时「已完成」节点 active；`REVIEWED` 时全部 done
+- 作业照片网格只读（`workAreaState === 'readonly'`，按 `photoType` 分 BEFORE/AFTER）
+- `REVIEWED` 额外展示「用户评价」card（星级/标签/文字/图片/评价时间）
+
+### 32.2 GET `/reviews` — 员工端查询订单评价（只读）
+
+**Query**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `orderType` | `CLEANING` \| `RECYCLING` | 是 | 订单类型 |
+| `orderId` | number | 是 | 订单 ID |
+| `page` | number | | 默认 1 |
+| `pageSize` | number | | 默认 10；员工端传 1 取首条 |
+
+**Response `data`**：`{ items: ReviewDto[], total, page, pageSize }`
+
+**ReviewDto（员工端展示字段）**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number | 评价 ID |
+| `rating` | number | 星级 1–5 |
+| `tags` | string[] | 快捷标签 |
+| `content` | string \| null | 文字评语 |
+| `images` | string[] \| null | 评价图片 URL |
+| `createdAt` | string | ISO 8601 评价时间 |
+
+**前端封装**：`apps/miniapp-worker/src/api/review.ts` → `fetchOrderReview(orderType, orderId)` → `ReviewDto | null`
+
+**调用时机**：`loadDetail()` / `refreshDetail()` 中，当 `order.status === 'REVIEWED'` 时懒加载；`PENDING_REVIEW` 不请求评价接口。
+
+### 32.3 前端文件
+
+| 路径 | 说明 |
+|------|------|
+| `apps/miniapp-worker/src/api/review.ts` | **新增**：`fetchOrderReview` |
+| `apps/miniapp-worker/src/pages/task-detail/index.vue` | 评价 card 模板；`previewReviewImage`；时间轴 REVIEWED 节点 |
+
+### 32.4 P4.6 验收清单（2026-06-22）
+
+| 验收项 | 结果 |
+|--------|------|
+| PENDING_REVIEW 详情页只读，无操作按钮 | ✅ |
+| 作业照片网格只读展示（服务前/后分组） | ✅ |
+| REVIEWED 展示用户评价（星级/标签/文字/图片/时间） | ✅ |
+| `GET /reviews?orderType=&orderId=` 懒加载成功 | ✅ |
+| `npm run build` 通过 | ✅ |
+
+---
+
+> **文档版本**：v3.6（P4.6 员工端任务详情待评价/已完成态验收通过）  
 > **修订日期**：2026-06-22  
-> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.5 员工端
+> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.6 员工端
