@@ -8,7 +8,7 @@
 | ----------------------- | -------------------------------------------------------------- |
 | `apps/server`           | NestJS 后端 API                                                |
 | `apps/miniapp-customer` | 居民端小程序（P1.4 完善；含 shared 验收桩）                    |
-| `apps/miniapp-worker`   | 员工端小程序（P4.4 任务详情已完成；含 auth store + order API） |
+| `apps/miniapp-worker`   | 员工端小程序（P4.5 任务详情服务中态已完成；含 auth store + order/upload API） |
 | `apps/admin`            | 管理后台（P1.5 完善；含 shared 验收桩）                        |
 | `packages/shared`       | 共享枚举、DTO、`ApiResponse`（`@dayangyunjie/shared`）         |
 | `docs/`                 | CodingPlan、tech、Schema 等技术文档                            |
@@ -76,3 +76,4 @@ npx prisma migrate dev
 - 使用Sonnet4.6 LLM完成P4.2，实现员工端首页—仅展示 ASSIGNED 待接单任务列表（无统计卡片）
 - 使用Sonnet4.6 LLM完成P4.3，实现员工端任务列表（双 Tab + 精确系统状态值筛选，无 PENDING_ASSIGN）
 - 使用Sonnet4.6 LLM完成P4.4，实现任务详情—已派单/已接单态（GPS签到 + ACCEPTED 状态作业区禁用 + 代下单展示）
+- 使用Sonnet4.6 LLM完成P4.5，实现任务详情—服务中态（无SOP弹窗 + 保洁「完成服务」按钮 + 废品也有「完成服务」按钮（与保洁对称） + 无重量/金额字段）

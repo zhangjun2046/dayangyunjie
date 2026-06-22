@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AddressSnapshot, CleaningOrderDto, OrderSource } from '@dayangyunjie/shared';
-import { CleaningOrder, OrderSource as PrismaOrderSource, OrderStatus as PrismaOrderStatus, PhotoType, Prisma } from '@prisma/client';
+import { CleaningOrder, OrderSource as PrismaOrderSource, OrderStatus as PrismaOrderStatus, PhotoType, Prisma, WorkPhoto } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { OrderStateMachineService } from '../../common/order-state-machine/order-state-machine.service';
 import { GeoService } from '../../common/geo/geo.service';
@@ -162,7 +162,13 @@ export class CleaningOrderService {
   }
 
   async findOne(id: number): Promise<CleaningOrderDto> {
-    const row = await this.findOneOrThrow(id);
+    const row = await this.prismaService.cleaningOrder.findUnique({
+      where: { id },
+      include: { workPhotos: true },
+    });
+    if (!row) {
+      throw new NotFoundException(`CleaningOrder ${id} not found`);
+    }
     return this.toDto(row);
   }
 
@@ -321,13 +327,22 @@ export class CleaningOrderService {
 
     await this.prismaService.$transaction(async (tx) => {
       await tx.workPhoto.createMany({
-        data: dto.photoUrls.map((url) => ({
-          cleaningOrderId: id,
-          orderType: 'CLEANING',
-          photoType: PhotoType.AFTER,
-          url,
-          uploadedBy: dto.operatorId,
-        })),
+        data: [
+          ...(dto.beforePhotoUrls ?? []).map((url) => ({
+            cleaningOrderId: id,
+            orderType: 'CLEANING',
+            photoType: PhotoType.BEFORE,
+            url,
+            uploadedBy: dto.operatorId,
+          })),
+          ...(dto.afterPhotoUrls ?? []).map((url) => ({
+            cleaningOrderId: id,
+            orderType: 'CLEANING',
+            photoType: PhotoType.AFTER,
+            url,
+            uploadedBy: dto.operatorId,
+          })),
+        ],
       });
 
       await this.stateMachine.transition(tx, {
@@ -437,7 +452,7 @@ export class CleaningOrderService {
     };
   }
 
-  private toDto(row: CleaningOrder): CleaningOrderDto {
+  private toDto(row: CleaningOrder & { workPhotos?: WorkPhoto[] }): CleaningOrderDto {
     return {
       id: row.id,
       orderNo: row.orderNo,
@@ -467,6 +482,16 @@ export class CleaningOrderService {
       gpsRemark: row.gpsRemark,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
+      workPhotos: row.workPhotos?.map((p) => ({
+        id: p.id,
+        cleaningOrderId: p.cleaningOrderId,
+        recyclingOrderId: p.recyclingOrderId,
+        orderType: p.orderType as 'CLEANING' | 'RECYCLING',
+        photoType: p.photoType as 'BEFORE' | 'AFTER',
+        url: p.url,
+        uploadedBy: p.uploadedBy,
+        createdAt: p.createdAt.toISOString(),
+      })),
     };
   }
 

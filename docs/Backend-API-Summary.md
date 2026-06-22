@@ -203,7 +203,7 @@ CRUD 标准五接口
 | POST | `/cleaning-orders/:id/assign` | `PENDING_ASSIGN → ASSIGNED` | 派单（Body：`workerId`, `operatorId`） |
 | POST | `/cleaning-orders/:id/accept` | `ASSIGNED → ACCEPTED` | 员工接单（Body：`operatorId`） |
 | POST | `/cleaning-orders/:id/gps-checkin` | `ACCEPTED → IN_SERVICE` | GPS签到（Body：`lat`, `lng`, `operatorId`；超200m标记不阻断） |
-| POST | `/cleaning-orders/:id/complete` | `IN_SERVICE → PENDING_REVIEW` | 完成服务（Body：`photoUrls[]`, `operatorId`） |
+| POST | `/cleaning-orders/:id/complete` | `IN_SERVICE → PENDING_REVIEW` | 完成服务（Body：`beforePhotoUrls[]`, `afterPhotoUrls[]`, `operatorId`；✅ P4.5 员工端已对接） |
 | POST | `/cleaning-orders/:id/cancel` | `PENDING_ASSIGN → CANCELLED` | 取消订单（仅待派单可取消） |
 
 ### 订单状态枚举
@@ -541,7 +541,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 | 端 | 关键说明 |
 |----|---------|
 | **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED`（✅ P3.7 已对接）；投诉 `POST /complaints` + 我的投诉 `GET /complaints?residentId=`（✅ P3.7 已对接）；地址管理 CRUD `GET/POST/PUT/DELETE /addresses`（✅ P3.7 已对接）；首页轮播图 `GET /banners/active?displayTarget=RESIDENT`（✅ P3.2 已对接）；客服电话 `GET /operators/contact`（✅ P3.2 已对接）；保洁预约 `POST /cleaning-orders`（✅ P3.3 已对接，含代下单字段）；废品预约 `POST /recycling-orders`（✅ P3.4 已对接，含代下单字段）；家政咨询 `POST /consult-orders`（✅ P3.5 已对接，含代下单字段）；代下单闭环验证（✅ P3.8 已通过，详见 `MiniApp-Architecture.md`）；H5 走 Vite 代理 `/api/v1`，小程序走 `VITE_API_BASE` |
-| **员工端（P4）** | 登录走 `POST /auth/worker-login`（✅ P4.1）；首页待接单列表 `GET /cleaning-orders?workerId=&statuses=ASSIGNED` + `GET /recycling-orders?workerId=&statuses=ASSIGNED`（✅ P4.2）；任务列表 `GET /cleaning-orders?workerId=&statuses=` / `GET /recycling-orders?workerId=&statuses=` 分页多状态筛选，排除 PENDING_ASSIGN（✅ P4.3）；任务详情 `GET /cleaning-orders/:id` / `GET /recycling-orders/:id`（✅ P4.4）；接单 `POST /cleaning-orders/:id/accept` 或废品同名接口（✅ P4.2/P4.3/P4.4）；GPS 签到 `POST /cleaning-orders/:id/gps-checkin`（✅ P4.4，仅 ACCEPTED 状态）；完成服务先上传图片到 `/upload/image` 获取 URL，再调 `/cleaning-orders/:id/complete` |
+| **员工端（P4）** | 登录走 `POST /auth/worker-login`（✅ P4.1）；首页待接单列表 `GET /cleaning-orders?workerId=&statuses=ASSIGNED` + `GET /recycling-orders?workerId=&statuses=ASSIGNED`（✅ P4.2）；任务列表 `GET /cleaning-orders?workerId=&statuses=` / `GET /recycling-orders?workerId=&statuses=` 分页多状态筛选，排除 PENDING_ASSIGN（✅ P4.3）；任务详情 `GET /cleaning-orders/:id` / `GET /recycling-orders/:id`（✅ P4.4）；接单 `POST /cleaning-orders/:id/accept` 或废品同名接口（✅ P4.2/P4.3/P4.4）；GPS 签到 `POST /cleaning-orders/:id/gps-checkin`（✅ P4.4，仅 ACCEPTED 状态）；IN_SERVICE 态上传作业照片 `POST /upload/image?orderNo=`（含水印，✅ P4.5）；完成服务 `POST /cleaning-orders/:id/complete` / 废品同名接口（Body：`beforePhotoUrls[]`, `afterPhotoUrls[]`, `operatorId`，✅ P4.5） |
 | **管理后台（P5）** | 看板接口均在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；配置管理走 `/service-catalogs`、`/banners`、`/operators` |
 
 ---
@@ -889,15 +889,63 @@ PENDING → PROCESSING → COMPLETED（终态）
 **P4.4 业务规则**：
 - ASSIGNED：底部「立即接单」+ 提示「请先接单，接单后方可开始服务」；不可直接 GPS 签到
 - ACCEPTED：底部「开始服务」→ `uni.getLocation` → `gpsCheckin` → IN_SERVICE
-- 作业记录区：ASSIGNED / ACCEPTED 禁用，IN_SERVICE 后解锁（P4.5 实现上传）
+- 作业记录区：ASSIGNED / ACCEPTED 禁用，IN_SERVICE 后解锁（✅ P4.5 已实现上传与完成服务）
 - 代下单：`contactName` 为代下单人，`serviceContactName` 为被服务人（完整手机号展示）
 - 时间轴：done（蓝勾）/ active（蓝圈实心点）/ pending（灰圈）三态
 
 ---
 
-> **文档版本**：v3.7（P4.4 员工端任务详情—已派单/已接单态对接完成）
+## P4.5 完成说明（2026-06-22）
+
+员工端任务详情—服务中态（P4.5）已完成，以下接口已在前端完成对接：
+
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `POST /upload/image?orderNo=` | IN_SERVICE 态选图上传，后端 sharp 叠加水印（订单号+时间戳） | ✅ P4.5 已对接 |
+| `POST /cleaning-orders/:id/complete` | 保洁「完成服务」，提交前后照片 URL | ✅ P4.5 已对接 |
+| `POST /recycling-orders/:id/complete` | 废品「完成服务」，与保洁对称 | ✅ P4.5 已对接 |
+
+**P4.5 完成服务 Request Body**：
+
+```typescript
+{
+  beforePhotoUrls: string[];  // 服务前照片 URL（上传接口返回，可为空数组）
+  afterPhotoUrls: string[];   // 服务后照片 URL（可为空数组）
+  operatorId: number;         // 员工 ID
+}
+```
+
+> 前端校验：至少 1 张作业照片（服务前或服务后均可）才可提交完成。
+
+**P4.5 照片上传流程**：
+
+1. `uni.chooseImage`（相机/相册，最多 9 张/组）
+2. `uploadImage(filePath, order.orderNo)` → `uni.uploadFile` → `POST /upload/image?orderNo=xxx`
+3. 后端 `addWatermark` 叠加 `{orderNo} {YYYY/MM/DD HH:mm:ss}` 至右下角 → 存本地 `/uploads/`
+4. 返回 `{ url }` 存入 `beforePhotos` / `afterPhotos` ref
+5. 点「完成服务」→ 确认弹窗 → `completeOrder(type, id, beforeUrls, afterUrls, workerId)`
+
+**P4.5 关键新增/扩展文件**：
+- `apps/miniapp-worker/src/api/upload.ts`（`uploadImage` 封装）
+- `apps/miniapp-worker/src/api/request.ts`（`UPLOAD_BASE_URL`，H5 条件编译 `/api/v1`）
+- `apps/miniapp-worker/src/api/order.ts`（`completeOrder`）
+- `apps/miniapp-worker/src/pages/task-detail/index.vue`（IN_SERVICE 作业区 + 完成服务按钮）
+- `apps/server/src/modules/cleaning-order/dto/complete-order.dto.ts`（`beforePhotoUrls` / `afterPhotoUrls`）
+- `apps/server/src/modules/recycling-order/dto/complete-order.dto.ts`（同上）
+- `packages/shared/src/entities/order.ts`（`workPhotos?: WorkPhotoDto[]`）
+
+**P4.5 业务规则**：
+- 进入 IN_SERVICE 无 SOP 弹窗，作业区直接解锁
+- 保洁/废品均显示「完成服务」按钮（对称）
+- 不展示实际重量、核定金额、已收款字段
+- 完成后状态变 PENDING_REVIEW，照片网格切换为只读（从 `order.workPhotos` 按 `photoType` 分 BEFORE/AFTER 展示）
+
+---
+
+> **文档版本**：v3.8（P4.5 员工端任务详情—服务中态对接完成）
 > **生成日期**：2026-06-21
-> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.4 员工端对接说明
+> **修订日期**：2026-06-22（v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.5 员工端对接说明
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销
 > **P3.6_repair 修正**：彻底删除居民验收接口及前端按钮，废品与保洁完全对称
@@ -906,3 +954,4 @@ PENDING → PROCESSING → COMPLETED（终态）
 > **P4.2 新增**：员工端首页 ASSIGNED 待接单列表；列表 Query 新增 `workerId`；`fetchAssignedOrders` / `acceptOrder` 前端对接完成
 > **P4.3 新增**：员工端任务列表双 Tab + 精确状态筛选；`fetchWorkerOrders` 分页查询；排除 PENDING_ASSIGN
 > **P4.4 新增**：员工端任务详情页；`fetchOrderDetail` / `gpsCheckin`；ASSIGNED 接单 + ACCEPTED GPS 签到；P4.4 单元测试 36 项
+> **P4.5 新增**：IN_SERVICE 作业照片上传（`/upload/image` 含水印）；`completeOrder` 完成服务；`beforePhotoUrls`/`afterPhotoUrls` DTO 适配；修复 H5 `UPLOAD_BASE_URL` 代理路径

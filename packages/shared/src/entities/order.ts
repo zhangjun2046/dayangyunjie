@@ -1,5 +1,6 @@
 import type { AddressSnapshot } from '../types/address';
 import type { ConsultStatus, OrderSource, OrderStatus, PaymentStatus } from '../enums';
+import type { WorkPhotoDto } from './work-photo';
 
 /** 保洁订单（API 出参，v2.0：proxyName→serviceContactName，proxyPhone→serviceContactPhone） */
 export interface CleaningOrderDto {
@@ -31,6 +32,8 @@ export interface CleaningOrderDto {
   gpsRemark?: string | null;
   createdAt: string;
   updatedAt: string;
+  /** 作业照片（详情接口返回，列表接口不含） */
+  workPhotos?: WorkPhotoDto[];
 }
 
 /** 废品订单（API 出参，v2.0：proxyName→serviceContactName，proxyPhone→serviceContactPhone） */
@@ -59,6 +62,8 @@ export interface RecyclingOrderDto {
   gpsRemark?: string | null;
   createdAt: string;
   updatedAt: string;
+  /** 作业照片（详情接口返回，列表接口不含） */
+  workPhotos?: WorkPhotoDto[];
 }
 
 /** 家政咨询单（API 出参，v2.0：新增代下单 / 服务地址 / 来源字段） */

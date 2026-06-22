@@ -131,37 +131,149 @@
             <text class="section-title-text">作业记录</text>
           </view>
 
-          <!-- 上传前照片 -->
-          <view class="photo-group">
-            <view class="photo-group-header">
-              <view class="photo-seq-badge">
-                <text class="photo-seq-text">1</text>
+          <!-- ── 禁用态（ASSIGNED / ACCEPTED）：灰色占位 ── -->
+          <template v-if="workAreaState === 'disabled'">
+            <view class="photo-group">
+              <view class="photo-group-header">
+                <view class="photo-seq-badge photo-seq-badge--pending">
+                  <text class="photo-seq-text">1</text>
+                </view>
+                <text class="photo-group-label">上传服务前照片</text>
               </view>
-              <text class="photo-group-label">上传打扫前照片</text>
-            </view>
-            <view :class="['photo-upload-area', isWorkAreaDisabled && 'photo-upload-area--disabled']">
-              <view class="photo-placeholder">
-                <text class="photo-camera-icon">📷</text>
+              <view class="photo-upload-area photo-upload-area--disabled">
+                <view class="photo-placeholder">
+                  <text class="photo-camera-icon">📷</text>
+                </view>
+                <text class="photo-disabled-tip">开始服务后可上传</text>
               </view>
-              <text v-if="isWorkAreaDisabled" class="photo-disabled-tip">开始服务后可上传</text>
             </view>
-          </view>
+            <view class="photo-group">
+              <view class="photo-group-header">
+                <view class="photo-seq-badge photo-seq-badge--pending">
+                  <text class="photo-seq-text">2</text>
+                </view>
+                <text class="photo-group-label">上传服务后照片</text>
+              </view>
+              <view class="photo-upload-area photo-upload-area--disabled">
+                <view class="photo-placeholder">
+                  <text class="photo-camera-icon">📷</text>
+                </view>
+                <text class="photo-disabled-tip">开始服务后可上传</text>
+              </view>
+            </view>
+          </template>
 
-          <!-- 上传后照片 -->
-          <view class="photo-group">
-            <view class="photo-group-header">
-              <view class="photo-seq-badge photo-seq-badge--pending">
-                <text class="photo-seq-text">2</text>
+          <!-- ── 服务中（IN_SERVICE）：可上传编辑 ── -->
+          <template v-else-if="workAreaState === 'active'">
+            <!-- 上传前照片 -->
+            <view class="photo-group">
+              <view class="photo-group-header">
+                <view :class="['photo-seq-badge', beforePhotos.length > 0 ? '' : 'photo-seq-badge--pending']">
+                  <text class="photo-seq-text">1</text>
+                </view>
+                <text class="photo-group-label">上传服务前照片</text>
+                <text class="photo-count-tip">{{ beforePhotos.length }}/9</text>
               </view>
-              <text class="photo-group-label">上传打扫后照片</text>
-            </view>
-            <view :class="['photo-upload-area', isWorkAreaDisabled && 'photo-upload-area--disabled']">
-              <view class="photo-placeholder">
-                <text class="photo-camera-icon">📷</text>
+              <view class="photo-grid">
+                <view
+                  v-for="(url, idx) in beforePhotos"
+                  :key="url"
+                  class="photo-thumb-wrap"
+                >
+                  <image class="photo-thumb" :src="url" mode="aspectFill" />
+                  <view class="photo-delete-btn" @tap="removePhoto('before', idx)">
+                    <text class="photo-delete-icon">✕</text>
+                  </view>
+                </view>
+                <view
+                  v-if="beforePhotos.length < 9"
+                  :class="['photo-add-btn', uploadingBefore && 'photo-add-btn--loading']"
+                  @tap="handleAddPhoto('before')"
+                >
+                  <text v-if="uploadingBefore" class="photo-uploading-icon">⏳</text>
+                  <text v-else class="photo-camera-icon">📷</text>
+                </view>
               </view>
-              <text v-if="isWorkAreaDisabled" class="photo-disabled-tip">开始服务后可上传</text>
             </view>
-          </view>
+            <!-- 上传后照片 -->
+            <view class="photo-group">
+              <view class="photo-group-header">
+                <view :class="['photo-seq-badge', afterPhotos.length > 0 ? '' : 'photo-seq-badge--pending']">
+                  <text class="photo-seq-text">2</text>
+                </view>
+                <text class="photo-group-label">上传服务后照片</text>
+                <text class="photo-count-tip">{{ afterPhotos.length }}/9</text>
+              </view>
+              <view class="photo-grid">
+                <view
+                  v-for="(url, idx) in afterPhotos"
+                  :key="url"
+                  class="photo-thumb-wrap"
+                >
+                  <image class="photo-thumb" :src="url" mode="aspectFill" />
+                  <view class="photo-delete-btn" @tap="removePhoto('after', idx)">
+                    <text class="photo-delete-icon">✕</text>
+                  </view>
+                </view>
+                <view
+                  v-if="afterPhotos.length < 9"
+                  :class="['photo-add-btn', uploadingAfter && 'photo-add-btn--loading']"
+                  @tap="handleAddPhoto('after')"
+                >
+                  <text v-if="uploadingAfter" class="photo-uploading-icon">⏳</text>
+                  <text v-else class="photo-camera-icon">📷</text>
+                </view>
+              </view>
+            </view>
+          </template>
+
+          <!-- ── 只读态（PENDING_REVIEW / REVIEWED）：按 photoType 分服务前/后 ── -->
+          <template v-else>
+            <!-- 服务前照片 -->
+            <view class="photo-group">
+              <view class="photo-group-header">
+                <view :class="['photo-seq-badge', beforeWorkPhotos.length > 0 ? '' : 'photo-seq-badge--pending']">
+                  <text class="photo-seq-text">1</text>
+                </view>
+                <text class="photo-group-label">服务前照片</text>
+                <text class="photo-count-tip">{{ beforeWorkPhotos.length }} 张</text>
+              </view>
+              <view v-if="beforeWorkPhotos.length === 0" class="photo-empty-tip">
+                <text class="photo-disabled-tip">暂无服务前照片</text>
+              </view>
+              <view v-else class="photo-grid">
+                <view
+                  v-for="photo in beforeWorkPhotos"
+                  :key="photo.id"
+                  class="photo-thumb-wrap"
+                >
+                  <image class="photo-thumb" :src="photo.url" mode="aspectFill" />
+                </view>
+              </view>
+            </view>
+            <!-- 服务后照片 -->
+            <view class="photo-group">
+              <view class="photo-group-header">
+                <view :class="['photo-seq-badge', afterWorkPhotos.length > 0 ? '' : 'photo-seq-badge--pending']">
+                  <text class="photo-seq-text">2</text>
+                </view>
+                <text class="photo-group-label">服务后照片</text>
+                <text class="photo-count-tip">{{ afterWorkPhotos.length }} 张</text>
+              </view>
+              <view v-if="afterWorkPhotos.length === 0" class="photo-empty-tip">
+                <text class="photo-disabled-tip">暂无服务后照片</text>
+              </view>
+              <view v-else class="photo-grid">
+                <view
+                  v-for="photo in afterWorkPhotos"
+                  :key="photo.id"
+                  class="photo-thumb-wrap"
+                >
+                  <image class="photo-thumb" :src="photo.url" mode="aspectFill" />
+                </view>
+              </view>
+            </view>
+          </template>
         </view>
 
         <!-- 底部安全区占位 -->
@@ -195,9 +307,15 @@
         </button>
       </view>
 
-      <!-- 其他状态（IN_SERVICE/PENDING_REVIEW/REVIEWED）的占位底栏 -->
-      <view v-else-if="order.status === 'IN_SERVICE'" class="bottom-bar bottom-bar--info">
-        <text class="bottom-info-text">服务进行中，请完成工作后提交照片</text>
+      <!-- IN_SERVICE（服务中）：「完成服务」按钮（保洁 + 废品均显示） -->
+      <view v-else-if="order.status === 'IN_SERVICE'" class="bottom-bar">
+        <button
+          class="start-btn"
+          :disabled="completingService"
+          @tap="handleCompleteService"
+        >
+          <text class="start-btn-text">{{ completingService ? '提交中…' : '完成服务' }}</text>
+        </button>
       </view>
     </block>
   </view>
@@ -207,8 +325,9 @@
 import { ref, computed } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/store/auth';
-import { fetchOrderDetail, acceptOrder, gpsCheckin } from '@/api/order';
+import { fetchOrderDetail, acceptOrder, gpsCheckin, completeOrder } from '@/api/order';
 import type { OrderDetailDto } from '@/api/order';
+import { uploadImage } from '@/api/upload';
 
 const authStore = useAuthStore();
 
@@ -218,6 +337,13 @@ const order = ref<OrderDetailDto | null>(null);
 const loading = ref(false);
 const startingService = ref(false);
 const acceptingOrder = ref(false);
+
+// ===== IN_SERVICE 作业状态 =====
+const beforePhotos = ref<string[]>([]);
+const afterPhotos = ref<string[]>([]);
+const uploadingBefore = ref(false);
+const uploadingAfter = ref(false);
+const completingService = ref(false);
 
 // ===== 路由参数加载 =====
 onLoad((query) => {
@@ -233,12 +359,35 @@ async function loadDetail(): Promise<void> {
   try {
     order.value = await fetchOrderDetail(orderType.value, orderId.value);
     console.info('[task-detail] loadDetail done, status=', order.value?.status);
+    if (order.value?.status !== 'IN_SERVICE') {
+      beforePhotos.value = [];
+      afterPhotos.value = [];
+    }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : '加载失败';
     uni.showToast({ title: msg, icon: 'none' });
     console.info('[task-detail] loadDetail failed, err=', msg);
   } finally {
     loading.value = false;
+  }
+}
+
+/**
+ * 静默刷新（不触发 loading 遮罩）
+ * 用于操作完成后直接更新 order 数据，保证时间轴等计算属性响应式更新
+ */
+async function refreshDetail(): Promise<void> {
+  if (!orderId.value) return;
+  try {
+    const result = await fetchOrderDetail(orderType.value, orderId.value);
+    order.value = result;
+    if (result.status !== 'IN_SERVICE') {
+      beforePhotos.value = [];
+      afterPhotos.value = [];
+    }
+    console.info('[task-detail] refreshDetail done, status=', result.status);
+  } catch (err: unknown) {
+    console.info('[task-detail] refreshDetail failed, err=', err instanceof Error ? err.message : err);
   }
 }
 
@@ -308,11 +457,30 @@ const addressText = computed<string>(() => {
   return [snap.province, snap.city, snap.district].filter(Boolean).join('');
 });
 
-/** 作业记录区是否禁用（ASSIGNED / ACCEPTED 禁用） */
-const isWorkAreaDisabled = computed<boolean>(() => {
+/**
+ * 作业记录区展示模式
+ * disabled  — ASSIGNED / ACCEPTED：灰色占位，不可操作
+ * active    — IN_SERVICE：可上传编辑
+ * readonly  — PENDING_REVIEW / REVIEWED：展示后端 workPhotos，不可修改
+ */
+const workAreaState = computed<'disabled' | 'active' | 'readonly'>(() => {
   const s = order.value?.status ?? '';
-  return s === 'ASSIGNED' || s === 'ACCEPTED';
+  if (s === 'ASSIGNED' || s === 'ACCEPTED') return 'disabled';
+  if (s === 'IN_SERVICE') return 'active';
+  return 'readonly';
 });
+
+const isWorkAreaDisabled = computed<boolean>(() => workAreaState.value === 'disabled');
+
+/** 只读态：服务前照片（photoType === BEFORE） */
+const beforeWorkPhotos = computed(() =>
+  (order.value?.workPhotos ?? []).filter((p) => p.photoType === 'BEFORE'),
+);
+
+/** 只读态：服务后照片（photoType === AFTER） */
+const afterWorkPhotos = computed(() =>
+  (order.value?.workPhotos ?? []).filter((p) => p.photoType === 'AFTER'),
+);
 
 // ===== 时间轴节点 =====
 
@@ -458,6 +626,122 @@ function handleNavigate(): void {
         confirmText: '知道了',
         showCancel: false,
       });
+    },
+  });
+}
+
+// ===== 作业照片操作 =====
+
+/**
+ * 删除已上传的照片
+ * @param slot  'before' | 'after'
+ * @param index 要删除的索引
+ */
+function removePhoto(slot: 'before' | 'after', index: number): void {
+  if (slot === 'before') {
+    beforePhotos.value.splice(index, 1);
+  } else {
+    afterPhotos.value.splice(index, 1);
+  }
+}
+
+/**
+ * 拍照/选图并上传（支持批量多选）
+ * 每个 slot 最多 9 张；并发上传所有选中图片，部分失败时保留成功项并提示失败数量
+ */
+function handleAddPhoto(slot: 'before' | 'after'): void {
+  const list = slot === 'before' ? beforePhotos : afterPhotos;
+  const remaining = 9 - list.value.length;
+  if (remaining <= 0) return;
+  if (slot === 'before' && uploadingBefore.value) return;
+  if (slot === 'after' && uploadingAfter.value) return;
+
+  uni.chooseImage({
+    count: remaining,
+    sizeType: ['compressed'],
+    sourceType: ['camera', 'album'],
+    success: async (res) => {
+      const filePaths = res.tempFilePaths;
+      if (!filePaths || filePaths.length === 0) return;
+
+      if (slot === 'before') uploadingBefore.value = true;
+      else uploadingAfter.value = true;
+
+      const orderNo = order.value?.orderNo;
+      console.info('[task-detail] uploading photo, slot=', slot, 'before orderNo=', orderNo);
+
+      // 并发上传所有选中图片，allSettled 保证部分失败不影响其他
+      const results = await Promise.allSettled(
+        filePaths.map((filePath) => uploadImage(filePath, orderNo)),
+      );
+
+      let failCount = 0;
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          list.value.push(result.value);
+          console.info('[task-detail] photo uploaded, slot=', slot, 'url=', result.value);
+        } else {
+          failCount++;
+          console.info('[task-detail] photo upload failed, slot=', slot, 'err=', result.reason);
+        }
+      }
+
+      if (failCount > 0) {
+        const successCount = filePaths.length - failCount;
+        const msg = successCount > 0
+          ? `${successCount} 张上传成功，${failCount} 张失败，请重试`
+          : `上传失败，请重试`;
+        uni.showToast({ title: msg, icon: 'none', duration: 2500 });
+      }
+
+      if (slot === 'before') uploadingBefore.value = false;
+      else uploadingAfter.value = false;
+    },
+  });
+}
+
+/**
+ * 完成服务：IN_SERVICE → PENDING_REVIEW
+ * 弹窗确认 → 调 /complete → 刷新详情
+ */
+async function handleCompleteService(): Promise<void> {
+  if (completingService.value) return;
+  const workerId = authStore.worker?.id;
+  if (!workerId) {
+    uni.showToast({ title: '登录状态异常，请重新登录', icon: 'none' });
+    return;
+  }
+
+  // 至少上传 1 张作业照片（服务前或服务后均可）
+  if (beforePhotos.value.length === 0 && afterPhotos.value.length === 0) {
+    uni.showToast({ title: '请至少上传一张作业照片', icon: 'none', duration: 2000 });
+    return;
+  }
+
+  uni.showModal({
+    title: '确认完成服务',
+    content: '确认已完成本次服务？',
+    confirmText: '确认',
+    cancelText: '取消',
+    success: async (res) => {
+      if (!res.confirm) return;
+
+      completingService.value = true;
+      console.info('[task-detail] handleCompleteService, orderId=', orderId.value, 'before=', beforePhotos.value.length, 'after=', afterPhotos.value.length);
+
+      try {
+        await completeOrder(orderType.value, orderId.value, beforePhotos.value, afterPhotos.value, workerId);
+        console.info('[task-detail] completeOrder success');
+        // 先静默刷新数据（时间轴/照片网格立即响应），再弹 toast
+        await refreshDetail();
+        uni.showToast({ title: '服务完成', icon: 'success' });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : '操作失败';
+        uni.showToast({ title: msg, icon: 'none' });
+        console.info('[task-detail] completeOrder failed, err=', msg);
+      } finally {
+        completingService.value = false;
+      }
     },
   });
 }
@@ -1081,14 +1365,80 @@ async function handleStartService(): Promise<void> {
   color: #ffffff;
 }
 
-.bottom-bar--info {
+/* ===== 只读态照片区空提示 ===== */
+.photo-empty-tip {
+  padding: 16rpx 0 8rpx;
+}
+
+/* ===== 照片计数提示 ===== */
+.photo-count-tip {
+  font-size: 22rpx;
+  color: #aaa;
+  margin-left: auto;
+}
+
+/* ===== 照片网格（解锁态） ===== */
+.photo-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  padding: 0 0 8rpx;
+}
+
+.photo-thumb-wrap {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.photo-thumb {
+  width: 100%;
+  height: 100%;
+}
+
+.photo-delete-btn {
+  position: absolute;
+  top: 6rpx;
+  right: 6rpx;
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.bottom-info-text {
-  font-size: 26rpx;
-  color: #888;
+.photo-delete-icon {
+  font-size: 20rpx;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* 添加照片按钮 */
+.photo-add-btn {
+  width: 160rpx;
+  height: 160rpx;
+  border: 3rpx dashed #c8d6e8;
+  border-radius: 12rpx;
+  background: #f8faff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.photo-add-btn--loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.photo-uploading-icon {
+  font-size: 40rpx;
 }
 </style>

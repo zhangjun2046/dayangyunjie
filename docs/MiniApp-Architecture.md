@@ -1,6 +1,6 @@
 # MiniApp-Architecture.md — 小程序架构交接文档
 
-> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）；P4.1（2026-06-21）补充员工端登录认证；P4.2（2026-06-21）补充员工端首页待接单任务列表；P4.3（2026-06-21）补充员工端任务列表；**P4.4（2026-06-21）** 补充员工端任务详情（已派单/已接单态 + GPS 签到）  
+> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）；P4.1（2026-06-21）补充员工端登录认证；P4.2（2026-06-21）补充员工端首页待接单任务列表；P4.3（2026-06-21）补充员工端任务列表；P4.4（2026-06-21）补充员工端任务详情（已派单/已接单态 + GPS 签到）；**P4.5（2026-06-22）** 补充员工端任务详情（服务中态 + 照片上传含水印 + 完成服务）  
 > **用途**：供 P4（员工端）、P5（管理后台）及后续维护对接，记录居民端已完成的页面结构、Store 设计、组件、API 封装与代下单数据流；并记录员工端 P4.1 登录认证实现  
 > **应用目录**：`apps/miniapp-customer/`（居民端）、`apps/miniapp-worker/`（员工端）
 
@@ -22,6 +22,7 @@
 12. [员工端 P4.2 首页待接单列表（miniapp-worker）](#12-员工端-p42-首页待接单列表miniapp-worker)
 13. [员工端 P4.3 任务列表（miniapp-worker）](#13-员工端-p43-任务列表miniapp-worker)
 14. [员工端 P4.4 任务详情—已派单/已接单态（miniapp-worker）](#14-员工端-p44-任务详情已派单已接单态miniapp-worker)
+15. [员工端 P4.5 任务详情—服务中态（miniapp-worker）](#15-员工端-p45-任务详情服务中态miniapp-worker)
 
 ---
 
@@ -415,7 +416,7 @@ apps/miniapp-worker/
 | `pages/login/index` | 手机号+密码登录，协议勾选，「开始服务」按钮 | 否 |
 | `pages/index/index` | 首页（tabBar，P4.2 待接单 ASSIGNED 列表） | 是 |
 | `pages/tasks/index` | 任务（tabBar，P4.3 双 Tab + 状态筛选列表） | 是 |
-| `pages/task-detail/index` | 任务详情（P4.4，Query: `orderId=&orderType=`） | 是 |
+| `pages/task-detail/index` | 任务详情（P4.4–P4.5，Query: `orderId=&orderType=`） | 是 |
 | `pages/mine/index` | 我的（tabBar，P1.4 骨架） | 是 |
 
 ### 11.3 Auth Store 设计
@@ -567,7 +568,7 @@ Login Page → 校验协议+手机号+密码
 |------|---------|------|
 | ASSIGNED | 绿色「立即接单」+ 橙色提示 | 调 `acceptOrder()` → 刷新 → ACCEPTED |
 | ACCEPTED | 蓝色「开始服务」 | `uni.getLocation` → `gpsCheckin()` → IN_SERVICE |
-| IN_SERVICE | 信息提示栏 | 「服务进行中，请完成工作后提交照片」（P4.5 实现上传） |
+| IN_SERVICE | 蓝色「完成服务」 | 上传作业照片 → 确认弹窗 → `completeOrder()` → PENDING_REVIEW |
 
 ### 14.2 关键文件
 
@@ -623,15 +624,79 @@ Login Page → 校验协议+手机号+密码
 
 ### 14.8 作业记录区
 
-ASSIGNED / ACCEPTED 状态下上传区域灰色禁用，提示「开始服务后可上传」。实际上传功能在 P4.5（IN_SERVICE 态）实现。
+ASSIGNED / ACCEPTED 状态下上传区域灰色禁用，提示「开始服务后可上传」。IN_SERVICE 态解锁上传（✅ P4.5 已实现）。
 
 ---
 
-> **文档版本**：v1.5（P4.4 员工端任务详情验收通过）  
+## 15. 员工端 P4.5 任务详情—服务中态（miniapp-worker）
+
+> **验收状态**：✅ 已通过（2026-06-22）
+
+### 15.1 功能概述
+
+同一任务详情页在 `IN_SERVICE` 状态下的操作：
+
+- 无 SOP 弹窗，进入服务中后直接可操作
+- 作业记录区解锁：上传服务前 / 服务后照片（相机或相册，每组最多 9 张）
+- 照片上传后由后端叠加水印（订单号 + 时间戳，右下角）
+- 底部「完成服务」按钮 → 确认弹窗 → 状态变 `PENDING_REVIEW`
+- 保洁与废品流程对称；不展示实际重量、核定金额、已收款字段
+
+### 15.2 关键文件
+
+| 文件 | 说明 |
+|------|------|
+| `src/pages/task-detail/index.vue` | `workAreaState` 三态；`handleAddPhoto` / `handleCompleteService` |
+| `src/api/upload.ts` | `uploadImage(filePath, orderNo?)` — `uni.uploadFile` 封装 |
+| `src/api/request.ts` | `UPLOAD_BASE_URL`（H5: `/api/v1`，小程序: `VITE_API_BASE`） |
+| `src/api/order.ts` | `completeOrder(type, id, beforeUrls, afterUrls, operatorId)` |
+
+### 15.3 API 对接
+
+| 接口 | 封装 | 说明 |
+|------|------|------|
+| `POST /upload/image?orderNo=` | `uploadImage(filePath, orderNo)` | multipart `file` 字段；返回 `{ url }` |
+| `POST /cleaning-orders/:id/complete` | `completeOrder('cleaning', ...)` | Body: `beforePhotoUrls`, `afterPhotoUrls`, `operatorId` |
+| `POST /recycling-orders/:id/complete` | `completeOrder('recycling', ...)` | 与保洁对称 |
+
+### 15.4 作业区状态机（workAreaState）
+
+| 订单状态 | workAreaState | UI |
+|---------|---------------|-----|
+| ASSIGNED / ACCEPTED | `disabled` | 灰色占位，「开始服务后可上传」 |
+| IN_SERVICE | `active` | 可上传/删除前后照片网格 |
+| PENDING_REVIEW / REVIEWED | `readonly` | 只读展示 `order.workPhotos`（按 BEFORE/AFTER 分组） |
+
+### 15.5 照片上传流程
+
+```
+handleAddPhoto('before'|'after')
+  → uni.chooseImage(count=剩余配额, compressed)
+  → Promise.allSettled(filePaths.map(uploadImage))
+  → push 成功 URL 到 beforePhotos / afterPhotos
+```
+
+### 15.6 完成服务流程
+
+```
+handleCompleteService()
+  → 校验至少 1 张照片
+  → uni.showModal 确认
+  → completeOrder(orderType, orderId, beforePhotos, afterPhotos, workerId)
+  → refreshDetail() → 状态 PENDING_REVIEW，照片只读展示
+```
+
+### 15.7 水印说明
+
+水印在后端 `POST /upload/image` 处理，非前端覆盖层。格式：`{orderNo} {本地化时间}`，如 `CLN20260622000001 2026/06/22 10:24:35`，烙印于 JPEG 右下角。
+
+---
+
+> **文档版本**：v1.6（P4.5 员工端任务详情服务中态验收通过）  
 > **生成日期**：2026-06-21  
-> **修订日期**：2026-06-21（v1.5：P4.4 任务详情 fetchOrderDetail/gpsCheckin；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
-> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.4 员工端  
-> **下一阶段**：P4.5 任务详情（服务中态）
+> **修订日期**：2026-06-22（v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
+> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.5 员工端  
+> **下一阶段**：P4.6 任务详情（待评价/已完成态）
 
 ---
 

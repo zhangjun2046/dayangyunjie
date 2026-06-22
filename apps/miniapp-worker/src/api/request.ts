@@ -25,6 +25,19 @@ const BASE_URL = '/api/v1';
 const BASE_URL = (import.meta.env.VITE_API_BASE as string) || 'http://127.0.0.1:3000/api/v1';
 // #endif
 
+/**
+ * 文件上传 Base URL（uni.uploadFile 不走 Vite 代理，需使用与 BASE_URL 相同的前缀）
+ * H5 环境：'/api/v1'，让 Vite proxy（/api/v1 → localhost:3000）处理
+ * 小程序环境：直连后端绝对地址
+ */
+// #ifdef H5
+export const UPLOAD_BASE_URL = '/api/v1';
+// #endif
+// #ifndef H5
+export const UPLOAD_BASE_URL: string =
+  (import.meta.env.VITE_API_BASE as string) || 'http://127.0.0.1:3000/api/v1';
+// #endif
+
 const WORKER_AUTH_STORAGE_KEY = '__worker_auth__';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';

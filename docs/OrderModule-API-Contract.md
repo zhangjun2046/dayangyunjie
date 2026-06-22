@@ -2238,6 +2238,92 @@ ASSIGNED 状态卡片「立即接单」调用 §28.2 同名接口，成功后刷
 
 ---
 
-> **文档版本**：v3.4（P4.4 员工端任务详情验收通过）  
-> **修订日期**：2026-06-21  
-> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.4 员工端
+## 31. P4.5 员工端任务详情—服务中态（2026-06-22）
+
+> **验收状态**：✅ **已通过**（2026-06-22）  
+> **需求来源**：`requirement_v2.0.md` §4.3（服务中部分）、§4.7；`docs/CodingPlan.md` P4.5
+
+### 31.1 功能概述
+
+任务详情页 `pages/task-detail/index` 在 `IN_SERVICE` 状态下的扩展：
+
+- 无 SOP 弹窗，作业区直接解锁
+- 上传服务前 / 服务后照片（`uni.chooseImage`，每组最多 9 张）
+- 照片经 `POST /upload/image?orderNo=` 上传，后端 sharp 叠加水印（订单号 + 时间戳）
+- 底部「完成服务」→ 确认弹窗 → `POST /:id/complete` → `PENDING_REVIEW`
+- 保洁与废品对称；不展示实际重量、核定金额、已收款字段
+
+### 31.2 POST `/upload/image` — 员工端作业照片上传
+
+**Query**：`orderNo`（可选，写入水印，建议传订单号）
+
+**Request**：`multipart/form-data`，字段 `file`（JPEG/PNG/WebP，≤10MB）
+
+**水印格式**：`{orderNo} {YYYY/MM/DD HH:mm:ss}`，烙印于图片右下角（sharp SVG composite）
+
+**Response `data`**：
+
+```typescript
+{ url: string; filename: string }
+```
+
+**前端封装**：`apps/miniapp-worker/src/api/upload.ts` → `uploadImage(filePath, orderNo?)`
+
+**H5 上传 Base URL**：`/api/v1`（与 `BASE_URL` 一致，走 Vite 代理）
+
+### 31.3 POST `/cleaning-orders/:id/complete` — 完成服务（P4.5 DTO 更新）
+
+**状态转移**：`IN_SERVICE → PENDING_REVIEW`
+
+**Request Body**（P4.5 更新，区分前后照片）：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `beforePhotoUrls` | string[] | 是 | 服务前照片 URL 列表（可为空数组） |
+| `afterPhotoUrls` | string[] | 是 | 服务后照片 URL 列表（可为空数组） |
+| `operatorId` | number | 是 | 操作员工 ID |
+
+> 前端校验：至少 1 张作业照片（前或后均可）才允许提交。
+
+**work_photos 写入**：
+
+- `beforePhotoUrls` → `photoType: BEFORE`
+- `afterPhotoUrls` → `photoType: AFTER`
+- `orderType`: `CLEANING` / `RECYCLING`
+- `uploadedBy`: `operatorId`
+
+**Response `data`**：`CleaningOrderDto` / `RecyclingOrderDto`，`status: PENDING_REVIEW`，含 `workPhotos[]`
+
+### 31.4 POST `/recycling-orders/:id/complete`
+
+与保洁完全对称，Request Body 同上，废品订单 `orderType: RECYCLING`。
+
+### 31.5 前端文件
+
+| 路径 | 说明 |
+|------|------|
+| `apps/miniapp-worker/src/api/upload.ts` | `uploadImage` 上传封装（新增） |
+| `apps/miniapp-worker/src/api/request.ts` | `UPLOAD_BASE_URL` H5 条件编译 |
+| `apps/miniapp-worker/src/api/order.ts` | `completeOrder()` |
+| `apps/miniapp-worker/src/pages/task-detail/index.vue` | `handleAddPhoto` / `handleCompleteService` |
+| `apps/server/src/modules/cleaning-order/dto/complete-order.dto.ts` | `beforePhotoUrls` / `afterPhotoUrls` |
+| `apps/server/src/modules/recycling-order/dto/complete-order.dto.ts` | 同上 |
+| `packages/shared/src/entities/order.ts` | `workPhotos?: WorkPhotoDto[]` |
+
+### 31.6 P4.5 验收清单（2026-06-22）
+
+| 验收项 | 结果 |
+|--------|------|
+| 进入 IN_SERVICE 无 SOP 弹窗，作业区解锁 | ✅ |
+| 照片上传成功，图片右下角可见订单号+时间水印 | ✅ |
+| 保洁「完成服务」→ IN_SERVICE → PENDING_REVIEW | ✅ |
+| 废品「完成服务」与保洁对称 | ✅ |
+| 页面无实际重量/核定金额/已收款字段 | ✅ |
+| H5 上传路径修复（`UPLOAD_BASE_URL=/api/v1`） | ✅ |
+| `npm run build` 通过 | ✅ |
+
+---
+
+> **文档版本**：v3.5（P4.5 员工端任务详情服务中态验收通过）  
+> **修订日期**：2026-06-22  
+> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.5 员工端

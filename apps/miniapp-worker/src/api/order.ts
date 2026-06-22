@@ -308,6 +308,35 @@ export async function fetchOrderDetail(
 }
 
 /**
+ * 完成服务：IN_SERVICE → PENDING_REVIEW
+ * 保洁和废品回收均使用对称的 /complete 接口
+ * @param orderType       cleaning | recycling
+ * @param orderId         订单 ID
+ * @param beforePhotoUrls 服务前照片 URL 列表
+ * @param afterPhotoUrls  服务后照片 URL 列表
+ * @param operatorId      员工 ID
+ */
+export async function completeOrder(
+  orderType: 'cleaning' | 'recycling',
+  orderId: number,
+  beforePhotoUrls: string[],
+  afterPhotoUrls: string[],
+  operatorId: number,
+): Promise<void> {
+  const path =
+    orderType === 'cleaning'
+      ? `/cleaning-orders/${orderId}/complete`
+      : `/recycling-orders/${orderId}/complete`;
+  console.info(
+    '[worker-order] completeOrder, type=', orderType,
+    'orderId=', orderId,
+    'before=', beforePhotoUrls.length,
+    'after=', afterPhotoUrls.length,
+  );
+  await request<unknown>('POST', path, { beforePhotoUrls, afterPhotoUrls, operatorId });
+}
+
+/**
  * GPS 签到：ACCEPTED → IN_SERVICE
  * 后端超距（>200m）时不阻断，仅写入 gpsRemark；前端按返回判断是否提示
  * @param orderType  cleaning | recycling
