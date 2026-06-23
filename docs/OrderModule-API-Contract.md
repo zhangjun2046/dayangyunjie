@@ -2514,7 +2514,7 @@ ASSIGNED 状态卡片「立即接单」调用 §28.2 同名接口，成功后刷
 |------|------|---------|------|
 | `/login` | `views/login/index.vue` | — | P5.1 |
 | `/dashboard` | `views/dashboard/index.vue` | — | P1.5 |
-| `/orders/cleaning` | `views/orders/cleaning/index.vue` | 订单管理 > 保洁订单 | P5.3 占位 |
+| `/orders/cleaning` | `views/orders/cleaning/index.vue` | 订单管理 > 保洁订单 | P5.3 已完成 |
 | `/orders/recycling` | `views/orders/recycling/index.vue` | 订单管理 > 废品订单 | P5.4 占位 |
 | `/orders/consult` | `views/orders/consult/index.vue` | 订单管理 > 家政订单 | P5.5 占位 |
 | `/orders/complaint` | `views/orders/complaint/index.vue` | 订单管理 > 投诉反馈 | P5.7 占位 |
@@ -2571,6 +2571,79 @@ ASSIGNED 状态卡片「立即接单」调用 §28.2 同名接口，成功后刷
 
 ---
 
-> **文档版本**：v3.9（P5.2 管理后台数据看板验收通过）  
-> **修订日期**：2026-06-22  
-> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.2 管理后台
+### 34.7 P5.3 管理端保洁订单管理（2026-06-23）
+
+**页面**：`/orders/cleaning`（`apps/admin/src/views/orders/cleaning/index.vue`）
+
+#### GET `/cleaning-orders` — 管理端列表查询
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `keyword` | string | 关键词（订单号/联系人/电话/地址） |
+| `status` | string | 单状态筛选 |
+| `statuses` | string | 多状态（逗号分隔，优先级高于 status） |
+| `workerId` | number | 服务人员 ID |
+| `appointDateFrom` | string | 预约日期起 `YYYY-MM-DD` |
+| `appointDateTo` | string | 预约日期止 `YYYY-MM-DD` |
+| `page` | number | 页码，默认 1 |
+| `pageSize` | number | 每页条数，默认 10 |
+
+**响应**：列表项含 `worker: { id, name, phone }` 关联，供「服务人员」列展示。
+
+#### POST `/cleaning-orders` — 管理端代下单（CreateCleaningOrderDto 扩展）
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `serviceItem` | string | 是 | 服务项目名称 |
+| `serviceDuration` | number | 否 | 服务时长（小时），1–8，默认 2 |
+| `appointDate` | string | 是 | 预约日期 `YYYY-MM-DD` |
+| `appointTimeSlot` | string | 是 | 起始时间，如 `09:00`（8 点：08:00–11:00、14:00–17:00） |
+| `contactName` | string | 是 | 联系人姓名 |
+| `contactPhone` | string | 是 | 联系人电话 |
+| `addressId` | number | 条件 | 地址 ID（与 addressSnapshotText 二选一） |
+| `addressSnapshotText` | string | 条件 | 文本地址（管理端电话代下单） |
+| `residentId` | number | 否 | 居民 ID（电话代下单可为空） |
+| `isProxyOrder` | boolean | 否 | 是否代下单 |
+| `serviceContactName` | string | 条件 | 被服务人姓名（代下单时） |
+| `serviceContactPhone` | string | 条件 | 被服务人电话（代下单时） |
+| `source` | string | 否 | `MINIPROGRAM` / `PHONE` |
+| `remark` | string | 否 | 备注 |
+
+**服务时段 UI 规则**（管理端与居民端 `booking-cleaning` 一致）：
+
+- `TIME_SLOTS` = `['08:00','09:00','10:00','11:00','14:00','15:00','16:00','17:00']`
+- `appointTimeSlot` 仅存起始时间；`serviceDuration` 单独传 1–8 小时
+
+#### POST `/cleaning-orders/:id/assign` — 分配服务人员
+
+Body: `{ workerId: number }` → 状态 `PENDING_ASSIGN` → `ASSIGNED`
+
+**P5.3 关键文件**：
+
+| 路径 | 说明 |
+|------|------|
+| `apps/admin/src/api/cleaning.ts` | 保洁订单 CRUD + assign |
+| `apps/admin/src/api/worker.ts` | 服务人员列表（分配下拉） |
+| `apps/admin/src/api/service-catalog.ts` | 服务目录（新增订单下拉） |
+| `apps/admin/src/views/orders/cleaning/index.vue` | 列表 + 筛选 + 分配 + 代下单 + 详情 |
+| `apps/server/.../create-cleaning-order.dto.ts` | 代下单 DTO（可选 residentId/addressId + addressSnapshotText） |
+| `apps/server/.../cleaning-order.service.ts` | 文本地址创建 + findAll worker 关联 |
+| `packages/shared/src/entities/order.ts` | `CleaningOrderDto.residentId: number \| null` |
+
+### 34.8 P5.3 验收清单（2026-06-23）
+
+| 验收项 | 结果 |
+|--------|------|
+| 列表无金额列，有被服务人/代下单/服务时段列 | ✅ |
+| 分配弹窗可用，分配后状态变 ASSIGNED | ✅ |
+| 代下单新增成功（addressSnapshotText，无 residentId） | ✅ |
+| 服务时段 UI 与居民端一致（8 时间点 + 时长步进） | ✅ |
+| 列表服务人员列正常显示 | ✅ |
+| 查询条件（keyword/status/日期）可用 | ✅ |
+| `npm run build` 通过 | ✅ |
+
+---
+
+> **文档版本**：v4.0（P5.3 管理后台保洁订单管理验收通过）  
+> **修订日期**：2026-06-23  
+> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.3 管理后台

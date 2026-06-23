@@ -165,7 +165,7 @@ model Address {
 model CleaningOrder {
   id                  Int           @id @default(autoincrement())
   orderNo             String        @unique @map("order_no") @db.VarChar(32)
-  residentId          Int           @map("resident_id")
+  residentId          Int?          @map("resident_id")
   workerId            Int?          @map("worker_id")
   serviceItem         String        @map("service_item") @db.VarChar(64)
   serviceDuration     Int           @default(2) @map("service_duration")
@@ -193,7 +193,7 @@ model CleaningOrder {
   createdAt           DateTime      @default(now()) @map("created_at")
   updatedAt           DateTime      @updatedAt @map("updated_at")
 
-  resident   Resident    @relation(fields: [residentId], references: [id])
+  resident   Resident?   @relation(fields: [residentId], references: [id])
   worker     Worker?     @relation(fields: [workerId], references: [id])
   workPhotos WorkPhoto[]
   review     Review?

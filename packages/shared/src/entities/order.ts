@@ -6,8 +6,10 @@ import type { WorkPhotoDto } from './work-photo';
 export interface CleaningOrderDto {
   id: number;
   orderNo: string;
-  residentId: number;
+  residentId: number | null;
   workerId?: number | null;
+  /** 已派单时携带服务人员基本信息（name / phone） */
+  worker?: { id: number; name: string; phone: string } | null;
   serviceItem: string;
   serviceDuration: number;
   appointDate: string;

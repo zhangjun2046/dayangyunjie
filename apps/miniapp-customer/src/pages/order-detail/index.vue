@@ -120,12 +120,24 @@
         <OrderStatusTimeline :status="order.status" order-type="CONSULT" />
       </view>
 
-      <!-- 待派单：服务人员占位（仅保洁/废品） -->
-      <view v-if="order.status === 'PENDING_ASSIGN' && orderType !== 'consult'" class="info-card">
+      <!-- 服务人员（仅保洁/废品，且有 workerId 时展示） -->
+      <view v-if="orderType !== 'consult'" class="info-card">
         <view class="card-title-row">
           <text class="card-title">服务人员</text>
         </view>
-        <view class="worker-placeholder">
+        <!-- 已分配服务人员 -->
+        <template v-if="order.worker">
+          <view class="info-row">
+            <text class="info-label">姓名</text>
+            <text class="info-value">{{ order.worker.name }}</text>
+          </view>
+          <view class="info-row">
+            <text class="info-label">联系电话</text>
+            <text class="info-value">{{ order.worker.phone }}</text>
+          </view>
+        </template>
+        <!-- 待分配占位 -->
+        <view v-else class="worker-placeholder">
           <text class="placeholder-text">等待平台为您分配服务人员</text>
         </view>
       </view>
@@ -230,7 +242,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { onLoad } from '@dcloudio/uni-app';
+import { onLoad, onShow } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/store/auth';
 import {
   fetchCleaningOrderDetail,
@@ -268,6 +280,7 @@ type AnyOrder = (CleaningOrderDto | RecyclingOrderDto | ConsultOrderDto) & {
   serviceContactPhone?: string | null;
   remark?: string | null;
   createdAt: string;
+  worker?: { id: number; name: string; phone: string } | null;
 };
 
 const authStore = useAuthStore();
@@ -291,6 +304,16 @@ onLoad((options) => {
   }
 });
 
+// 从评价页/投诉页返回时刷新订单状态与评价数据
+onShow(() => {
+  if (!orderId.value) return;
+  console.info(`[order-detail] onShow → reload orderId=${orderId.value}`);
+  loadDetail();
+  if (orderType.value !== 'consult') {
+    loadReview();
+  }
+});
+
 async function loadDetail() {
   loading.value = true;
   try {
@@ -301,6 +324,9 @@ async function loadDetail() {
     } else {
       order.value = (await fetchConsultOrderDetail(orderId.value)) as unknown as AnyOrder;
     }
+    // #region agent log
+    fetch('http://127.0.0.1:7274/ingest/fee21d48-4d03-4852-be1e-1872cabcbb9a', {method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'59cbfd'},body:JSON.stringify({sessionId:'59cbfd',location:'order-detail/index.vue:loadDetail',message:'loadDetail completed',data:{orderId:orderId.value,status:order.value?.status ?? 'null'},hypothesisId:'B',timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : '加载失败';
     uni.showToast({ title: msg, icon: 'none' });
@@ -473,7 +499,7 @@ function getStatusLabel(status: string): string {
     ACCEPTED: '待服务',
     IN_SERVICE: '进行中',
     PENDING_REVIEW: '待反馈',
-    REVIEWED: '已完成',
+    REVIEWED: '已评价',
     CANCELLED: '已取消',
   };
   return map[status] || status;

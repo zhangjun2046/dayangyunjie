@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AddressSnapshot, CleaningOrderDto, OrderSource } from '@dayangyunjie/shared';
-import { CleaningOrder, OrderSource as PrismaOrderSource, OrderStatus as PrismaOrderStatus, PhotoType, Prisma, WorkPhoto } from '@prisma/client';
+import { CleaningOrder, OrderSource as PrismaOrderSource, OrderStatus as PrismaOrderStatus, PhotoType, Prisma, Worker, WorkPhoto } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { OrderStateMachineService } from '../../common/order-state-machine/order-state-machine.service';
 import { GeoService } from '../../common/geo/geo.service';
@@ -34,25 +34,45 @@ export class CleaningOrderService {
   async create(createCleaningOrderDto: CreateCleaningOrderDto): Promise<CleaningOrderDto> {
     this.validateProxyFields(createCleaningOrderDto);
 
+    // 管理后台代下单时 addressSnapshotText 与 addressId 必须二选一
+    if (!createCleaningOrderDto.addressId && !createCleaningOrderDto.addressSnapshotText) {
+      throw new BadRequestException('addressId 或 addressSnapshotText 必须提供其中之一');
+    }
+
     for (let attempt = 0; attempt < ORDER_NO_RETRY_TIMES; attempt += 1) {
       try {
         const row = await this.prismaService.$transaction(async (tx) => {
-          const resident = await tx.resident.findUnique({
-            where: { id: createCleaningOrderDto.residentId },
-            select: { id: true },
-          });
-          if (!resident) {
-            throw new NotFoundException(`Resident ${createCleaningOrderDto.residentId} not found`);
+          // 有 residentId 时校验居民存在性（小程序用户路径）
+          if (createCleaningOrderDto.residentId) {
+            const resident = await tx.resident.findUnique({
+              where: { id: createCleaningOrderDto.residentId },
+              select: { id: true },
+            });
+            if (!resident) {
+              throw new NotFoundException(`Resident ${createCleaningOrderDto.residentId} not found`);
+            }
           }
 
-          const address = await tx.address.findUnique({
-            where: { id: createCleaningOrderDto.addressId },
-          });
-          if (!address) {
-            throw new NotFoundException(`Address ${createCleaningOrderDto.addressId} not found`);
-          }
-          if (address.residentId !== createCleaningOrderDto.residentId) {
-            throw new BadRequestException('addressId does not belong to residentId');
+          // 构建地址快照：有 addressId 则从数据库取；否则使用管理后台直传的文本
+          let addressSnapshot: Prisma.InputJsonValue;
+          if (createCleaningOrderDto.addressId) {
+            const address = await tx.address.findUnique({
+              where: { id: createCleaningOrderDto.addressId },
+            });
+            if (!address) {
+              throw new NotFoundException(`Address ${createCleaningOrderDto.addressId} not found`);
+            }
+            if (createCleaningOrderDto.residentId && address.residentId !== createCleaningOrderDto.residentId) {
+              throw new BadRequestException('addressId does not belong to residentId');
+            }
+            addressSnapshot = this.toAddressSnapshot(address) as unknown as Prisma.InputJsonValue;
+          } else {
+            // 管理后台代下单：直接用文本构建简单快照
+            addressSnapshot = {
+              detail: createCleaningOrderDto.addressSnapshotText,
+              contactName: createCleaningOrderDto.contactName,
+              contactPhone: createCleaningOrderDto.contactPhone,
+            } as unknown as Prisma.InputJsonValue;
           }
 
           const catalog = await tx.serviceCatalog.findFirst({
@@ -75,12 +95,12 @@ export class CleaningOrderService {
           return tx.cleaningOrder.create({
             data: {
               orderNo,
-              residentId: createCleaningOrderDto.residentId,
+              residentId: createCleaningOrderDto.residentId ?? null,
               serviceItem: createCleaningOrderDto.serviceItem,
               serviceDuration,
               appointDate,
               appointTimeSlot: createCleaningOrderDto.appointTimeSlot,
-              addressSnapshot: this.toAddressSnapshot(address) as unknown as Prisma.InputJsonValue,
+              addressSnapshot,
               contactName: createCleaningOrderDto.contactName,
               contactPhone: createCleaningOrderDto.contactPhone,
               remark: createCleaningOrderDto.remark,
@@ -149,6 +169,7 @@ export class CleaningOrderService {
         skip: (page - 1) * pageSize,
         take: pageSize,
         orderBy: [{ id: 'desc' }],
+        include: { worker: { select: { id: true, name: true, phone: true } } },
       }),
       this.prismaService.cleaningOrder.count({ where }),
     ]);
@@ -164,7 +185,10 @@ export class CleaningOrderService {
   async findOne(id: number): Promise<CleaningOrderDto> {
     const row = await this.prismaService.cleaningOrder.findUnique({
       where: { id },
-      include: { workPhotos: true },
+      include: {
+        workPhotos: true,
+        worker: { select: { id: true, name: true, phone: true } },
+      },
     });
     if (!row) {
       throw new NotFoundException(`CleaningOrder ${id} not found`);
@@ -379,8 +403,11 @@ export class CleaningOrderService {
     return this.toDto(await this.findOneOrThrow(id));
   }
 
-  private async findOneOrThrow(id: number): Promise<CleaningOrder> {
-    const row = await this.prismaService.cleaningOrder.findUnique({ where: { id } });
+  private async findOneOrThrow(id: number) {
+    const row = await this.prismaService.cleaningOrder.findUnique({
+      where: { id },
+      include: { worker: { select: { id: true, name: true, phone: true } } },
+    });
     if (!row) {
       throw new NotFoundException(`CleaningOrder ${id} not found`);
     }
@@ -452,12 +479,13 @@ export class CleaningOrderService {
     };
   }
 
-  private toDto(row: CleaningOrder & { workPhotos?: WorkPhoto[] }): CleaningOrderDto {
+  private toDto(row: CleaningOrder & { workPhotos?: WorkPhoto[]; worker?: Pick<Worker, 'id' | 'name' | 'phone'> | null }): CleaningOrderDto {
     return {
       id: row.id,
       orderNo: row.orderNo,
       residentId: row.residentId,
       workerId: row.workerId,
+      worker: row.worker ? { id: row.worker.id, name: row.worker.name, phone: row.worker.phone } : null,
       serviceItem: row.serviceItem,
       serviceDuration: row.serviceDuration,
       appointDate: row.appointDate.toISOString(),

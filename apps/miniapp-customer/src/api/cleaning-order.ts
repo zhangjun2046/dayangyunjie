@@ -36,6 +36,8 @@ export interface CleaningOrderDto {
   serviceContactName?: string | null;
   serviceContactPhone?: string | null;
   workerId?: number | null;
+  /** 已派单时携带服务人员基本信息 */
+  worker?: { id: number; name: string; phone: string } | null;
   remark?: string | null;
   createdAt: string;
   updatedAt: string;

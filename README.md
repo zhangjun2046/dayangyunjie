@@ -9,7 +9,7 @@
 | `apps/server`           | NestJS 后端 API                                                |
 | `apps/miniapp-customer` | 居民端小程序（P1.4 完善；含 shared 验收桩）                    |
 | `apps/miniapp-worker`   | 员工端小程序（P4.7 我的页已完成；含 auth store + order/upload/review/worker API） |
-| `apps/admin`            | 管理后台（P5.2 数据看板已完成；含 auth + dashboard API + ECharts 看板页）        |
+| `apps/admin`            | 管理后台（P5.3 保洁订单管理已完成；含 auth + dashboard + cleaning 订单 API）        |
 | `packages/shared`       | 共享枚举、DTO、`ApiResponse`（`@dayangyunjie/shared`）         |
 | `docs/`                 | CodingPlan、tech、Schema 等技术文档                            |
 | `requirement.md`        | 需求文档（主稿；原型图仍在资料区 `dayangyunjie\requirement\`） |
@@ -81,4 +81,5 @@ npx prisma migrate dev
 - 使用Sonnet4.6 LLM完成P4.6，实现任务详情—待评价/已完成态（只读模板 + 时间轴 + 照片网格 + REVIEWED 展示居民评价）
 - 使用Sonnet4.6 LLM完成P4.7，实现员工端我的页（技能证书 + 修改密码 + 无服务记录入口）
 - 使用Sonnet4.6 LLM完成P5.1，实现管理后台登录和二级折叠菜单布局（含配置管理一级菜单 + P5.9–P5.11 路由）
-- 使用Sonnet4.6 LLM完成P4.3，实现数据看板
+- 使用Sonnet4.6 LLM完成P5.2，实现数据看板
+- 使用Sonnet4.6 LLM完成P5.3，实现保洁订单管理（被服务人列 + 分配弹窗 + 服务时段字段 + 代下单 + 无金额列），修改了服务人员不可见；查询条件不完整；新增订单报错；新增订单时间范围选择与居民端小程序不一致的问题
