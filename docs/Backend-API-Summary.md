@@ -1,6 +1,6 @@
 # Backend API Summary（P2 全接口交接文档）
 
-> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；P4.2（2026-06-21）更新至 v3.5；P4.3（2026-06-21）更新至 v3.6；P4.4（2026-06-21）更新至 v3.7；P4.5（2026-06-22）更新至 v3.8；P4.6（2026-06-22）更新至 v3.9；P4.7（2026-06-22）更新至 v4.0；P5.1（2026-06-22）更新至 v4.1（管理后台 Admin 登录 + 布局框架对接完成）；**P5.2（2026-06-22）** 更新至 v4.2（Dashboard `getSummary` 重构为时间范围统计 + 管理后台数据看板 ECharts 对接完成）；**P5.5（2026-06-23）** 更新至 v4.5（管理后台家政咨询单管理对接完成）；**P5.6（2026-06-23）** 更新至 v4.6（管理后台服务人员管理对接完成）  
+> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；P4.2（2026-06-21）更新至 v3.5；P4.3（2026-06-21）更新至 v3.6；P4.4（2026-06-21）更新至 v3.7；P4.5（2026-06-22）更新至 v3.8；P4.6（2026-06-22）更新至 v3.9；P4.7（2026-06-22）更新至 v4.0；P5.1（2026-06-22）更新至 v4.1（管理后台 Admin 登录 + 布局框架对接完成）；**P5.2（2026-06-22）** 更新至 v4.2（Dashboard `getSummary` 重构为时间范围统计 + 管理后台数据看板 ECharts 对接完成）；**P5.5（2026-06-23）** 更新至 v4.5（管理后台家政咨询单管理对接完成）；**P5.6（2026-06-23）** 更新至 v4.6（管理后台服务人员管理对接完成）；**P5.7（2026-06-23）** 更新至 v4.7（管理后台投诉反馈管理对接完成）  
 > **用途**：供居民端（P3）、员工端（P4）、管理后台（P5）对接后端 API，避免上下文丢失  
 > **Base URL**：`http://localhost:3000/api/v1`  
 > **统一响应格式**：`{ code: number, message: string, data: T | null }`  
@@ -328,7 +328,7 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | POST | `/complaints` | 提交投诉（支持三类订单，初始 `PENDING`；Body 可选 `residentId`） |
-| GET | `/complaints` | 分页列表（Query：`status?`, `orderType?`, `orderId?`, `residentId?`, `workerId?`, `page`, `pageSize`） |
+| GET | `/complaints` | 分页列表（Query：`status?`, `orderType?`, `orderId?`, `residentId?`, `workerId?`, `keyword?`, `contactPhone?`, `page`, `pageSize`）；列表项含关联订单富字段（`complaintNo`, `orderNo`, `contactName`, `contactPhone`, `serviceType`, `serviceAddress` 等） |
 | GET | `/complaints/:id` | 投诉详情（含 `followUps[]`） |
 | PATCH | `/complaints/:id/status` | 更新状态（`PENDING→PROCESSING→COMPLETED`，单向不可逆） |
 | POST | `/complaints/:id/follow-ups` | 添加跟进记录 |
@@ -336,10 +336,12 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 **创建必填**：`orderType`, `orderId`, `reason`, `description`  
 **创建可选**：`evidenceImages`（string[]）, `residentId`（居民 ID，P3.7 用于「我的投诉」归属查询）
 
-**列表 Query 补充（P3.7）**：
+**列表 Query 补充（P3.7 / P5.6 / P5.7）**：
 - `residentId`（number，可选）：按居民过滤，居民端「我的投诉」必传
 - `orderId`（number，可选）：配合 `orderType` 按订单查投诉（订单详情展示投诉卡片）
 - `workerId`（number，可选，P5.6）：按员工关联订单过滤投诉（管理端服务人员详情抽屉）
+- `keyword`（string，可选，P5.7）：模糊匹配投诉单号前缀 / 投诉描述 / 客户姓名 / 服务地址
+- `contactPhone`（string，可选，P5.7）：模糊匹配客户联系方式（关联订单 contactPhone 或居民 phone）
 
 **reason 枚举**：`POOR_ATTITUDE` / `NOT_CLEAN` / `NOT_ON_TIME` / `ITEM_DAMAGED` / `EXTRA_CHARGE` / `OTHER`
 
@@ -568,7 +570,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 |----|---------|
 | **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED`（✅ P3.7 已对接）；投诉 `POST /complaints` + 我的投诉 `GET /complaints?residentId=`（✅ P3.7 已对接）；地址管理 CRUD `GET/POST/PUT/DELETE /addresses`（✅ P3.7 已对接）；首页轮播图 `GET /banners/active?displayTarget=RESIDENT`（✅ P3.2 已对接）；客服电话 `GET /operators/contact`（✅ P3.2 已对接）；保洁预约 `POST /cleaning-orders`（✅ P3.3 已对接，含代下单字段）；废品预约 `POST /recycling-orders`（✅ P3.4 已对接，含代下单字段）；家政咨询 `POST /consult-orders`（✅ P3.5 已对接，含代下单字段）；代下单闭环验证（✅ P3.8 已通过，详见 `MiniApp-Architecture.md`）；H5 走 Vite 代理 `/api/v1`，小程序走 `VITE_API_BASE` |
 | **员工端（P4）** | 登录走 `POST /auth/worker-login`（✅ P4.1）；首页待接单列表 `GET /cleaning-orders?workerId=&statuses=ASSIGNED` + `GET /recycling-orders?workerId=&statuses=ASSIGNED`（✅ P4.2）；任务列表 `GET /cleaning-orders?workerId=&statuses=` / `GET /recycling-orders?workerId=&statuses=` 分页多状态筛选，排除 PENDING_ASSIGN（✅ P4.3）；任务详情 `GET /cleaning-orders/:id` / `GET /recycling-orders/:id`（✅ P4.4）；接单 `POST /cleaning-orders/:id/accept` 或废品同名接口（✅ P4.2/P4.3/P4.4）；GPS 签到 `POST /cleaning-orders/:id/gps-checkin`（✅ P4.4，仅 ACCEPTED 状态）；IN_SERVICE 态上传作业照片 `POST /upload/image?orderNo=`（含水印，✅ P4.5）；完成服务 `POST /cleaning-orders/:id/complete` / 废品同名接口（Body：`beforePhotoUrls[]`, `afterPhotoUrls[]`, `operatorId`，✅ P4.5）；PENDING_REVIEW/REVIEWED 只读详情 + `GET /reviews?orderType=&orderId=` 展示居民评价（✅ P4.6）；我的页 `GET /workers/:id`（个人信息/评分/证书）+ 今日订单统计（复用订单列表 API）+ `PUT /workers/:id/change-password`（✅ P4.7） |
-| **管理后台（P5）** | 登录走 `POST /auth/admin-login`（✅ P5.1）；API 基址 `/api/v1`；二级折叠菜单布局 + 全部路由占位（含配置管理 P5.9–P5.11）；看板接口在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；配置管理走 `/service-catalogs`、`/banners`、`/operators`；家政咨询单管理走 `/consult-orders` + `/consult-orders/:id/follow-ups` + `/consult-orders/:id/status`（✅ P5.5）；服务人员管理走 `/workers` CRUD + `POST /workers/:id/reset-password` + `GET /complaints?workerId=`（✅ P5.6） |
+| **管理后台（P5）** | 登录走 `POST /auth/admin-login`（✅ P5.1）；API 基址 `/api/v1`；二级折叠菜单布局 + 全部路由占位（含配置管理 P5.9–P5.11）；看板接口在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；配置管理走 `/service-catalogs`、`/banners`、`/operators`；家政咨询单管理走 `/consult-orders` + `/consult-orders/:id/follow-ups` + `/consult-orders/:id/status`（✅ P5.5）；服务人员管理走 `/workers` CRUD + `POST /workers/:id/reset-password` + `GET /complaints?workerId=`（✅ P5.6）；投诉反馈管理走 `GET /complaints` + `GET /complaints/:id` + `PATCH /complaints/:id/status` + `POST /complaints/:id/follow-ups`（✅ P5.7） |
 
 ---
 
@@ -1043,7 +1045,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 | `/orders/cleaning` | 保洁订单（P5.3 已完成） |
 | `/orders/recycling` | 废品订单（P5.4 已完成） |
 | `/orders/consult` | 家政订单（P5.5 已完成） |
-| `/orders/complaint` | 投诉反馈（P5.7 占位） |
+| `/orders/complaint` | 投诉反馈（P5.7 已完成） |
 | `/data/dashboard` | 数据看板（P5.2 已完成） |
 | `/workers` | 服务人员管理（P5.6 已完成） |
 | `/config/services` | 服务配置（P5.9 占位） |
@@ -1343,10 +1345,48 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
-> **文档版本**：v4.6（P5.6 管理后台服务人员管理对接完成）
+## P5.7 完成说明（2026-06-23）
+
+管理后台投诉反馈管理（P5.7）已完成，以下接口与前端已对接：
+
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `GET /complaints` | 投诉列表分页 + 状态 Tab + 关键词/客户联系方式筛选 + 关联订单富字段 | ✅ P5.7 已对接 |
+| `GET /complaints/:id` | 详情抽屉（关联原始订单 + 投诉内容/凭证图 + followUps） | ✅ P5.7 已对接 |
+| `PATCH /complaints/:id/status` | 提交跟进后 PENDING→PROCESSING；「结束」结案 COMPLETED | ✅ P5.7 已对接 |
+| `POST /complaints/:id/follow-ups` | 详情抽屉录入跟进记录 | ✅ P5.7 已对接 |
+
+**P5.7 页面**：`/orders/complaint`（订单管理 > 投诉反馈）
+
+**P5.7 列表列**：投诉单编号 / 关联订单 / 客户姓名 / 客户联系方式 / 服务类型 / 服务地址 / 投诉内容 / 状态 / 操作（**无服务时间/服务人员/摘要列**）
+
+**P5.7 查询条件**：关键词（投诉单号前缀/客户姓名/地址/描述）/ 客户联系方式 / 状态 Tab
+
+**P5.7 详情抽屉**：关联原始订单 + 投诉内容（原因标签+描述+凭证图预览）+ 服务进度时间轴 + 处理跟进录入（提交/结束）
+
+**P5.7 关键新增/扩展文件**：
+
+- `apps/admin/src/api/complaint.ts`（fetchComplaintDetail / updateComplaintStatus / addComplaintFollowUp）
+- `apps/admin/src/views/orders/complaint/index.vue`（完整列表 + 详情抽屉）
+- `apps/server/src/modules/complaint/complaint.service.ts`（关联订单 include + toRichDto + keyword/contactPhone 筛选）
+- `apps/server/src/modules/complaint/dto/query-complaint.dto.ts`（新增 keyword / contactPhone）
+
+**P5.7 验收清单**：
+
+| 验收项 | 结果 |
+|--------|------|
+| 列表含关联订单列和投诉内容列 | ✅ |
+| 无服务时间/服务人员/摘要列 | ✅ |
+| 跟进时间轴 + 提交/结束结案流程正常 | ✅ |
+| 关键词与客户联系方式查询可用 | ✅ |
+| `npm run build` 通过 | ✅ |
+
+---
+
+> **文档版本**：v4.7（P5.7 管理后台投诉反馈管理对接完成）
 > **生成日期**：2026-06-21
-> **修订日期**：2026-06-23（v4.6：P5.6 服务人员列表/新增编辑/详情抽屉/重置密码 + todayOrders 聚合 + complaints workerId 筛选 + CreateWorkerDto 扩展；v4.5：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v4.4：P5.4 废品订单列表/分配/代下单 + CreateRecyclingOrderDto 扩展 + findOne worker 关联；v4.3：P5.3 保洁订单列表/分配/代下单 + CreateCleaningOrderDto 扩展；v4.2：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v4.1：P5.1 Admin 登录+二级折叠菜单+配置管理路由占位；v4.0：P4.7 我的页员工详情+证书预览+修改密码；v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
-> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.6 管理后台对接说明
+> **修订日期**：2026-06-23（v4.7：P5.7 投诉反馈列表/详情抽屉/跟进结案 + complaints 关联订单富 DTO + keyword/contactPhone 筛选；v4.6：P5.6 服务人员列表/新增编辑/详情抽屉/重置密码 + todayOrders 聚合 + complaints workerId 筛选 + CreateWorkerDto 扩展；v4.5：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v4.4：P5.4 废品订单列表/分配/代下单 + CreateRecyclingOrderDto 扩展 + findOne worker 关联；v4.3：P5.3 保洁订单列表/分配/代下单 + CreateCleaningOrderDto 扩展；v4.2：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v4.1：P5.1 Admin 登录+二级折叠菜单+配置管理路由占位；v4.0：P4.7 我的页员工详情+证书预览+修改密码；v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.7 管理后台对接说明
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销
 > **P3.6_repair 修正**：彻底删除居民验收接口及前端按钮，废品与保洁完全对称
@@ -1365,3 +1405,5 @@ PENDING → PROCESSING → COMPLETED（终态）
 > **P5.5 新增**：管理后台家政咨询单 `/orders/consult`；列表（被服务人/代下单/客户联系方式筛选）+ 新增咨询单弹窗 + 详情抽屉（ConsultFollowUp 跟进时间轴 + 提交/完成按钮）；状态 FOLLOW_UP/FOLLOWING/COMPLETED；修复 `updateConsultStatus` 缺少必填 `operatorId` 导致 400；`apps/admin/src/api/consult.ts`
 
 > **P5.6 新增**：管理后台服务人员管理 `/workers`；列表（今日订单列 + 重置密码 + 技能单选筛选，无顶部统计卡/投诉率/证书标签列）+ 新增/编辑弹窗（v2.0 扩展字段 + 证书上传非必填）+ 详情抽屉（证书区 + 绩效统计无创收金额 + 投诉记录列表）；后端 `todayOrders` 聚合 + `GET /complaints?workerId=` + `CreateWorkerDto` 扩展；`apps/admin/src/api/worker.ts` + `apps/admin/src/api/complaint.ts`
+
+> **P5.7 新增**：管理后台投诉反馈管理 `/orders/complaint`；列表（关联订单列 + 投诉内容列 + 客户联系方式筛选；无服务时间/服务人员/摘要列）+ 详情抽屉（关联原始订单 + 投诉内容/凭证图 + 跟进时间轴 + 提交/结束结案）；后端 `findAll`/`findOne` 关联订单富 DTO + `keyword`/`contactPhone` 查询；`apps/admin/src/api/complaint.ts` + `apps/admin/src/views/orders/complaint/index.vue`

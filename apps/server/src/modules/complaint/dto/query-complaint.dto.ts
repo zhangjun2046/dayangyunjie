@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 const COMPLAINT_STATUS_VALUES = ['PENDING', 'PROCESSING', 'COMPLETED'] as const;
 const ORDER_TYPE_VALUES = ['CLEANING', 'RECYCLING', 'CONSULT'] as const;
@@ -36,6 +36,21 @@ export class QueryComplaintDto {
   @IsInt()
   @Min(1)
   workerId?: number;
+
+  @ApiPropertyOptional({
+    description: '关键词（模糊匹配投诉单号 / 投诉描述 / 客户姓名）',
+    example: 'CPL20260621',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  keyword?: string;
+
+  @ApiPropertyOptional({ description: '客户联系方式（精确或模糊匹配）', example: '138' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  contactPhone?: string;
 
   @ApiPropertyOptional({ description: '页码', example: 1 })
   @IsOptional()

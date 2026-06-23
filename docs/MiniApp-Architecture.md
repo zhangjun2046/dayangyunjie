@@ -949,21 +949,44 @@ loadData()
 | `todayOrders` | 列表聚合当日保洁+废品订单数 |
 | `GET /complaints?workerId=` | 详情抽屉投诉记录 |
 
-### 18.9 P5.7–P5.11 占位页
+### 18.9 P5.7 投诉反馈管理（已完成）
+
+`views/orders/complaint/index.vue` 已实现完整投诉反馈管理：
+
+- **列表页**：投诉单编号 / 关联订单 / 客户姓名 / 客户联系方式 / 服务类型 / 服务地址 / 投诉内容 / 状态 / 操作（**无服务时间/服务人员/摘要列**）
+- **筛选**：状态 Tab（全部/待处理/跟进中/已完成）+ 关键词（投诉单号/客户姓名/地址）+ 客户联系方式
+- **详情抽屉**：关联原始订单 + 投诉内容（原因标签+描述+凭证图预览）+ 服务进度时间轴 + 处理跟进录入（提交/结束）
+- **API 封装**：`apps/admin/src/api/complaint.ts`（`fetchComplaints` / `fetchComplaintDetail` / `updateComplaintStatus` / `addComplaintFollowUp`）
+
+**P5.7 后端扩展**：
+
+| 变更 | 说明 |
+|------|------|
+| `GET /complaints?keyword=` | 投诉单号前缀/描述/客户姓名/地址模糊搜索 |
+| `GET /complaints?contactPhone=` | 客户联系方式模糊搜索 |
+| `findAll`/`findOne` include | 关联订单富 DTO（orderNo/contactName/serviceType/serviceAddress 等） |
+
+**P5.7 前端修复**：
+
+| 问题 | 修复 |
+|------|------|
+| 查询报 400 | `QueryComplaintDto` 新增 `keyword`/`contactPhone`（forbidNonWhitelisted） |
+| 客户姓名搜索误匹配 | `complaintNo` 改用 `startsWith`，避免日期子串误命中 |
+
+### 18.10 P5.8–P5.11 占位页
 
 其余业务路由已注册，视图文件使用 `el-empty` 展示「功能开发中」，便于后续单元直接替换：
 
-- `views/orders/complaint/index.vue`
 - `views/config/{services,operators,banners}/index.vue`
 - `views/settings/index.vue`
 
 ---
 
-> **文档版本**：v2.4（P5.6 管理后台服务人员管理验收通过）  
+> **文档版本**：v2.5（P5.7 管理后台投诉反馈管理验收通过）  
 > **生成日期**：2026-06-21  
-> **修订日期**：2026-06-23（v2.4：P5.6 服务人员列表/新增编辑/详情抽屉/重置密码 + todayOrders + complaints workerId；v2.3：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v2.2：P5.4 废品订单列表/分配/代下单 + 详情无重量/金额/收款；v2.1：P5.3 保洁订单列表/分配/代下单 + 服务时段与居民端对齐；v2.0：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v1.9：P5.1 Admin 登录+布局+配置管理路由占位；v1.8：P4.7 我的页+设置改密+证书预览；v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
-> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.7 员工端 + P5.1–P5.6 管理后台  
-> **下一阶段**：P5.7 投诉反馈管理
+> **修订日期**：2026-06-23（v2.5：P5.7 投诉反馈列表/详情抽屉/跟进结案 + complaints 关联订单富 DTO + keyword/contactPhone 筛选；v2.4：P5.6 服务人员列表/新增编辑/详情抽屉/重置密码 + todayOrders + complaints workerId；v2.3：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v2.2：P5.4 废品订单列表/分配/代下单 + 详情无重量/金额/收款；v2.1：P5.3 保洁订单列表/分配/代下单 + 服务时段与居民端对齐；v2.0：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v1.9：P5.1 Admin 登录+布局+配置管理路由占位；v1.8：P4.7 我的页+设置改密+证书预览；v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
+> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.7 员工端 + P5.1–P5.7 管理后台  
+> **下一阶段**：P5.8 系统设置占位页
 
 ---
 

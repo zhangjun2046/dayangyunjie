@@ -18,8 +18,80 @@ const COMPLAINT_TRANSITION_RULES: Record<string, string[]> = {
   // 终态：COMPLETED — 无可转移目标
 };
 
-/** 投诉详情（含 followUps 列表） */
-type ComplaintWithFollowUps = Complaint & { followUps: ComplaintFollowUp[] };
+/** 关联订单查询字段（列表 + 详情通用） */
+const COMPLAINT_RELATIONS_INCLUDE = {
+  cleaningOrder: {
+    select: {
+      orderNo: true,
+      contactName: true,
+      contactPhone: true,
+      serviceItem: true,
+      addressSnapshot: true,
+      isProxyOrder: true,
+      serviceContactName: true,
+      serviceContactPhone: true,
+      source: true,
+      remark: true,
+      appointDate: true,
+      appointTimeSlot: true,
+    },
+  },
+  recyclingOrder: {
+    select: {
+      orderNo: true,
+      contactName: true,
+      contactPhone: true,
+      itemType: true,
+      addressSnapshot: true,
+      isProxyOrder: true,
+      serviceContactName: true,
+      serviceContactPhone: true,
+      source: true,
+      remark: true,
+      appointDate: true,
+      appointTimeSlot: true,
+    },
+  },
+  consultOrder: {
+    select: {
+      orderNo: true,
+      contactName: true,
+      contactPhone: true,
+      serviceType: true,
+      serviceAddress: true,
+      requirementDesc: true,
+      isProxyOrder: true,
+      serviceContactName: true,
+      serviceContactPhone: true,
+      source: true,
+      remark: true,
+    },
+  },
+  resident: { select: { name: true, phone: true } },
+} as const;
+
+/** 包含关联订单和居民信息的投诉对象 */
+type ComplaintWithRelations = Prisma.ComplaintGetPayload<{
+  include: typeof COMPLAINT_RELATIONS_INCLUDE;
+}>;
+
+/** 管理端投诉富 DTO（含关联订单展开字段） */
+export interface ComplaintRichDto extends ComplaintDto {
+  complaintNo: string;
+  orderNo: string | null;
+  serviceType: string | null;
+  serviceAddress: string | null;
+  contactName: string | null;
+  contactPhone: string | null;
+  isProxyOrder: boolean;
+  serviceContactName: string | null;
+  serviceContactPhone: string | null;
+  orderSource: string | null;
+  remark: string | null;
+}
+
+/** 含跟进记录的管理端投诉详情 */
+export type ComplaintDetailDto = ComplaintRichDto & { followUps: ComplaintFollowUpDto[] };
 
 @Injectable()
 export class ComplaintService {
@@ -57,7 +129,7 @@ export class ComplaintService {
   }
 
   async findAll(query: QueryComplaintDto) {
-    const { page = 1, pageSize = 10, status, orderType, orderId, residentId, workerId } = query;
+    const { page = 1, pageSize = 10, status, orderType, orderId, residentId, workerId, keyword, contactPhone } = query;
 
     const where: Prisma.ComplaintWhereInput = {
       ...(status ? { status } : {}),
@@ -74,20 +146,42 @@ export class ComplaintService {
             ],
           }
         : {}),
+      ...(keyword
+        ? {
+            OR: [
+              { complaintNo: { startsWith: keyword } },
+              { description: { contains: keyword } },
+              { cleaningOrder: { OR: [{ contactName: { contains: keyword } }] } },
+              { recyclingOrder: { OR: [{ contactName: { contains: keyword } }] } },
+              { consultOrder: { OR: [{ contactName: { contains: keyword } }, { serviceAddress: { contains: keyword } }] } },
+            ],
+          }
+        : {}),
+      ...(contactPhone
+        ? {
+            OR: [
+              { cleaningOrder: { contactPhone: { contains: contactPhone } } },
+              { recyclingOrder: { contactPhone: { contains: contactPhone } } },
+              { consultOrder: { contactPhone: { contains: contactPhone } } },
+              { resident: { phone: { contains: contactPhone } } },
+            ],
+          }
+        : {}),
     };
 
-    const [rows, total] = await this.prismaService.$transaction([
+    const [rows, total] = await Promise.all([
       this.prismaService.complaint.findMany({
         where,
         skip: (page - 1) * pageSize,
         take: pageSize,
         orderBy: [{ id: 'desc' }],
+        include: COMPLAINT_RELATIONS_INCLUDE,
       }),
       this.prismaService.complaint.count({ where }),
     ]);
 
     return {
-      items: rows.map((r) => this.toDto(r)),
+      items: rows.map((r) => this.toRichDto(r)),
       total,
       page,
       pageSize,
@@ -95,16 +189,19 @@ export class ComplaintService {
   }
 
   /** 查询投诉详情，包含跟进记录列表（followUps） */
-  async findOne(id: number): Promise<ComplaintDto & { followUps: ComplaintFollowUpDto[] }> {
+  async findOne(id: number): Promise<ComplaintDetailDto> {
     const row = await this.prismaService.complaint.findUnique({
       where: { id },
-      include: { followUps: { orderBy: { id: 'asc' } } },
+      include: {
+        ...COMPLAINT_RELATIONS_INCLUDE,
+        followUps: { orderBy: { id: 'asc' } },
+      },
     });
     if (!row) {
       throw new NotFoundException(`Complaint ${id} not found`);
     }
     return {
-      ...this.toDto(row),
+      ...this.toRichDto(row),
       followUps: row.followUps.map((f) => this.toFollowUpDto(f)),
     };
   }
@@ -221,9 +318,10 @@ export class ComplaintService {
     if (!order) throw new NotFoundException(`ConsultOrder ${orderId} not found`);
   }
 
-  private toDto(row: Complaint): ComplaintDto {
+  private toDto(row: Complaint): ComplaintDto & { complaintNo: string } {
     return {
       id: row.id,
+      complaintNo: row.complaintNo,
       cleaningOrderId: row.cleaningOrderId ?? null,
       recyclingOrderId: row.recyclingOrderId ?? null,
       consultOrderId: row.consultOrderId ?? null,
@@ -235,6 +333,46 @@ export class ComplaintService {
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };
+  }
+
+  /** 将含关联订单数据的 Complaint 行映射为管理端富 DTO */
+  private toRichDto(row: ComplaintWithRelations): ComplaintRichDto {
+    const relatedOrder = row.cleaningOrder ?? row.recyclingOrder ?? row.consultOrder;
+
+    const serviceAddress =
+      row.cleaningOrder
+        ? this.formatAddressSnapshot(row.cleaningOrder.addressSnapshot)
+        : row.recyclingOrder
+          ? this.formatAddressSnapshot(row.recyclingOrder.addressSnapshot)
+          : (row.consultOrder?.serviceAddress ?? null);
+
+    const serviceType =
+      row.cleaningOrder?.serviceItem ??
+      row.recyclingOrder?.itemType ??
+      row.consultOrder?.serviceType ??
+      null;
+
+    return {
+      ...this.toDto(row),
+      orderNo: relatedOrder?.orderNo ?? null,
+      serviceType,
+      serviceAddress,
+      contactName: relatedOrder?.contactName ?? row.resident?.name ?? null,
+      contactPhone: relatedOrder?.contactPhone ?? row.resident?.phone ?? null,
+      isProxyOrder: relatedOrder?.isProxyOrder ?? false,
+      serviceContactName: relatedOrder?.serviceContactName ?? null,
+      serviceContactPhone: relatedOrder?.serviceContactPhone ?? null,
+      orderSource: relatedOrder ? (relatedOrder.source as string | null) : null,
+      remark: relatedOrder?.remark ?? null,
+    };
+  }
+
+  /** 将 addressSnapshot JSON 格式化为地址字符串 */
+  private formatAddressSnapshot(snapshot: Prisma.JsonValue | null | undefined): string | null {
+    if (!snapshot) return null;
+    const obj = snapshot as Record<string, string | undefined>;
+    const parts = [obj.province, obj.city, obj.district, obj.detail, obj.buildingInfo].filter(Boolean);
+    return parts.length > 0 ? parts.join('') : null;
   }
 
   private toFollowUpDto(row: ComplaintFollowUp): ComplaintFollowUpDto {

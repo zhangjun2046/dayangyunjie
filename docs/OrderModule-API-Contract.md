@@ -1074,9 +1074,9 @@ COS_REGION=ap-guangzhou
 
 ### 15.2 GET `/complaints` ??? ?????????????????
 
-**Query**??`status?`??PENDING/PROCESSING/COMPLETED??/ `orderType?` / `page` / `pageSize`
+**Query**??`status?`??PENDING/PROCESSING/COMPLETED??/ `orderType?` / `orderId?` / `residentId?` / `workerId?` / `keyword?`（P5.7，投诉单号前缀/描述/客户姓名/地址）/ `contactPhone?`（P5.7，客户联系方式）/ `page` / `pageSize`
 
-**Response `data`**??`{ items: ComplaintDto[], total, page, pageSize }`???? followUps??
+**Response `data`**??`{ items: ComplaintRichDto[], total, page, pageSize }`???? followUps??；列表项含关联订单展开字段（`complaintNo`, `orderNo`, `contactName`, `contactPhone`, `serviceType`, `serviceAddress` 等，P5.7）
 
 ---
 
@@ -2517,7 +2517,7 @@ ASSIGNED 状态卡片「立即接单」调用 §28.2 同名接口，成功后刷
 | `/orders/cleaning` | `views/orders/cleaning/index.vue` | 订单管理 > 保洁订单 | P5.3 已完成 |
 | `/orders/recycling` | `views/orders/recycling/index.vue` | 订单管理 > 废品订单 | P5.4 已完成 |
 | `/orders/consult` | `views/orders/consult/index.vue` | 订单管理 > 家政订单 | P5.5 已完成 |
-| `/orders/complaint` | `views/orders/complaint/index.vue` | 订单管理 > 投诉反馈 | P5.7 占位 |
+| `/orders/complaint` | `views/orders/complaint/index.vue` | 订单管理 > 投诉反馈 | P5.7 已完成 |
 | `/data/dashboard` | `views/data/dashboard/index.vue` | 数据管理 > 数据看板 | P5.2 已完成 |
 | `/workers` | `views/workers/index.vue` | 员工管理 > 服务人员管理 | P5.6 已完成 |
 | `/config/services` | `views/config/services/index.vue` | 配置管理 > 服务配置 | P5.9 占位 |
@@ -2850,8 +2850,28 @@ Body: `{ status: 'FOLLOWING' | 'COMPLETED', operatorId: number, remark?: string 
 | 健康证/技能证书非必填 | ✅ |
 | `npm run build` 通过 | ✅ |
 
+### 34.15 P5.7 投诉反馈管理验收清单（2026-06-23）
+
+| 验收项 | 结果 |
+|--------|------|
+| 列表含关联订单列和投诉内容列 | ✅ |
+| 无服务时间/服务人员/摘要列 | ✅ |
+| 详情抽屉：关联原始订单 + 投诉内容/凭证图 | ✅ |
+| 跟进时间轴 + 提交/结束结案流程正常 | ✅ |
+| 关键词与客户联系方式查询可用 | ✅ |
+| `npm run build` 通过 | ✅ |
+
+**P5.7 关键文件**：
+
+| 路径 | 说明 |
+|------|------|
+| `apps/admin/src/api/complaint.ts` | 投诉列表/详情/状态/跟进 API |
+| `apps/admin/src/views/orders/complaint/index.vue` | 列表 + 详情抽屉 |
+| `apps/server/src/modules/complaint/complaint.service.ts` | 关联订单 include + toRichDto + keyword/contactPhone |
+| `apps/server/src/modules/complaint/dto/query-complaint.dto.ts` | keyword / contactPhone 查询参数 |
+
 ---
 
-> **文档版本**：v4.3（P5.6 管理后台服务人员管理验收通过）  
+> **文档版本**：v4.4（P5.7 管理后台投诉反馈管理验收通过）  
 > **修订日期**：2026-06-23  
-> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.6 管理后台
+> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.7 管理后台
