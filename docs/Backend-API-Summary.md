@@ -1,6 +1,6 @@
 # Backend API Summary（P2 全接口交接文档）
 
-> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；P4.2（2026-06-21）更新至 v3.5；P4.3（2026-06-21）更新至 v3.6；P4.4（2026-06-21）更新至 v3.7；P4.5（2026-06-22）更新至 v3.8；P4.6（2026-06-22）更新至 v3.9；P4.7（2026-06-22）更新至 v4.0；P5.1（2026-06-22）更新至 v4.1（管理后台 Admin 登录 + 布局框架对接完成）；**P5.2（2026-06-22）** 更新至 v4.2（Dashboard `getSummary` 重构为时间范围统计 + 管理后台数据看板 ECharts 对接完成）；**P5.5（2026-06-23）** 更新至 v4.5（管理后台家政咨询单管理对接完成）  
+> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；P4.2（2026-06-21）更新至 v3.5；P4.3（2026-06-21）更新至 v3.6；P4.4（2026-06-21）更新至 v3.7；P4.5（2026-06-22）更新至 v3.8；P4.6（2026-06-22）更新至 v3.9；P4.7（2026-06-22）更新至 v4.0；P5.1（2026-06-22）更新至 v4.1（管理后台 Admin 登录 + 布局框架对接完成）；**P5.2（2026-06-22）** 更新至 v4.2（Dashboard `getSummary` 重构为时间范围统计 + 管理后台数据看板 ECharts 对接完成）；**P5.5（2026-06-23）** 更新至 v4.5（管理后台家政咨询单管理对接完成）；**P5.6（2026-06-23）** 更新至 v4.6（管理后台服务人员管理对接完成）  
 > **用途**：供居民端（P3）、员工端（P4）、管理后台（P5）对接后端 API，避免上下文丢失  
 > **Base URL**：`http://localhost:3000/api/v1`  
 > **统一响应格式**：`{ code: number, message: string, data: T | null }`  
@@ -122,11 +122,15 @@ CRUD 标准五接口，另有 P2.13 新增的密码管理接口。
 | PUT | `/workers/:id/change-password` | **员工自行改密**（需旧密码验证，需 Worker JWT，P2.13） |
 | POST | `/workers/:id/reset-password` | **管理员重置密码**（新密码=手机号，公开接口，P2.13） |
 
-**创建必填**：`openid`, `employeeNo`, `password`（服务端 bcrypt 入库）, `name`, `phone`, `skills`  
-**v2.0 可选扩展字段**：`nickname`, `gender`, `idCard`, `position`, `emergency`, `emergencyPhone`  
-**Response**：`WorkerDto`（**不含** `passwordHash`，含 `totalOrders`, `rating`, `status`, `skills`, `healthCertUrl`, `skillCertUrl`）
+**创建必填**：`employeeNo`, `password`（服务端 bcrypt 入库，默认建议传完整手机号）, `name`, `phone`, `skillType`（`CLEANING` / `RECYCLING` / `BOTH`）  
+**v2.0 可选扩展字段**：`nickname`, `gender`, `idCard`, `position`, `emergencyContact`, `emergencyPhone`, `healthCertUrl`, `healthCertExpiry`, `skillCertUrl`, `skillCertExpiry`, `status`, `rating`, `totalOrders`  
+**列表 Query**：`page`, `pageSize`, `name?`, `phone?`, `status?`, `skillType?`（P5.6 新增）  
+**列表 Response 补充（P5.6）**：每条 worker 额外返回 `todayOrders`（当日保洁+废品预约单合计）  
+**Response**：`WorkerDto`（**不含** `passwordHash`，含 `skillType`, `totalOrders`, `rating`, `status`, `healthCertUrl`, `skillCertUrl` 等）
 
 **员工端对接（P4.7）**：`GET /workers/:id` → `apps/miniapp-worker/src/api/worker.ts` → `fetchWorkerDetail()`（我的页个人信息/评分/证书）；`PUT /workers/:id/change-password` → `changePassword()`（设置页修改密码，需 Worker JWT）。
+
+**管理后台对接（P5.6）**：`GET /workers` → `apps/admin/src/api/worker.ts` → `fetchWorkers()`（列表+筛选+今日订单）；`POST /workers` / `PUT /workers/:id` → 新增/编辑员工；`POST /workers/:id/reset-password` → `resetWorkerPassword()`（管理员重置密码为手机号）；`GET /complaints?workerId=` → `apps/admin/src/api/complaint.ts` → 详情抽屉投诉记录列表。
 
 ---
 
@@ -324,7 +328,7 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | POST | `/complaints` | 提交投诉（支持三类订单，初始 `PENDING`；Body 可选 `residentId`） |
-| GET | `/complaints` | 分页列表（Query：`status?`, `orderType?`, `orderId?`, `residentId?`, `page`, `pageSize`） |
+| GET | `/complaints` | 分页列表（Query：`status?`, `orderType?`, `orderId?`, `residentId?`, `workerId?`, `page`, `pageSize`） |
 | GET | `/complaints/:id` | 投诉详情（含 `followUps[]`） |
 | PATCH | `/complaints/:id/status` | 更新状态（`PENDING→PROCESSING→COMPLETED`，单向不可逆） |
 | POST | `/complaints/:id/follow-ups` | 添加跟进记录 |
@@ -335,6 +339,7 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 **列表 Query 补充（P3.7）**：
 - `residentId`（number，可选）：按居民过滤，居民端「我的投诉」必传
 - `orderId`（number，可选）：配合 `orderType` 按订单查投诉（订单详情展示投诉卡片）
+- `workerId`（number，可选，P5.6）：按员工关联订单过滤投诉（管理端服务人员详情抽屉）
 
 **reason 枚举**：`POOR_ATTITUDE` / `NOT_CLEAN` / `NOT_ON_TIME` / `ITEM_DAMAGED` / `EXTRA_CHARGE` / `OTHER`
 
@@ -563,7 +568,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 |----|---------|
 | **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED`（✅ P3.7 已对接）；投诉 `POST /complaints` + 我的投诉 `GET /complaints?residentId=`（✅ P3.7 已对接）；地址管理 CRUD `GET/POST/PUT/DELETE /addresses`（✅ P3.7 已对接）；首页轮播图 `GET /banners/active?displayTarget=RESIDENT`（✅ P3.2 已对接）；客服电话 `GET /operators/contact`（✅ P3.2 已对接）；保洁预约 `POST /cleaning-orders`（✅ P3.3 已对接，含代下单字段）；废品预约 `POST /recycling-orders`（✅ P3.4 已对接，含代下单字段）；家政咨询 `POST /consult-orders`（✅ P3.5 已对接，含代下单字段）；代下单闭环验证（✅ P3.8 已通过，详见 `MiniApp-Architecture.md`）；H5 走 Vite 代理 `/api/v1`，小程序走 `VITE_API_BASE` |
 | **员工端（P4）** | 登录走 `POST /auth/worker-login`（✅ P4.1）；首页待接单列表 `GET /cleaning-orders?workerId=&statuses=ASSIGNED` + `GET /recycling-orders?workerId=&statuses=ASSIGNED`（✅ P4.2）；任务列表 `GET /cleaning-orders?workerId=&statuses=` / `GET /recycling-orders?workerId=&statuses=` 分页多状态筛选，排除 PENDING_ASSIGN（✅ P4.3）；任务详情 `GET /cleaning-orders/:id` / `GET /recycling-orders/:id`（✅ P4.4）；接单 `POST /cleaning-orders/:id/accept` 或废品同名接口（✅ P4.2/P4.3/P4.4）；GPS 签到 `POST /cleaning-orders/:id/gps-checkin`（✅ P4.4，仅 ACCEPTED 状态）；IN_SERVICE 态上传作业照片 `POST /upload/image?orderNo=`（含水印，✅ P4.5）；完成服务 `POST /cleaning-orders/:id/complete` / 废品同名接口（Body：`beforePhotoUrls[]`, `afterPhotoUrls[]`, `operatorId`，✅ P4.5）；PENDING_REVIEW/REVIEWED 只读详情 + `GET /reviews?orderType=&orderId=` 展示居民评价（✅ P4.6）；我的页 `GET /workers/:id`（个人信息/评分/证书）+ 今日订单统计（复用订单列表 API）+ `PUT /workers/:id/change-password`（✅ P4.7） |
-| **管理后台（P5）** | 登录走 `POST /auth/admin-login`（✅ P5.1）；API 基址 `/api/v1`；二级折叠菜单布局 + 全部路由占位（含配置管理 P5.9–P5.11）；看板接口在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；配置管理走 `/service-catalogs`、`/banners`、`/operators`；家政咨询单管理走 `/consult-orders` + `/consult-orders/:id/follow-ups` + `/consult-orders/:id/status`（✅ P5.5） |
+| **管理后台（P5）** | 登录走 `POST /auth/admin-login`（✅ P5.1）；API 基址 `/api/v1`；二级折叠菜单布局 + 全部路由占位（含配置管理 P5.9–P5.11）；看板接口在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；配置管理走 `/service-catalogs`、`/banners`、`/operators`；家政咨询单管理走 `/consult-orders` + `/consult-orders/:id/follow-ups` + `/consult-orders/:id/status`（✅ P5.5）；服务人员管理走 `/workers` CRUD + `POST /workers/:id/reset-password` + `GET /complaints?workerId=`（✅ P5.6） |
 
 ---
 
@@ -1040,7 +1045,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 | `/orders/consult` | 家政订单（P5.5 已完成） |
 | `/orders/complaint` | 投诉反馈（P5.7 占位） |
 | `/data/dashboard` | 数据看板（P5.2 已完成） |
-| `/workers` | 服务人员管理（P5.6 占位） |
+| `/workers` | 服务人员管理（P5.6 已完成） |
 | `/config/services` | 服务配置（P5.9 占位） |
 | `/config/operators` | 运营人员配置（P5.10 占位） |
 | `/config/banners` | 轮播图管理（P5.11 占位） |
@@ -1292,10 +1297,56 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
-> **文档版本**：v4.5（P5.5 管理后台家政咨询单管理对接完成）
+## P5.6 完成说明（2026-06-23）
+
+管理后台服务人员管理（P5.6）已完成，以下接口与前端已对接：
+
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `GET /workers` | 列表分页 + 姓名/手机号/状态/技能筛选 + `todayOrders` 今日订单列 | ✅ P5.6 已对接 |
+| `GET /workers/:id` | 详情抽屉基本信息 | ✅ P5.6 已对接 |
+| `POST /workers` | 新增员工（初始密码=手机号） | ✅ P5.6 已对接 |
+| `PUT /workers/:id` | 编辑员工 | ✅ P5.6 已对接 |
+| `POST /workers/:id/reset-password` | 列表「重置密码」操作 | ✅ P5.6 已对接 |
+| `POST /upload/image` | 新增/编辑弹窗证书图片上传 | ✅ P5.6 已对接 |
+| `GET /complaints?workerId=` | 详情抽屉投诉记录列表 | ✅ P5.6 已对接 |
+
+**P5.6 页面**：`/workers`（员工管理 > 服务人员管理）
+
+**P5.6 列表列**：姓名/工号 / 手机号 / 状态 / 评分（含累计单数）/ **今日订单** / 技能 / 操作（详情/编辑/重置密码）（**无投诉率列、无证书标签列、无顶部统计卡**）
+
+**P5.6 查询条件**：关键词（姓名或手机号，纯数字走 `phone` 参数）/ 状态 / 技能（保洁/收废品/保洁和收废品）
+
+**P5.6 详情抽屉**：基本信息 + 证书信息区 + 绩效统计（**无创收金额**）+ 投诉记录列表
+
+**P5.6 关键新增/扩展文件**：
+
+- `apps/admin/src/api/worker.ts`（Worker CRUD + reset-password）
+- `apps/admin/src/api/complaint.ts`（投诉列表 workerId 筛选）
+- `apps/admin/src/views/workers/index.vue`（完整列表 + 弹窗 + 详情抽屉）
+- `apps/server/src/modules/worker/`（skillType 筛选 + todayOrders 聚合 + CreateWorkerDto 扩展）
+- `apps/server/src/modules/complaint/`（workerId 关联过滤）
+
+**P5.6 验收清单**：
+
+| 验收项 | 结果 |
+|--------|------|
+| 列表有「今日订单」列；无投诉率/证书标签列/顶部统计卡 | ✅ |
+| 「重置密码」后员工可用手机号登录 | ✅ |
+| 技能为下拉单选（含保洁/收废品/保洁和收废品） | ✅ |
+| 详情页证书区展示正常 | ✅ |
+| 详情页投诉记录列表可用 | ✅ |
+| 绩效统计无创收金额 | ✅ |
+| 手机号搜索可用 | ✅ |
+| 健康证/技能证书非必填 | ✅ |
+| `npm run build` 通过 | ✅ |
+
+---
+
+> **文档版本**：v4.6（P5.6 管理后台服务人员管理对接完成）
 > **生成日期**：2026-06-21
-> **修订日期**：2026-06-23（v4.5：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v4.4：P5.4 废品订单列表/分配/代下单 + CreateRecyclingOrderDto 扩展 + findOne worker 关联；v4.3：P5.3 保洁订单列表/分配/代下单 + CreateCleaningOrderDto 扩展；v4.2：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v4.1：P5.1 Admin 登录+二级折叠菜单+配置管理路由占位；v4.0：P4.7 我的页员工详情+证书预览+修改密码；v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
-> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.5 管理后台对接说明
+> **修订日期**：2026-06-23（v4.6：P5.6 服务人员列表/新增编辑/详情抽屉/重置密码 + todayOrders 聚合 + complaints workerId 筛选 + CreateWorkerDto 扩展；v4.5：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v4.4：P5.4 废品订单列表/分配/代下单 + CreateRecyclingOrderDto 扩展 + findOne worker 关联；v4.3：P5.3 保洁订单列表/分配/代下单 + CreateCleaningOrderDto 扩展；v4.2：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v4.1：P5.1 Admin 登录+二级折叠菜单+配置管理路由占位；v4.0：P4.7 我的页员工详情+证书预览+修改密码；v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.6 管理后台对接说明
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销
 > **P3.6_repair 修正**：彻底删除居民验收接口及前端按钮，废品与保洁完全对称
@@ -1312,3 +1363,5 @@ PENDING → PROCESSING → COMPLETED（终态）
 > **P5.3 新增**：管理后台保洁订单 `/orders/cleaning`；列表（被服务人/服务时段/无金额列）+ 分配弹窗 + 代下单；`CreateCleaningOrderDto` 扩展（`addressSnapshotText`、可选 `residentId`/`addressId`）；`findAll` 含 worker 关联；服务时段与居民端 8 时间点 + 时长步进一致；`apps/admin/src/api/cleaning.ts`
 > **P5.4 新增**：管理后台废品订单 `/orders/recycling`；复用 P5.3 框架（被服务人/代下单/分配/无金额列）+ 预估重量列；`CreateRecyclingOrderDto` 扩展；`findAll`/`findOne` 含 worker 关联；查询条件与保洁一致（关键词/电话/服务地址）；详情无 actualWeight/金额/收款；`apps/admin/src/api/recycling.ts`
 > **P5.5 新增**：管理后台家政咨询单 `/orders/consult`；列表（被服务人/代下单/客户联系方式筛选）+ 新增咨询单弹窗 + 详情抽屉（ConsultFollowUp 跟进时间轴 + 提交/完成按钮）；状态 FOLLOW_UP/FOLLOWING/COMPLETED；修复 `updateConsultStatus` 缺少必填 `operatorId` 导致 400；`apps/admin/src/api/consult.ts`
+
+> **P5.6 新增**：管理后台服务人员管理 `/workers`；列表（今日订单列 + 重置密码 + 技能单选筛选，无顶部统计卡/投诉率/证书标签列）+ 新增/编辑弹窗（v2.0 扩展字段 + 证书上传非必填）+ 详情抽屉（证书区 + 绩效统计无创收金额 + 投诉记录列表）；后端 `todayOrders` 聚合 + `GET /complaints?workerId=` + `CreateWorkerDto` 扩展；`apps/admin/src/api/worker.ts` + `apps/admin/src/api/complaint.ts`

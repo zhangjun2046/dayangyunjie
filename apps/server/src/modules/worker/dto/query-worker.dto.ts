@@ -33,4 +33,9 @@ export class QueryWorkerDto {
   @IsOptional()
   @IsEnum(WorkerStatus)
   status?: WorkerStatus;
+
+  @ApiPropertyOptional({ description: '技能筛选（CLEANING / RECYCLING）', example: 'CLEANING' })
+  @IsOptional()
+  @IsString()
+  skillType?: string;
 }

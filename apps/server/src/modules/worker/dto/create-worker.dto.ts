@@ -85,4 +85,46 @@ export class CreateWorkerDto {
   @IsNumber()
   @Min(0)
   totalOrders?: number;
+
+  @ApiPropertyOptional({ description: '身份证号', example: '110101199001011234' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(18)
+  idCard?: string;
+
+  @ApiPropertyOptional({ description: '紧急联系人姓名', example: '张三' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  emergencyContact?: string;
+
+  @ApiPropertyOptional({ description: '紧急联系人电话', example: '13900000001' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  emergencyPhone?: string;
+
+  @ApiPropertyOptional({ description: '健康证图片 URL', example: 'https://example.com/health.jpg' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(512)
+  healthCertUrl?: string;
+
+  @ApiPropertyOptional({ description: '健康证有效期（ISO 日期字符串）', example: '2027-01-01' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  healthCertExpiry?: string;
+
+  @ApiPropertyOptional({ description: '技能证书图片 URL', example: 'https://example.com/skill.jpg' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(512)
+  skillCertUrl?: string;
+
+  @ApiPropertyOptional({ description: '技能证书有效期（ISO 日期字符串）', example: '2027-01-01' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  skillCertExpiry?: string;
 }

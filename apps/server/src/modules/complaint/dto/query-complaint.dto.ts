@@ -30,6 +30,13 @@ export class QueryComplaintDto {
   @Min(1)
   residentId?: number;
 
+  @ApiPropertyOptional({ description: '员工ID筛选（查询该员工关联订单的所有投诉）' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  workerId?: number;
+
   @ApiPropertyOptional({ description: '页码', example: 1 })
   @IsOptional()
   @Type(() => Number)

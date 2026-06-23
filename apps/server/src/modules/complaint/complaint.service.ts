@@ -57,7 +57,7 @@ export class ComplaintService {
   }
 
   async findAll(query: QueryComplaintDto) {
-    const { page = 1, pageSize = 10, status, orderType, orderId, residentId } = query;
+    const { page = 1, pageSize = 10, status, orderType, orderId, residentId, workerId } = query;
 
     const where: Prisma.ComplaintWhereInput = {
       ...(status ? { status } : {}),
@@ -66,6 +66,14 @@ export class ComplaintService {
       ...(orderId && orderType === 'CLEANING' ? { cleaningOrderId: orderId } : {}),
       ...(orderId && orderType === 'RECYCLING' ? { recyclingOrderId: orderId } : {}),
       ...(orderId && orderType === 'CONSULT' ? { consultOrderId: orderId } : {}),
+      ...(workerId
+        ? {
+            OR: [
+              { cleaningOrder: { workerId } },
+              { recyclingOrder: { workerId } },
+            ],
+          }
+        : {}),
     };
 
     const [rows, total] = await this.prismaService.$transaction([

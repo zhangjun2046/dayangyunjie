@@ -30,11 +30,12 @@ export class WorkerService {
   }
 
   async findAll(query: QueryWorkerDto) {
-    const { page = 1, pageSize = 10, name, phone, status } = query;
+    const { page = 1, pageSize = 10, name, phone, status, skillType } = query;
     const where: Prisma.WorkerWhereInput = {
       ...(name ? { name: { contains: name } } : {}),
       ...(phone ? { phone: { contains: phone } } : {}),
       ...(status ? { status } : {}),
+      ...(skillType ? { skillType } : {}),
     };
 
     const [items, total] = await this.prismaService.$transaction([
@@ -47,8 +48,41 @@ export class WorkerService {
       this.prismaService.worker.count({ where }),
     ]);
 
+    // 聚合今日订单数（保洁 + 废品合并）
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const todayEnd = new Date(todayStart.getTime() + 86_400_000);
+    const workerIds = items.map((w) => w.id);
+
+    const [cleaningOrders, recyclingOrders] = await this.prismaService.$transaction([
+      this.prismaService.cleaningOrder.findMany({
+        where: {
+          workerId: { in: workerIds },
+          appointDate: { gte: todayStart, lt: todayEnd },
+        },
+        select: { workerId: true },
+      }),
+      this.prismaService.recyclingOrder.findMany({
+        where: {
+          workerId: { in: workerIds },
+          appointDate: { gte: todayStart, lt: todayEnd },
+        },
+        select: { workerId: true },
+      }),
+    ]);
+
+    const todayOrderMap = new Map<number, number>();
+    for (const o of [...cleaningOrders, ...recyclingOrders]) {
+      if (o.workerId !== null) {
+        todayOrderMap.set(o.workerId, (todayOrderMap.get(o.workerId) ?? 0) + 1);
+      }
+    }
+
     return {
-      items: items.map((item) => this.toPublicWorker(item)),
+      items: items.map((item) => ({
+        ...this.toPublicWorker(item),
+        todayOrders: todayOrderMap.get(item.id) ?? 0,
+      })),
       total,
       page,
       pageSize,

@@ -2519,7 +2519,7 @@ ASSIGNED 状态卡片「立即接单」调用 §28.2 同名接口，成功后刷
 | `/orders/consult` | `views/orders/consult/index.vue` | 订单管理 > 家政订单 | P5.5 已完成 |
 | `/orders/complaint` | `views/orders/complaint/index.vue` | 订单管理 > 投诉反馈 | P5.7 占位 |
 | `/data/dashboard` | `views/data/dashboard/index.vue` | 数据管理 > 数据看板 | P5.2 已完成 |
-| `/workers` | `views/workers/index.vue` | 员工管理 > 服务人员管理 | P5.6 占位 |
+| `/workers` | `views/workers/index.vue` | 员工管理 > 服务人员管理 | P5.6 已完成 |
 | `/config/services` | `views/config/services/index.vue` | 配置管理 > 服务配置 | P5.9 占位 |
 | `/config/operators` | `views/config/operators/index.vue` | 配置管理 > 运营人员配置 | P5.10 占位 |
 | `/config/banners` | `views/config/banners/index.vue` | 配置管理 > 轮播图管理 | P5.11 占位 |
@@ -2781,6 +2781,77 @@ Body: `{ status: 'FOLLOWING' | 'COMPLETED', operatorId: number, remark?: string 
 
 ---
 
-> **文档版本**：v4.2（P5.5 管理后台家政咨询单管理验收通过）  
+### 34.13 P5.6 管理端服务人员管理（2026-06-23）
+
+**页面**：`/workers`（`apps/admin/src/views/workers/index.vue`）
+
+#### GET `/workers` — 管理端列表查询
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `name` | string | 按姓名模糊查询 |
+| `phone` | string | 按手机号模糊查询（前端纯数字关键词走此参数） |
+| `status` | string | `IDLE` / `BUSY` |
+| `skillType` | string | `CLEANING` / `RECYCLING` / `BOTH`（P5.6 新增） |
+| `page` | number | 页码，默认 1 |
+| `pageSize` | number | 每页条数，默认 10 |
+
+**列表 Response 补充**：每条 worker 含 `todayOrders`（当日保洁+废品预约单合计，P5.6 后端聚合）
+
+**列表列**：姓名/工号 / 手机号 / 状态 / 评分 / **今日订单** / 技能 / 操作（详情/编辑/重置密码）
+
+#### POST `/workers` — 新增员工
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `employeeNo` | string | 是 | 员工编号 |
+| `password` | string | 是 | 初始密码（管理端传完整手机号） |
+| `name` | string | 是 | 姓名 |
+| `phone` | string | 是 | 手机号（登录账号，UNIQUE） |
+| `skillType` | string | 是 | `CLEANING` / `RECYCLING` / `BOTH` |
+| `nickname` / `gender` / `idCard` / `position` | string | 否 | v2.0 扩展字段 |
+| `emergencyContact` / `emergencyPhone` | string | 否 | 紧急联系人 |
+| `healthCertUrl` / `skillCertUrl` | string | 否 | 证书图片 URL（**非必填**） |
+| `status` | string | 否 | `IDLE` / `BUSY`，默认 IDLE |
+
+#### POST `/workers/:id/reset-password` — 管理员重置密码
+
+无 Body；将密码重置为该员工完整手机号。
+
+#### GET `/complaints?workerId=` — 员工详情投诉记录
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `workerId` | number | 按员工关联的保洁/废品订单过滤投诉（P5.6 新增） |
+| `page` / `pageSize` | number | 分页 |
+
+**P5.6 关键文件**：
+
+| 路径 | 说明 |
+|------|------|
+| `apps/admin/src/api/worker.ts` | Worker CRUD + reset-password |
+| `apps/admin/src/api/complaint.ts` | 投诉列表（workerId 筛选） |
+| `apps/admin/src/views/workers/index.vue` | 列表 + 新增/编辑弹窗 + 详情抽屉 |
+| `apps/server/src/modules/worker/dto/create-worker.dto.ts` | 扩展证书/联系人字段 |
+| `apps/server/src/modules/worker/worker.service.ts` | todayOrders 聚合 |
+| `apps/server/src/modules/complaint/complaint.service.ts` | workerId 关联过滤 |
+
+### 34.14 P5.6 验收清单（2026-06-23）
+
+| 验收项 | 结果 |
+|--------|------|
+| 列表有「今日订单」列；无投诉率/证书标签列/顶部统计卡 | ✅ |
+| 「重置密码」后员工可用手机号登录 | ✅ |
+| 技能为下拉单选（含保洁/收废品/保洁和收废品） | ✅ |
+| 详情页证书区展示正常 | ✅ |
+| 详情页投诉记录列表可用 | ✅ |
+| 绩效统计无创收金额 | ✅ |
+| 手机号搜索可用 | ✅ |
+| 健康证/技能证书非必填 | ✅ |
+| `npm run build` 通过 | ✅ |
+
+---
+
+> **文档版本**：v4.3（P5.6 管理后台服务人员管理验收通过）  
 > **修订日期**：2026-06-23  
-> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.5 管理后台
+> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.6 管理后台

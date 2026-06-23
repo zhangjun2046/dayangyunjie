@@ -9,7 +9,7 @@
 | `apps/server`           | NestJS 后端 API                                                |
 | `apps/miniapp-customer` | 居民端小程序（P1.4 完善；含 shared 验收桩）                    |
 | `apps/miniapp-worker`   | 员工端小程序（P4.7 我的页已完成；含 auth store + order/upload/review/worker API） |
-| `apps/admin`            | 管理后台（P5.5 家政咨询单管理已完成；含 auth + dashboard + cleaning/recycling/consult 订单 API）        |
+| `apps/admin`            | 管理后台（P5.6 服务人员管理已完成；含 auth + dashboard + cleaning/recycling/consult 订单 + workers/complaint API） |
 | `packages/shared`       | 共享枚举、DTO、`ApiResponse`（`@dayangyunjie/shared`）         |
 | `docs/`                 | CodingPlan、tech、Schema 等技术文档                            |
 | `requirement.md`        | 需求文档（主稿；原型图仍在资料区 `dayangyunjie\requirement\`） |
@@ -84,4 +84,5 @@ npx prisma migrate dev
 - 使用Sonnet4.6 LLM完成P5.2，实现数据看板
 - 使用Sonnet4.6 LLM完成P5.3，实现保洁订单管理（被服务人列 + 分配弹窗 + 服务时段字段 + 代下单 + 无金额列），修改了服务人员不可见；查询条件不完整；新增订单报错；新增订单时间范围选择与居民端小程序不一致的问题
 - 使用Sonnet4.6 LLM完成 P5.4，实现废品订单管理（同步代下单/分配弹窗 + 详情无重量/金额/收款字段）
-- 使用Sonnet4.6 LLM完成P4.3，实现家政咨询单管理（被服务人列 + ConsultFollowUp 跟进时间轴 + 提交/完成按钮 + FOLLOW_UP/FOLLOWING/COMPLETED 状态名）
+- 使用Sonnet4.6 LLM完成P5.5，实现家政咨询单管理（被服务人列 + ConsultFollowUp 跟进时间轴 + 提交/完成按钮 + FOLLOW_UP/FOLLOWING/COMPLETED 状态名）
+- 使用Sonnet4.6 LLM完成P5.6，实现服务人员管理（今日订单列 + 重置密码 + 技能单选 + 证书区 + 投诉记录列表 + 移除创收金额）
