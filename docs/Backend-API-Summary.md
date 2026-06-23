@@ -1,6 +1,6 @@
 # Backend API Summary（P2 全接口交接文档）
 
-> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；P4.2（2026-06-21）更新至 v3.5；P4.3（2026-06-21）更新至 v3.6；P4.4（2026-06-21）更新至 v3.7；P4.5（2026-06-22）更新至 v3.8；P4.6（2026-06-22）更新至 v3.9；P4.7（2026-06-22）更新至 v4.0；P5.1（2026-06-22）更新至 v4.1（管理后台 Admin 登录 + 布局框架对接完成）；**P5.2（2026-06-22）** 更新至 v4.2（Dashboard `getSummary` 重构为时间范围统计 + 管理后台数据看板 ECharts 对接完成）  
+> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；P4.2（2026-06-21）更新至 v3.5；P4.3（2026-06-21）更新至 v3.6；P4.4（2026-06-21）更新至 v3.7；P4.5（2026-06-22）更新至 v3.8；P4.6（2026-06-22）更新至 v3.9；P4.7（2026-06-22）更新至 v4.0；P5.1（2026-06-22）更新至 v4.1（管理后台 Admin 登录 + 布局框架对接完成）；**P5.2（2026-06-22）** 更新至 v4.2（Dashboard `getSummary` 重构为时间范围统计 + 管理后台数据看板 ECharts 对接完成）；**P5.5（2026-06-23）** 更新至 v4.5（管理后台家政咨询单管理对接完成）  
 > **用途**：供居民端（P3）、员工端（P4）、管理后台（P5）对接后端 API，避免上下文丢失  
 > **Base URL**：`http://localhost:3000/api/v1`  
 > **统一响应格式**：`{ code: number, message: string, data: T | null }`  
@@ -563,7 +563,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 |----|---------|
 | **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED`（✅ P3.7 已对接）；投诉 `POST /complaints` + 我的投诉 `GET /complaints?residentId=`（✅ P3.7 已对接）；地址管理 CRUD `GET/POST/PUT/DELETE /addresses`（✅ P3.7 已对接）；首页轮播图 `GET /banners/active?displayTarget=RESIDENT`（✅ P3.2 已对接）；客服电话 `GET /operators/contact`（✅ P3.2 已对接）；保洁预约 `POST /cleaning-orders`（✅ P3.3 已对接，含代下单字段）；废品预约 `POST /recycling-orders`（✅ P3.4 已对接，含代下单字段）；家政咨询 `POST /consult-orders`（✅ P3.5 已对接，含代下单字段）；代下单闭环验证（✅ P3.8 已通过，详见 `MiniApp-Architecture.md`）；H5 走 Vite 代理 `/api/v1`，小程序走 `VITE_API_BASE` |
 | **员工端（P4）** | 登录走 `POST /auth/worker-login`（✅ P4.1）；首页待接单列表 `GET /cleaning-orders?workerId=&statuses=ASSIGNED` + `GET /recycling-orders?workerId=&statuses=ASSIGNED`（✅ P4.2）；任务列表 `GET /cleaning-orders?workerId=&statuses=` / `GET /recycling-orders?workerId=&statuses=` 分页多状态筛选，排除 PENDING_ASSIGN（✅ P4.3）；任务详情 `GET /cleaning-orders/:id` / `GET /recycling-orders/:id`（✅ P4.4）；接单 `POST /cleaning-orders/:id/accept` 或废品同名接口（✅ P4.2/P4.3/P4.4）；GPS 签到 `POST /cleaning-orders/:id/gps-checkin`（✅ P4.4，仅 ACCEPTED 状态）；IN_SERVICE 态上传作业照片 `POST /upload/image?orderNo=`（含水印，✅ P4.5）；完成服务 `POST /cleaning-orders/:id/complete` / 废品同名接口（Body：`beforePhotoUrls[]`, `afterPhotoUrls[]`, `operatorId`，✅ P4.5）；PENDING_REVIEW/REVIEWED 只读详情 + `GET /reviews?orderType=&orderId=` 展示居民评价（✅ P4.6）；我的页 `GET /workers/:id`（个人信息/评分/证书）+ 今日订单统计（复用订单列表 API）+ `PUT /workers/:id/change-password`（✅ P4.7） |
-| **管理后台（P5）** | 登录走 `POST /auth/admin-login`（✅ P5.1）；API 基址 `/api/v1`；二级折叠菜单布局 + 全部路由占位（含配置管理 P5.9–P5.11）；看板接口在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；配置管理走 `/service-catalogs`、`/banners`、`/operators` |
+| **管理后台（P5）** | 登录走 `POST /auth/admin-login`（✅ P5.1）；API 基址 `/api/v1`；二级折叠菜单布局 + 全部路由占位（含配置管理 P5.9–P5.11）；看板接口在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；配置管理走 `/service-catalogs`、`/banners`、`/operators`；家政咨询单管理走 `/consult-orders` + `/consult-orders/:id/follow-ups` + `/consult-orders/:id/status`（✅ P5.5） |
 
 ---
 
@@ -1037,7 +1037,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 | `/dashboard` | 首页 |
 | `/orders/cleaning` | 保洁订单（P5.3 已完成） |
 | `/orders/recycling` | 废品订单（P5.4 已完成） |
-| `/orders/consult` | 家政订单（P5.5 占位） |
+| `/orders/consult` | 家政订单（P5.5 已完成） |
 | `/orders/complaint` | 投诉反馈（P5.7 占位） |
 | `/data/dashboard` | 数据看板（P5.2 已完成） |
 | `/workers` | 服务人员管理（P5.6 占位） |
@@ -1241,10 +1241,61 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
-> **文档版本**：v4.4（P5.4 管理后台废品订单管理对接完成）
+## P5.5 完成说明（2026-06-23）
+
+管理后台家政咨询单管理（P5.5）已完成，以下接口与前端已对接：
+
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `GET /consult-orders` | 列表分页 + 关键词/状态/客户联系方式筛选 | ✅ P5.5 已对接 |
+| `GET /consult-orders/:id` | 订单详情抽屉 | ✅ P5.5 已对接 |
+| `POST /consult-orders` | 管理端代创建咨询单（电话预约） | ✅ P5.5 已对接 |
+| `GET /consult-orders/:id/follow-ups` | 详情抽屉 ConsultFollowUp 跟进时间轴 | ✅ P5.5 已对接 |
+| `POST /consult-orders/:id/follow-ups` | 「提交」保存跟进记录 | ✅ P5.5 已对接 |
+| `PATCH /consult-orders/:id/status` | 状态变更（FOLLOW_UP→FOLLOWING→COMPLETED） | ✅ P5.5 已对接 |
+| `GET /service-catalogs?bizType=CONSULT` | 新增咨询单服务类型下拉 | ✅ P5.5 已对接 |
+
+**P5.5 页面**：`/orders/consult`（订单管理 > 家政订单）
+
+**P5.5 列表列**：订单编号 / 客户姓名 / 客户联系方式 / 是否代下单 / 被服务人 / 被服务人联系方式 / 服务类型 / 服务地址 / 提交时间 / 跟进状态 / 操作（**无派单/金额列**）
+
+**P5.5 查询条件**：关键词（订单号/客户姓名）/ 客户联系方式 + 状态 Tab（全部/待跟进/跟进中/已完成）
+
+**P5.5 新增咨询单规则**：
+
+| 字段 | 说明 |
+|------|------|
+| `serviceType` | 服务类型（CONSULT 目录） |
+| `requirementDesc` | 核心诉求（必填） |
+| `contactName` / `contactPhone` | 客户信息（必填） |
+| `isProxyOrder` + `serviceContactName/Phone` | 代下单开关及被服务人信息 |
+| `serviceAddress` | 服务地址（可选，运营电话回访后录入） |
+| `source` | 管理端固定 `PHONE` |
+
+**P5.5 详情页**：订单信息 + ConsultFollowUp 跟进时间轴（初始「已预约」节点 + 跟进记录）+ 跟进录入区；「提交」保存跟进并自动 FOLLOW_UP→FOLLOWING；「完成」结案为 COMPLETED
+
+**P5.5 关键新增/扩展文件**：
+
+- `apps/admin/src/api/consult.ts`（咨询单 API 封装）
+- `apps/admin/src/views/orders/consult/index.vue`（完整列表 + 新增 + 详情抽屉 + 跟进时间轴）
+
+**P5.5 验收清单**：
+
+| 验收项 | 结果 |
+|--------|------|
+| 列表有被服务人/代下单列，状态使用 FOLLOW_UP/FOLLOWING/COMPLETED | ✅ |
+| 列表「客户联系方式」查询条件可用 | ✅ |
+| 跟进时间轴可见；「提交」保存跟进记录 | ✅ |
+| 「完成」结案为 COMPLETED | ✅ |
+| 新增咨询单成功（含代下单，无预约时间字段） | ✅ |
+| `npm run build` 通过 | ✅ |
+
+---
+
+> **文档版本**：v4.5（P5.5 管理后台家政咨询单管理对接完成）
 > **生成日期**：2026-06-21
-> **修订日期**：2026-06-23（v4.4：P5.4 废品订单列表/分配/代下单 + CreateRecyclingOrderDto 扩展 + findOne worker 关联；v4.3：P5.3 保洁订单列表/分配/代下单 + CreateCleaningOrderDto 扩展；v4.2：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v4.1：P5.1 Admin 登录+二级折叠菜单+配置管理路由占位；v4.0：P4.7 我的页员工详情+证书预览+修改密码；v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
-> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.4 管理后台对接说明
+> **修订日期**：2026-06-23（v4.5：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v4.4：P5.4 废品订单列表/分配/代下单 + CreateRecyclingOrderDto 扩展 + findOne worker 关联；v4.3：P5.3 保洁订单列表/分配/代下单 + CreateCleaningOrderDto 扩展；v4.2：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v4.1：P5.1 Admin 登录+二级折叠菜单+配置管理路由占位；v4.0：P4.7 我的页员工详情+证书预览+修改密码；v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.5 管理后台对接说明
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销
 > **P3.6_repair 修正**：彻底删除居民验收接口及前端按钮，废品与保洁完全对称
@@ -1260,3 +1311,4 @@ PENDING → PROCESSING → COMPLETED（终态）
 > **P5.2 新增**：管理后台数据看板 `/data/dashboard`；`GET /dashboard/summary` 重构为时间范围统计（total/completed/inProgress/pending，仅保洁+废品）；ECharts 折线/环形/柱状图 + 员工绩效表格（无创收金额列）；本日/本周/本月切换联动刷新；`apps/admin/src/api/dashboard.ts`
 > **P5.3 新增**：管理后台保洁订单 `/orders/cleaning`；列表（被服务人/服务时段/无金额列）+ 分配弹窗 + 代下单；`CreateCleaningOrderDto` 扩展（`addressSnapshotText`、可选 `residentId`/`addressId`）；`findAll` 含 worker 关联；服务时段与居民端 8 时间点 + 时长步进一致；`apps/admin/src/api/cleaning.ts`
 > **P5.4 新增**：管理后台废品订单 `/orders/recycling`；复用 P5.3 框架（被服务人/代下单/分配/无金额列）+ 预估重量列；`CreateRecyclingOrderDto` 扩展；`findAll`/`findOne` 含 worker 关联；查询条件与保洁一致（关键词/电话/服务地址）；详情无 actualWeight/金额/收款；`apps/admin/src/api/recycling.ts`
+> **P5.5 新增**：管理后台家政咨询单 `/orders/consult`；列表（被服务人/代下单/客户联系方式筛选）+ 新增咨询单弹窗 + 详情抽屉（ConsultFollowUp 跟进时间轴 + 提交/完成按钮）；状态 FOLLOW_UP/FOLLOWING/COMPLETED；修复 `updateConsultStatus` 缺少必填 `operatorId` 导致 400；`apps/admin/src/api/consult.ts`

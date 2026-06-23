@@ -905,22 +905,39 @@ loadData()
 | `addressSnapshotText` | 与 `addressId` 二选一，管理端传文本地址 |
 | `findAll` / `findOne` 含 `worker` | 列表与详情「服务人员」列展示 name/phone |
 
-### 18.7 P5.5–P5.11 占位页
+### 18.7 P5.5 家政咨询单管理（已完成）
+
+`views/orders/consult/index.vue` 已实现完整家政咨询单管理：
+
+- **列表页**：订单编号 / 客户姓名 / 客户联系方式 / 是否代下单 / 被服务人 / 被服务人联系方式 / 服务类型 / 服务地址 / 提交时间 / 跟进状态 / 操作（**无派单/金额列**）
+- **筛选**：关键词 + 客户联系方式 + 状态 Tab（全部/待跟进/跟进中/已完成）
+- **新增咨询单弹窗**：CONSULT 服务目录 + 代下单 + 核心诉求 + 可选服务地址；无预约时间字段
+- **详情抽屉**：订单信息 + ConsultFollowUp 跟进时间轴（初始「已预约」+ 跟进记录）+ 跟进录入区
+- **操作按钮**：「提交」→ `POST /consult-orders/:id/follow-ups`（FOLLOW_UP 时自动变 FOLLOWING）；「完成」→ `PATCH /consult-orders/:id/status` `{ status: 'COMPLETED', operatorId: 1 }`
+- **API 封装**：`apps/admin/src/api/consult.ts`
+
+**P5.5 前端修复**：
+
+| 问题 | 修复 |
+|------|------|
+| 提交跟进报 400 | `updateConsultStatus` 补充必填 `operatorId: 1` |
+
+### 18.8 P5.6–P5.11 占位页
 
 其余业务路由已注册，视图文件使用 `el-empty` 展示「功能开发中」，便于后续单元直接替换：
 
-- `views/orders/{consult,complaint}/index.vue`
+- `views/orders/complaint/index.vue`
 - `views/workers/index.vue`
 - `views/config/{services,operators,banners}/index.vue`
 - `views/settings/index.vue`
 
 ---
 
-> **文档版本**：v2.2（P5.4 管理后台废品订单管理验收通过）  
+> **文档版本**：v2.3（P5.5 管理后台家政咨询单管理验收通过）  
 > **生成日期**：2026-06-21  
-> **修订日期**：2026-06-23（v2.2：P5.4 废品订单列表/分配/代下单 + 详情无重量/金额/收款；v2.1：P5.3 保洁订单列表/分配/代下单 + 服务时段与居民端对齐；v2.0：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v1.9：P5.1 Admin 登录+布局+配置管理路由占位；v1.8：P4.7 我的页+设置改密+证书预览；v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
-> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.7 员工端 + P5.1–P5.4 管理后台  
-> **下一阶段**：P5.5 家政订单管理
+> **修订日期**：2026-06-23（v2.3：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v2.2：P5.4 废品订单列表/分配/代下单 + 详情无重量/金额/收款；v2.1：P5.3 保洁订单列表/分配/代下单 + 服务时段与居民端对齐；v2.0：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v1.9：P5.1 Admin 登录+布局+配置管理路由占位；v1.8：P4.7 我的页+设置改密+证书预览；v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
+> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.7 员工端 + P5.1–P5.5 管理后台  
+> **下一阶段**：P5.6 服务人员管理
 
 ---
 

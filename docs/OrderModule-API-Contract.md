@@ -2516,7 +2516,7 @@ ASSIGNED 状态卡片「立即接单」调用 §28.2 同名接口，成功后刷
 | `/dashboard` | `views/dashboard/index.vue` | — | P1.5 |
 | `/orders/cleaning` | `views/orders/cleaning/index.vue` | 订单管理 > 保洁订单 | P5.3 已完成 |
 | `/orders/recycling` | `views/orders/recycling/index.vue` | 订单管理 > 废品订单 | P5.4 已完成 |
-| `/orders/consult` | `views/orders/consult/index.vue` | 订单管理 > 家政订单 | P5.5 占位 |
+| `/orders/consult` | `views/orders/consult/index.vue` | 订单管理 > 家政订单 | P5.5 已完成 |
 | `/orders/complaint` | `views/orders/complaint/index.vue` | 订单管理 > 投诉反馈 | P5.7 占位 |
 | `/data/dashboard` | `views/data/dashboard/index.vue` | 数据管理 > 数据看板 | P5.2 已完成 |
 | `/workers` | `views/workers/index.vue` | 员工管理 > 服务人员管理 | P5.6 占位 |
@@ -2715,6 +2715,72 @@ Body: `{ workerId: number }` → 状态 `PENDING_ASSIGN` → `ASSIGNED`
 
 ---
 
-> **文档版本**：v4.1（P5.4 管理后台废品订单管理验收通过）  
+### 34.11 P5.5 管理端家政咨询单管理（2026-06-23）
+
+**页面**：`/orders/consult`（`apps/admin/src/views/orders/consult/index.vue`）
+
+#### GET `/consult-orders` — 管理端列表查询
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `keyword` | string | 关键词（订单号/联系人/手机号） |
+| `status` | string | 单状态筛选（FOLLOW_UP / FOLLOWING / COMPLETED） |
+| `serviceType` | string | 服务类型筛选 |
+| `page` | number | 页码，默认 1 |
+| `pageSize` | number | 每页条数，默认 10 |
+
+**列表列**：订单编号 / 客户姓名 / 客户联系方式 / 是否代下单 / 被服务人 / 被服务人联系方式 / 服务类型 / 服务地址 / 提交时间 / 跟进状态 / 操作
+
+**前端筛选补充**：`contactPhone` 客户端过滤（关键词/客户联系方式 + 状态 Tab）
+
+#### POST `/consult-orders` — 管理端代创建咨询单
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `serviceType` | string | 是 | 服务类型（CONSULT 目录） |
+| `requirementDesc` | string | 是 | 核心诉求 |
+| `contactName` | string | 是 | 联系人姓名 |
+| `contactPhone` | string | 是 | 联系人电话 |
+| `serviceAddress` | string | 否 | 服务地址（可选） |
+| `isProxyOrder` | boolean | 否 | 是否代下单 |
+| `serviceContactName` | string | 条件 | 被服务人姓名（代下单时） |
+| `serviceContactPhone` | string | 条件 | 被服务人电话（代下单时） |
+| `source` | string | 否 | `MINIPROGRAM` / `PHONE`（管理端固定 PHONE） |
+| `remark` | string | 否 | 备注 |
+
+#### GET `/consult-orders/:id/follow-ups` — 跟进记录列表
+
+Query: `page?`, `pageSize?`；按 `createdAt` 升序返回 ConsultFollowUp 列表，供详情抽屉时间轴展示。
+
+#### POST `/consult-orders/:id/follow-ups` — 新增跟进记录
+
+Body: `{ handlerName: string, content: string }` → 返回 ConsultFollowUp；前端「提交」按钮调用；若当前状态为 FOLLOW_UP 则同时 PATCH status→FOLLOWING。
+
+#### PATCH `/consult-orders/:id/status` — 更新状态
+
+Body: `{ status: 'FOLLOWING' | 'COMPLETED', operatorId: number, remark?: string }`  
+**注意**：`operatorId` 为必填字段；前端默认传 `operatorId: 1`。
+
+**P5.5 关键文件**：
+
+| 路径 | 说明 |
+|------|------|
+| `apps/admin/src/api/consult.ts` | 咨询单 CRUD + follow-ups + status |
+| `apps/admin/src/views/orders/consult/index.vue` | 列表 + 筛选 + 新增 + 详情抽屉 + 跟进时间轴 |
+
+### 34.12 P5.5 验收清单（2026-06-23）
+
+| 验收项 | 结果 |
+|--------|------|
+| 列表有被服务人/代下单列，状态使用 FOLLOW_UP/FOLLOWING/COMPLETED | ✅ |
+| 列表「客户联系方式」查询条件可用 | ✅ |
+| 跟进时间轴可见；「提交」保存跟进记录 | ✅ |
+| 「完成」结案为 COMPLETED | ✅ |
+| 新增咨询单成功（含代下单，无预约时间字段） | ✅ |
+| `npm run build` 通过 | ✅ |
+
+---
+
+> **文档版本**：v4.2（P5.5 管理后台家政咨询单管理验收通过）  
 > **修订日期**：2026-06-23  
-> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.4 管理后台
+> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.5 管理后台
