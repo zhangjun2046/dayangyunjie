@@ -87,3 +87,4 @@ npx prisma migrate dev
 - 使用Sonnet4.6 LLM完成P5.5，实现家政咨询单管理（被服务人列 + ConsultFollowUp 跟进时间轴 + 提交/完成按钮 + FOLLOW_UP/FOLLOWING/COMPLETED 状态名）
 - 使用Sonnet4.6 LLM完成P5.6，实现服务人员管理（今日订单列 + 重置密码 + 技能单选 + 证书区 + 投诉记录列表 + 移除创收金额）
 - 使用Sonnet4.6 LLM完成P5.7，实现投诉反馈管理（关联订单列 + 投诉内容列 + 移除旧列 + 完成按钮）
+- 使用Sonnet4.6 LLM完成P5.9，实现服务配置管理（ServiceCatalog CRUD + 启用停用 toggle + 无价格字段）

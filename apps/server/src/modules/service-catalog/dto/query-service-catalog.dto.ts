@@ -1,7 +1,7 @@
 import { BizType } from '@dayangyunjie/shared';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
 const BIZ_TYPES = Object.values(BizType);
 
@@ -30,13 +30,18 @@ export class QueryServiceCatalogDto {
   @IsIn(BIZ_TYPES)
   bizType?: (typeof BIZ_TYPES)[number];
 
+  @ApiPropertyOptional({ description: '服务名称模糊查询', example: '保洁' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  name?: string;
+
   @ApiPropertyOptional({
-    description: '是否启用过滤（默认 true，仅返回启用项）',
+    description: '是否启用过滤（不传则返回全部，传 true 只返回启用，传 false 只返回禁用）',
     example: true,
-    default: true,
   })
   @Type(() => Boolean)
   @IsOptional()
   @IsBoolean()
-  isEnabled = true;
+  isEnabled?: boolean;
 }

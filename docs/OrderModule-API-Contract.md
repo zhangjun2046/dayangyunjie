@@ -377,7 +377,8 @@
 | `page` | number | 1 | ?? |
 | `pageSize` | number | 10 | ?????????????? 100 |
 | `bizType` | enum | | `CLEANING` / `RECYCLING` / `CONSULT` |
-| `isActive` | boolean | `true` | ??????????????? |
+| `name` | string | | 服务名称模糊查询（P5.9 新增） |
+| `isEnabled` | boolean | | 是否启用过滤（不传则返回全部；传 true/false 分别过滤启用/禁用项） |
 
 **????**??`sortOrder ASC`, `id ASC`
 
@@ -2520,7 +2521,7 @@ ASSIGNED 状态卡片「立即接单」调用 §28.2 同名接口，成功后刷
 | `/orders/complaint` | `views/orders/complaint/index.vue` | 订单管理 > 投诉反馈 | P5.7 已完成 |
 | `/data/dashboard` | `views/data/dashboard/index.vue` | 数据管理 > 数据看板 | P5.2 已完成 |
 | `/workers` | `views/workers/index.vue` | 员工管理 > 服务人员管理 | P5.6 已完成 |
-| `/config/services` | `views/config/services/index.vue` | 配置管理 > 服务配置 | P5.9 占位 |
+| `/config/services` | `views/config/services/index.vue` | 配置管理 > 服务配置 | P5.9 已完成 |
 | `/config/operators` | `views/config/operators/index.vue` | 配置管理 > 运营人员配置 | P5.10 占位 |
 | `/config/banners` | `views/config/banners/index.vue` | 配置管理 > 轮播图管理 | P5.11 占位 |
 | `/settings` | `views/settings/index.vue` | 系统设置 | P5.8 占位 |
@@ -2872,6 +2873,47 @@ Body: `{ status: 'FOLLOWING' | 'COMPLETED', operatorId: number, remark?: string 
 
 ---
 
-> **文档版本**：v4.4（P5.7 管理后台投诉反馈管理验收通过）  
+### 34.16 P5.9 管理端服务配置管理（2026-06-23）
+
+**页面**：`/config/services`（配置管理 > 服务配置）
+
+**功能概述**：
+
+- 列表：序号 / 所属业务 / 服务名称 / 副标题 / 图标 / 排序 / 状态 / 创建时间 / 操作（**无价格相关列**）
+- 筛选：所属业务 + 服务名称模糊搜索（`name` Query 参数）
+- 新增/编辑弹窗：所属业务 / 服务名称 / 副标题 / 图标 URL / 排序
+- 启用/停用：`PATCH /service-catalogs/:id/toggle`
+- 删除：`DELETE /service-catalogs/:id`
+
+**P5.9 后端扩展**：
+
+| 变更 | 说明 |
+|------|------|
+| `QueryServiceCatalogDto.isEnabled` | 去掉默认值 `true`，管理页不传则返回全部 |
+| `QueryServiceCatalogDto.name` | 新增服务名称模糊查询 |
+| `findAll` where 子句 | 条件展开 `isEnabled` / `name contains` |
+
+**P5.9 关键文件**：
+
+| 路径 | 说明 |
+|------|------|
+| `apps/admin/src/api/service-catalog.ts` | CRUD + toggle API 封装 |
+| `apps/admin/src/views/config/services/index.vue` | 列表 + 新增/编辑 Dialog |
+| `apps/server/src/modules/service-catalog/dto/query-service-catalog.dto.ts` | isEnabled / name 查询参数 |
+| `apps/server/src/modules/service-catalog/service-catalog.service.ts` | findAll 条件过滤 |
+
+### 34.17 P5.9 验收清单（2026-06-23）
+
+| 验收项 | 结果 |
+|--------|------|
+| ServiceCatalog CRUD 全功能可用 | ✅ |
+| 启用/停用 toggle 正常 | ✅ |
+| 列表无价格相关列 | ✅ |
+| 服务名称搜索可用 | ✅ |
+| `npm run build` 通过 | ✅ |
+
+---
+
+> **文档版本**：v4.5（P5.9 管理后台服务配置管理验收通过）  
 > **修订日期**：2026-06-23  
-> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.7 管理后台
+> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.9 管理后台

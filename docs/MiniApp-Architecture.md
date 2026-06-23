@@ -973,20 +973,45 @@ loadData()
 | 查询报 400 | `QueryComplaintDto` 新增 `keyword`/`contactPhone`（forbidNonWhitelisted） |
 | 客户姓名搜索误匹配 | `complaintNo` 改用 `startsWith`，避免日期子串误命中 |
 
-### 18.10 P5.8–P5.11 占位页
+### 18.10 P5.9 服务配置管理（已完成）
+
+`views/config/services/index.vue` 已实现完整服务配置管理：
+
+- **列表页**：序号 / 所属业务 / 服务名称 / 副标题 / 图标缩略图 / 排序 / 状态 / 创建时间 / 操作（编辑/删除）（**无价格相关列**）
+- **筛选**：所属业务（保洁服务/废品回收/家政服务）/ 服务名称模糊搜索
+- **新增/编辑弹窗**：所属业务 / 服务名称 / 副标题 / 图标 URL / 排序（**无计价方式/单价/参考价字段**）
+- **启用/停用**：状态 Tag 点击 → 确认弹窗 → `PATCH /service-catalogs/:id/toggle`
+- **删除**：确认弹窗 → `DELETE /service-catalogs/:id`
+- **API 封装**：`apps/admin/src/api/service-catalog.ts`（fetch/create/update/delete/toggle）
+
+**P5.9 后端扩展**：
+
+| 变更 | 说明 |
+|------|------|
+| `QueryServiceCatalogDto.isEnabled` | 去掉默认值 `true`，管理页不传则返回全部 |
+| `QueryServiceCatalogDto.name` | 新增服务名称模糊查询 |
+| `findAll` where 子句 | 条件展开 `isEnabled` / `name contains` |
+
+**P5.9 前端修复**：
+
+| 问题 | 修复 |
+|------|------|
+| 服务名称搜索无响应 | `loadData` 传入 `name: keyword`，后端新增 `name` 模糊查询 |
+
+### 18.11 P5.8 / P5.10–P5.11 占位页
 
 其余业务路由已注册，视图文件使用 `el-empty` 展示「功能开发中」，便于后续单元直接替换：
 
-- `views/config/{services,operators,banners}/index.vue`
+- `views/config/{operators,banners}/index.vue`
 - `views/settings/index.vue`
 
 ---
 
-> **文档版本**：v2.5（P5.7 管理后台投诉反馈管理验收通过）  
+> **文档版本**：v2.6（P5.9 管理后台服务配置管理验收通过）  
 > **生成日期**：2026-06-21  
-> **修订日期**：2026-06-23（v2.5：P5.7 投诉反馈列表/详情抽屉/跟进结案 + complaints 关联订单富 DTO + keyword/contactPhone 筛选；v2.4：P5.6 服务人员列表/新增编辑/详情抽屉/重置密码 + todayOrders + complaints workerId；v2.3：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v2.2：P5.4 废品订单列表/分配/代下单 + 详情无重量/金额/收款；v2.1：P5.3 保洁订单列表/分配/代下单 + 服务时段与居民端对齐；v2.0：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v1.9：P5.1 Admin 登录+布局+配置管理路由占位；v1.8：P4.7 我的页+设置改密+证书预览；v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
-> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.7 员工端 + P5.1–P5.7 管理后台  
-> **下一阶段**：P5.8 系统设置占位页
+> **修订日期**：2026-06-23（v2.6：P5.9 服务配置列表/新增编辑/启用停用 toggle + name 模糊查询 + isEnabled 默认过滤放开；v2.5：P5.7 投诉反馈列表/详情抽屉/跟进结案 + complaints 关联订单富 DTO + keyword/contactPhone 筛选；v2.4：P5.6 服务人员列表/新增编辑/详情抽屉/重置密码 + todayOrders + complaints workerId；v2.3：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v2.2：P5.4 废品订单列表/分配/代下单 + 详情无重量/金额/收款；v2.1：P5.3 保洁订单列表/分配/代下单 + 服务时段与居民端对齐；v2.0：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v1.9：P5.1 Admin 登录+布局+配置管理路由占位；v1.8：P4.7 我的页+设置改密+证书预览；v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
+> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.7 员工端 + P5.1–P5.9 管理后台  
+> **下一阶段**：P5.10 运营人员配置
 
 ---
 

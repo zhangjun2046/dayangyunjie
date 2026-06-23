@@ -11,10 +11,11 @@ export class ServiceCatalogService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async findAll(query: QueryServiceCatalogDto) {
-    const { page = 1, pageSize = 10, bizType, isEnabled = true } = query;
+    const { page = 1, pageSize = 10, bizType, isEnabled, name } = query;
     const where: Prisma.ServiceCatalogWhereInput = {
-      isEnabled,
+      ...(isEnabled !== undefined ? { isEnabled } : {}),
       ...(bizType ? { bizType } : {}),
+      ...(name ? { name: { contains: name } } : {}),
     };
 
     const [rows, total] = await this.prismaService.$transaction([
