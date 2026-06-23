@@ -1036,7 +1036,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 | `/login` | 登录页（公开） |
 | `/dashboard` | 首页 |
 | `/orders/cleaning` | 保洁订单（P5.3 已完成） |
-| `/orders/recycling` | 废品订单（P5.4 占位） |
+| `/orders/recycling` | 废品订单（P5.4 已完成） |
 | `/orders/consult` | 家政订单（P5.5 占位） |
 | `/orders/complaint` | 投诉反馈（P5.7 占位） |
 | `/data/dashboard` | 数据看板（P5.2 已完成） |
@@ -1181,10 +1181,70 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
-> **文档版本**：v4.3（P5.3 管理后台保洁订单管理对接完成）
+## P5.4 完成说明（2026-06-23）
+
+管理后台废品订单管理（P5.4）已完成，以下接口与前端已对接：
+
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `GET /recycling-orders` | 列表分页 + 关键词/状态/服务人员筛选 | ✅ P5.4 已对接 |
+| `GET /recycling-orders/:id` | 订单详情抽屉（含 worker 关联） | ✅ P5.4 已对接 |
+| `POST /recycling-orders` | 管理端代下单（电话地址） | ✅ P5.4 已对接 |
+| `POST /recycling-orders/:id/assign` | 分配服务人员弹窗 | ✅ P5.4 已对接 |
+| `GET /workers` | 分配弹窗服务人员下拉 | ✅ P5.4 已对接 |
+| `GET /service-catalogs?bizType=RECYCLING` | 新增订单服务类型下拉 | ✅ P5.4 已对接 |
+
+**P5.4 页面**：`/orders/recycling`（订单管理 > 废品订单）
+
+**P5.4 列表列**：订单编号 / 客户信息 / 被服务人 / 被服务人联系方式 / 是否代下单 / 服务类型 / **预估重量** / 服务地址 / 服务时间 / 服务人员 / 状态 / 操作（**无金额列**）
+
+**P5.4 查询条件**（与保洁一致）：关键词 / 客户联系方式 / 服务地址 + 状态 Tab（无预约日期范围）
+
+**P5.4 新增订单（代下单）规则**：
+
+| 字段 | 说明 |
+|------|------|
+| `residentId` | 可选（电话代下单无注册居民） |
+| `addressId` / `addressSnapshotText` | 二选一；管理端电话地址传 `addressSnapshotText` |
+| `estimatedWeight` | 预估重量（kg），5–200 步进，默认 5，与居民端一致 |
+| `appointTimeSlot` | 起始时间（如 `09:00`），8 个可选点与居民端一致 |
+| `isProxyOrder` + `serviceContactName/Phone` | 代下单开关及被服务人信息 |
+
+**P5.4 详情页**：展示预估重量、服务人员、时间轴、作业照片、用户评价；**不展示** actualWeight / 核定金额 / 收款状态
+
+**P5.4 后端变更**：
+
+- `RecyclingOrder.residentId` 改为可空（Prisma `Int?`）
+- `CreateRecyclingOrderDto`：`residentId`/`addressId` 可选；新增 `addressSnapshotText`
+- `findAll` / `findOne` 含 `worker: { id, name, phone }` 关联
+
+**P5.4 关键新增/扩展文件**：
+
+- `apps/admin/src/api/recycling.ts`（废品订单 API 封装）
+- `apps/admin/src/views/orders/recycling/index.vue`（完整列表 + 分配 + 代下单 + 详情）
+- `apps/server/src/modules/recycling-order/dto/create-recycling-order.dto.ts`（代下单 DTO 扩展）
+- `apps/server/src/modules/recycling-order/recycling-order.service.ts`（文本地址创建 + worker 关联）
+- `packages/shared/src/entities/order.ts`（`RecyclingOrderDto.residentId: number | null` + worker 字段）
+
+**P5.4 验收清单**：
+
+| 验收项 | 结果 |
+|--------|------|
+| 列表有预估重量列，无金额列，有被服务人/代下单列 | ✅ |
+| 分配弹窗可用，分配后状态变 ASSIGNED | ✅ |
+| 代下单新增成功（addressSnapshotText，无 residentId） | ✅ |
+| 服务时段 UI 与居民端一致（8 时间点 + 重量步进） | ✅ |
+| 列表/详情服务人员列正常显示 | ✅ |
+| 查询条件（关键词/电话/服务地址）与保洁一致 | ✅ |
+| 详情页无实际重量/金额/收款字段 | ✅ |
+| `npm run build` 通过 | ✅ |
+
+---
+
+> **文档版本**：v4.4（P5.4 管理后台废品订单管理对接完成）
 > **生成日期**：2026-06-21
-> **修订日期**：2026-06-23（v4.3：P5.3 保洁订单列表/分配/代下单 + CreateCleaningOrderDto 扩展；v4.2：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v4.1：P5.1 Admin 登录+二级折叠菜单+配置管理路由占位；v4.0：P4.7 我的页员工详情+证书预览+修改密码；v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
-> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.3 管理后台对接说明
+> **修订日期**：2026-06-23（v4.4：P5.4 废品订单列表/分配/代下单 + CreateRecyclingOrderDto 扩展 + findOne worker 关联；v4.3：P5.3 保洁订单列表/分配/代下单 + CreateCleaningOrderDto 扩展；v4.2：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v4.1：P5.1 Admin 登录+二级折叠菜单+配置管理路由占位；v4.0：P4.7 我的页员工详情+证书预览+修改密码；v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.4 管理后台对接说明
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销
 > **P3.6_repair 修正**：彻底删除居民验收接口及前端按钮，废品与保洁完全对称
@@ -1199,3 +1259,4 @@ PENDING → PROCESSING → COMPLETED（终态）
 > **P5.1 新增**：后端 `POST /auth/admin-login`（Admin JWT，role=admin）；管理后台真实登录+二级折叠菜单布局；P5.3–P5.11 路由占位（含配置管理）；`apps/admin/src/api/auth.ts` + Pinia store + layout/router；API 基址 `/api/v1`；seed 默认管理员 `admin@dayunyunjie.com` / `admin123`
 > **P5.2 新增**：管理后台数据看板 `/data/dashboard`；`GET /dashboard/summary` 重构为时间范围统计（total/completed/inProgress/pending，仅保洁+废品）；ECharts 折线/环形/柱状图 + 员工绩效表格（无创收金额列）；本日/本周/本月切换联动刷新；`apps/admin/src/api/dashboard.ts`
 > **P5.3 新增**：管理后台保洁订单 `/orders/cleaning`；列表（被服务人/服务时段/无金额列）+ 分配弹窗 + 代下单；`CreateCleaningOrderDto` 扩展（`addressSnapshotText`、可选 `residentId`/`addressId`）；`findAll` 含 worker 关联；服务时段与居民端 8 时间点 + 时长步进一致；`apps/admin/src/api/cleaning.ts`
+> **P5.4 新增**：管理后台废品订单 `/orders/recycling`；复用 P5.3 框架（被服务人/代下单/分配/无金额列）+ 预估重量列；`CreateRecyclingOrderDto` 扩展；`findAll`/`findOne` 含 worker 关联；查询条件与保洁一致（关键词/电话/服务地址）；详情无 actualWeight/金额/收款；`apps/admin/src/api/recycling.ts`

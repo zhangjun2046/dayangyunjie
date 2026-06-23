@@ -42,8 +42,10 @@ export interface CleaningOrderDto {
 export interface RecyclingOrderDto {
   id: number;
   orderNo: string;
-  residentId: number;
+  residentId: number | null;
   workerId?: number | null;
+  /** 服务人员信息（列表/详情接口返回，用于管理端展示） */
+  worker?: { id: number; name: string; phone: string } | null;
   serviceItem: string;
   estimatedWeight: number;
   appointDate: string;

@@ -886,22 +886,41 @@ loadData()
 | `addressSnapshotText` | 与 `addressId` 二选一，管理端传文本地址 |
 | `findAll` 含 `worker` | 列表「服务人员」列展示 name/phone |
 
-### 18.6 P5.4–P5.11 占位页
+### 18.6 P5.4 废品订单管理（已完成）
+
+`views/orders/recycling/index.vue` 已实现完整废品订单管理（复用 P5.3 框架）：
+
+- **列表页**：订单编号 / 客户信息 / 被服务人 / 被服务人联系方式 / 是否代下单 / 服务类型 / **预估重量** / 服务地址 / 服务时间 / 服务人员 / 状态 / 操作（**无金额列**）
+- **筛选**：关键词 + 客户联系方式 + 服务地址 + 状态 Tab（与保洁一致，无预约日期范围）
+- **分配弹窗**：订单摘要 + 服务人员下拉 → `POST /recycling-orders/:id/assign`
+- **新增订单弹窗**：RECYCLING 服务目录 + 预估重量步进（5–200kg，步长 5）+ 代下单 + 8 格起始时间点 + 文本地址代下单
+- **详情抽屉**：展示预估重量、服务人员、时间轴、作业照片、用户评价；**不展示** actualWeight / 核定金额 / 收款状态
+- **API 封装**：`apps/admin/src/api/recycling.ts`
+
+**P5.4 后端适配**（管理端代下单）：
+
+| 变更 | 说明 |
+|------|------|
+| `residentId` 可空 | 电话代下单无需注册居民 |
+| `addressSnapshotText` | 与 `addressId` 二选一，管理端传文本地址 |
+| `findAll` / `findOne` 含 `worker` | 列表与详情「服务人员」列展示 name/phone |
+
+### 18.7 P5.5–P5.11 占位页
 
 其余业务路由已注册，视图文件使用 `el-empty` 展示「功能开发中」，便于后续单元直接替换：
 
-- `views/orders/{recycling,consult,complaint}/index.vue`
+- `views/orders/{consult,complaint}/index.vue`
 - `views/workers/index.vue`
 - `views/config/{services,operators,banners}/index.vue`
 - `views/settings/index.vue`
 
 ---
 
-> **文档版本**：v2.1（P5.3 管理后台保洁订单管理验收通过）  
+> **文档版本**：v2.2（P5.4 管理后台废品订单管理验收通过）  
 > **生成日期**：2026-06-21  
-> **修订日期**：2026-06-23（v2.1：P5.3 保洁订单列表/分配/代下单 + 服务时段与居民端对齐；v2.0：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v1.9：P5.1 Admin 登录+布局+配置管理路由占位；v1.8：P4.7 我的页+设置改密+证书预览；v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
-> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.7 员工端 + P5.1–P5.3 管理后台  
-> **下一阶段**：P5.4 废品订单管理
+> **修订日期**：2026-06-23（v2.2：P5.4 废品订单列表/分配/代下单 + 详情无重量/金额/收款；v2.1：P5.3 保洁订单列表/分配/代下单 + 服务时段与居民端对齐；v2.0：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v1.9：P5.1 Admin 登录+布局+配置管理路由占位；v1.8：P4.7 我的页+设置改密+证书预览；v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
+> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.7 员工端 + P5.1–P5.4 管理后台  
+> **下一阶段**：P5.5 家政订单管理
 
 ---
 

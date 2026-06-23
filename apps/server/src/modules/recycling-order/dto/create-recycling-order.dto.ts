@@ -14,11 +14,12 @@ import {
 } from 'class-validator';
 
 export class CreateRecyclingOrderDto {
-  @ApiProperty({ description: '居民 ID（公开接口联调阶段显式必填）', example: 1 })
+  @ApiPropertyOptional({ description: '居民 ID（小程序用户创建时必填，管理后台代下单可不填）', example: 1 })
   @Type(() => Number)
+  @IsOptional()
   @IsInt()
   @Min(1)
-  residentId!: number;
+  residentId?: number;
 
   @ApiProperty({ description: '物品大类', example: '大件类', enum: ['大件类', '小件类'] })
   @IsString()
@@ -35,16 +36,23 @@ export class CreateRecyclingOrderDto {
   @IsDateString()
   appointDate!: string;
 
-  @ApiProperty({ description: '预约时段', example: '14:00-16:00' })
+  @ApiProperty({ description: '预约时段（起始时间，如 14:00）', example: '14:00' })
   @IsString()
   @MaxLength(32)
   appointTimeSlot!: string;
 
-  @ApiProperty({ description: '地址 ID', example: 1 })
+  @ApiPropertyOptional({ description: '地址 ID（小程序用户创建时使用；与 addressSnapshotText 二选一）', example: 1 })
   @Type(() => Number)
+  @IsOptional()
   @IsInt()
   @Min(1)
-  addressId!: number;
+  addressId?: number;
+
+  @ApiPropertyOptional({ description: '地址文本（管理后台代下单时直接传入，与 addressId 二选一）', example: '北京市朝阳区弘善家园90号楼' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(256)
+  addressSnapshotText?: string;
 
   @ApiProperty({ description: '联系人姓名', example: '张三' })
   @IsString()

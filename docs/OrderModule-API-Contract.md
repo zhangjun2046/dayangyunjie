@@ -2515,7 +2515,7 @@ ASSIGNED 状态卡片「立即接单」调用 §28.2 同名接口，成功后刷
 | `/login` | `views/login/index.vue` | — | P5.1 |
 | `/dashboard` | `views/dashboard/index.vue` | — | P1.5 |
 | `/orders/cleaning` | `views/orders/cleaning/index.vue` | 订单管理 > 保洁订单 | P5.3 已完成 |
-| `/orders/recycling` | `views/orders/recycling/index.vue` | 订单管理 > 废品订单 | P5.4 占位 |
+| `/orders/recycling` | `views/orders/recycling/index.vue` | 订单管理 > 废品订单 | P5.4 已完成 |
 | `/orders/consult` | `views/orders/consult/index.vue` | 订单管理 > 家政订单 | P5.5 占位 |
 | `/orders/complaint` | `views/orders/complaint/index.vue` | 订单管理 > 投诉反馈 | P5.7 占位 |
 | `/data/dashboard` | `views/data/dashboard/index.vue` | 数据管理 > 数据看板 | P5.2 已完成 |
@@ -2644,6 +2644,77 @@ Body: `{ workerId: number }` → 状态 `PENDING_ASSIGN` → `ASSIGNED`
 
 ---
 
-> **文档版本**：v4.0（P5.3 管理后台保洁订单管理验收通过）  
+### 34.9 P5.4 管理端废品订单管理（2026-06-23）
+
+**页面**：`/orders/recycling`（`apps/admin/src/views/orders/recycling/index.vue`）
+
+#### GET `/recycling-orders` — 管理端列表查询
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `keyword` | string | 关键词（订单号/联系人/电话） |
+| `status` | string | 单状态筛选 |
+| `statuses` | string | 多状态（逗号分隔，优先级高于 status） |
+| `workerId` | number | 服务人员 ID |
+| `appointDateFrom` | string | 预约日期起 `YYYY-MM-DD` |
+| `appointDateTo` | string | 预约日期止 `YYYY-MM-DD` |
+| `page` | number | 页码，默认 1 |
+| `pageSize` | number | 每页条数，默认 10 |
+
+**响应**：列表项含 `worker: { id, name, phone }` 关联，供「服务人员」列展示。
+
+#### POST `/recycling-orders` — 管理端代下单（CreateRecyclingOrderDto 扩展）
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `serviceItem` | string | 是 | 服务类型（RECYCLING 目录） |
+| `estimatedWeight` | number | 是 | 预估重量（kg），默认 5 |
+| `appointDate` | string | 是 | 预约日期 `YYYY-MM-DD` |
+| `appointTimeSlot` | string | 是 | 起始时间，如 `09:00`（8 点：08:00–11:00、14:00–17:00） |
+| `contactName` | string | 是 | 联系人姓名 |
+| `contactPhone` | string | 是 | 联系人电话 |
+| `addressId` | number | 条件 | 地址 ID（与 addressSnapshotText 二选一） |
+| `addressSnapshotText` | string | 条件 | 文本地址（管理端电话代下单） |
+| `residentId` | number | 否 | 居民 ID（电话代下单可为空） |
+| `isProxyOrder` | boolean | 否 | 是否代下单 |
+| `serviceContactName` | string | 条件 | 被服务人姓名（代下单时） |
+| `serviceContactPhone` | string | 条件 | 被服务人电话（代下单时） |
+| `source` | string | 否 | `MINIPROGRAM` / `PHONE` |
+| `remark` | string | 否 | 备注 |
+
+#### GET `/recycling-orders/:id` — 详情（含 worker）
+
+`findOne` include `worker: { id, name, phone }` + `workPhotos`；详情页**不展示** actualWeight / finalAmount / paymentStatus。
+
+#### POST `/recycling-orders/:id/assign` — 分配服务人员
+
+Body: `{ workerId: number }` → 状态 `PENDING_ASSIGN` → `ASSIGNED`
+
+**P5.4 关键文件**：
+
+| 路径 | 说明 |
+|------|------|
+| `apps/admin/src/api/recycling.ts` | 废品订单 CRUD + assign |
+| `apps/admin/src/views/orders/recycling/index.vue` | 列表 + 筛选 + 分配 + 代下单 + 详情 |
+| `apps/server/.../create-recycling-order.dto.ts` | 代下单 DTO（可选 residentId/addressId + addressSnapshotText） |
+| `apps/server/.../recycling-order.service.ts` | 文本地址创建 + findAll/findOne worker 关联 |
+| `packages/shared/src/entities/order.ts` | `RecyclingOrderDto.residentId: number \| null` + worker |
+
+### 34.10 P5.4 验收清单（2026-06-23）
+
+| 验收项 | 结果 |
+|--------|------|
+| 列表有预估重量列，无金额列，有被服务人/代下单列 | ✅ |
+| 分配弹窗可用，分配后状态变 ASSIGNED | ✅ |
+| 代下单新增成功（addressSnapshotText，无 residentId） | ✅ |
+| 服务时段 UI 与居民端一致（8 时间点 + 重量步进） | ✅ |
+| 列表/详情服务人员列正常显示 | ✅ |
+| 查询条件与保洁一致（关键词/电话/服务地址） | ✅ |
+| 详情页无实际重量/金额/收款字段 | ✅ |
+| `npm run build` 通过 | ✅ |
+
+---
+
+> **文档版本**：v4.1（P5.4 管理后台废品订单管理验收通过）  
 > **修订日期**：2026-06-23  
-> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.3 管理后台
+> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.4 管理后台

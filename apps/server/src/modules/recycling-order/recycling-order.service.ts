@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AddressSnapshot, RecyclingOrderDto, OrderSource } from '@dayangyunjie/shared';
-import { RecyclingOrder, OrderSource as PrismaOrderSource, OrderStatus as PrismaOrderStatus, PhotoType, Prisma, WorkPhoto } from '@prisma/client';
+import { RecyclingOrder, OrderSource as PrismaOrderSource, OrderStatus as PrismaOrderStatus, PhotoType, Prisma, Worker, WorkPhoto } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { OrderStateMachineService } from '../../common/order-state-machine/order-state-machine.service';
 import { GeoService } from '../../common/geo/geo.service';
@@ -34,25 +34,45 @@ export class RecyclingOrderService {
   async create(createRecyclingOrderDto: CreateRecyclingOrderDto): Promise<RecyclingOrderDto> {
     this.validateProxyFields(createRecyclingOrderDto);
 
+    // 管理后台代下单时 addressSnapshotText 与 addressId 必须二选一
+    if (!createRecyclingOrderDto.addressId && !createRecyclingOrderDto.addressSnapshotText) {
+      throw new BadRequestException('addressId 或 addressSnapshotText 必须提供其中之一');
+    }
+
     for (let attempt = 0; attempt < ORDER_NO_RETRY_TIMES; attempt += 1) {
       try {
         const row = await this.prismaService.$transaction(async (tx) => {
-          const resident = await tx.resident.findUnique({
-            where: { id: createRecyclingOrderDto.residentId },
-            select: { id: true },
-          });
-          if (!resident) {
-            throw new NotFoundException(`Resident ${createRecyclingOrderDto.residentId} not found`);
+          // 有 residentId 时校验居民存在性（小程序用户路径）
+          if (createRecyclingOrderDto.residentId) {
+            const resident = await tx.resident.findUnique({
+              where: { id: createRecyclingOrderDto.residentId },
+              select: { id: true },
+            });
+            if (!resident) {
+              throw new NotFoundException(`Resident ${createRecyclingOrderDto.residentId} not found`);
+            }
           }
 
-          const address = await tx.address.findUnique({
-            where: { id: createRecyclingOrderDto.addressId },
-          });
-          if (!address) {
-            throw new NotFoundException(`Address ${createRecyclingOrderDto.addressId} not found`);
-          }
-          if (address.residentId !== createRecyclingOrderDto.residentId) {
-            throw new BadRequestException('addressId does not belong to residentId');
+          // 构建地址快照：有 addressId 则从数据库取；否则使用管理后台直传的文本
+          let addressSnapshot: Prisma.InputJsonValue;
+          if (createRecyclingOrderDto.addressId) {
+            const address = await tx.address.findUnique({
+              where: { id: createRecyclingOrderDto.addressId },
+            });
+            if (!address) {
+              throw new NotFoundException(`Address ${createRecyclingOrderDto.addressId} not found`);
+            }
+            if (createRecyclingOrderDto.residentId && address.residentId !== createRecyclingOrderDto.residentId) {
+              throw new BadRequestException('addressId does not belong to residentId');
+            }
+            addressSnapshot = this.toAddressSnapshot(address) as unknown as Prisma.InputJsonValue;
+          } else {
+            // 管理后台代下单：直接用文本构建简单快照
+            addressSnapshot = {
+              detail: createRecyclingOrderDto.addressSnapshotText,
+              contactName: createRecyclingOrderDto.contactName,
+              contactPhone: createRecyclingOrderDto.contactPhone,
+            } as unknown as Prisma.InputJsonValue;
           }
 
           const orderNo = await this.generateOrderNo(tx);
@@ -61,12 +81,12 @@ export class RecyclingOrderService {
           return tx.recyclingOrder.create({
             data: {
               orderNo,
-              residentId: createRecyclingOrderDto.residentId,
+              residentId: createRecyclingOrderDto.residentId ?? null,
               itemType: createRecyclingOrderDto.serviceItem,
               estimatedWeight: createRecyclingOrderDto.estimatedWeight,
               appointDate,
               appointTimeSlot: createRecyclingOrderDto.appointTimeSlot,
-              addressSnapshot: this.toAddressSnapshot(address) as unknown as Prisma.InputJsonValue,
+              addressSnapshot,
               contactName: createRecyclingOrderDto.contactName,
               contactPhone: createRecyclingOrderDto.contactPhone,
               remark: createRecyclingOrderDto.remark,
@@ -135,6 +155,7 @@ export class RecyclingOrderService {
         skip: (page - 1) * pageSize,
         take: pageSize,
         orderBy: [{ id: 'desc' }],
+        include: { worker: { select: { id: true, name: true, phone: true } } },
       }),
       this.prismaService.recyclingOrder.count({ where }),
     ]);
@@ -150,7 +171,10 @@ export class RecyclingOrderService {
   async findOne(id: number): Promise<RecyclingOrderDto> {
     const row = await this.prismaService.recyclingOrder.findUnique({
       where: { id },
-      include: { workPhotos: true },
+      include: {
+        workPhotos: true,
+        worker: { select: { id: true, name: true, phone: true } },
+      },
     });
     if (!row) {
       throw new NotFoundException(`RecyclingOrder ${id} not found`);
@@ -443,12 +467,13 @@ export class RecyclingOrderService {
     };
   }
 
-  private toDto(row: RecyclingOrder & { workPhotos?: WorkPhoto[] }): RecyclingOrderDto {
+  private toDto(row: RecyclingOrder & { workPhotos?: WorkPhoto[]; worker?: Pick<Worker, 'id' | 'name' | 'phone'> | null }): RecyclingOrderDto {
     return {
       id: row.id,
       orderNo: row.orderNo,
       residentId: row.residentId,
       workerId: row.workerId,
+      worker: row.worker ?? null,
       serviceItem: row.itemType,
       estimatedWeight: row.estimatedWeight,
       appointDate: row.appointDate.toISOString(),
