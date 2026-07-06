@@ -7,7 +7,7 @@ const LINK_TYPES = ['NONE', 'PAGE', 'URL'] as const;
 export class UpdateBannerDto {
   @ApiPropertyOptional({ description: '轮播图图片 URL' })
   @IsOptional()
-  @IsUrl()
+  @IsUrl({ require_tld: false })
   @MaxLength(512)
   imageUrl?: string;
 

@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
 const DISPLAY_TARGETS = ['RESIDENT', 'WORKER', 'ALL'] as const;
 
@@ -30,4 +30,10 @@ export class QueryBannerDto {
   @IsOptional()
   @IsBoolean()
   isEnabled?: boolean;
+
+  @ApiPropertyOptional({ description: '标题模糊查询', example: '夏季' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  title?: string;
 }

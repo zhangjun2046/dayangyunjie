@@ -1017,20 +1017,37 @@ loadData()
 | `QueryOperatorDto.keyword` | 新增姓名或手机号 OR 模糊查询（管理端搜索框） |
 | `findAll` where 子句 | 条件展开 `name` / `phone` / `keyword OR` |
 
-### 18.12 P5.8 / P5.11 占位页
+### 18.12 P5.11 轮播图管理（已完成）
 
-其余业务路由已注册，视图文件使用 `el-empty` 展示「功能开发中」，便于后续单元直接替换：
+`views/config/banners/index.vue` 已实现完整轮播图管理：
 
-- `views/config/banners/index.vue`
-- `views/settings/index.vue`
+- **列表页**：序号 / 标题 / 展示端 / 跳转类型 / 排序值 / 状态 / 生效时间 / 创建时间 / 最后修改时间 / 操作
+- **筛选**：状态（启用/禁用）/ 展示端（居民端/员工端/全部）/ 标题关键字
+- **新增/编辑弹窗**：基础信息 + 展示配置（图片上传≤2M）+ 跳转配置（不跳转/页面/H5）
+- **状态切换**：列表状态 Tag 点击 → `PUT /banners/:id` 切换 `isEnabled`
+- **删除**：确认弹窗 → `DELETE /banners/:id`
+- **API 封装**：`apps/admin/src/api/banner.ts`（fetch/create/update/delete）
+- **居民端联动**：`GET /banners/active?displayTarget=RESIDENT`（P3.2 首页轮播）
+
+**P5.11 后端扩展**：
+
+| 变更 | 说明 |
+|------|------|
+| `QueryBannerDto.title` | 标题模糊查询 |
+| `CreateBannerDto.isEnabled` | 创建时可指定启用状态 |
+| `imageUrl` 校验 | `@IsUrl({ require_tld: false })` 兼容 localhost 开发 URL |
+
+### 18.13 P5.8 系统设置占位页
+
+`views/settings/index.vue` 仍为占位页（「功能开发中」），待 P5.8 或后续版本实现。
 
 ---
 
-> **文档版本**：v2.7（P5.10 管理后台运营人员信息配置验收通过）  
+> **文档版本**：v2.8（P5.11 管理后台轮播图管理验收通过）  
 > **生成日期**：2026-06-21  
-> **修订日期**：2026-07-06（v2.7：P5.10 运营人员列表/新增编辑/删除 + keyword 模糊查询 + 手机号完整展示；v2.6：P5.9 服务配置列表/新增编辑/启用停用 toggle + name 模糊查询 + isEnabled 默认过滤放开；v2.5：P5.7 投诉反馈列表/详情抽屉/跟进结案 + complaints 关联订单富 DTO + keyword/contactPhone 筛选；v2.4：P5.6 服务人员列表/新增编辑/详情抽屉/重置密码 + todayOrders + complaints workerId；v2.3：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v2.2：P5.4 废品订单列表/分配/代下单 + 详情无重量/金额/收款；v2.1：P5.3 保洁订单列表/分配/代下单 + 服务时段与居民端对齐；v2.0：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v1.9：P5.1 Admin 登录+布局+配置管理路由占位；v1.8：P4.7 我的页+设置改密+证书预览；v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
-> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.7 员工端 + P5.1–P5.10 管理后台  
-> **下一阶段**：P5.11 轮播图管理
+> **修订日期**：2026-07-06（v2.8：P5.11 轮播图列表/新增编辑/删除 + title 模糊查询 + isEnabled + localhost 图片 URL 兼容 + 居民端 active 联动；v2.7：P5.10 运营人员列表/新增编辑/删除 + keyword 模糊查询 + 手机号完整展示；v2.6：P5.9 服务配置列表/新增编辑/启用停用 toggle + name 模糊查询 + isEnabled 默认过滤放开；v2.5：P5.7 投诉反馈列表/详情抽屉/跟进结案 + complaints 关联订单富 DTO + keyword/contactPhone 筛选；v2.4：P5.6 服务人员列表/新增编辑/详情抽屉/重置密码 + todayOrders + complaints workerId；v2.3：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v2.2：P5.4 废品订单列表/分配/代下单 + 详情无重量/金额/收款；v2.1：P5.3 保洁订单列表/分配/代下单 + 服务时段与居民端对齐；v2.0：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v1.9：P5.1 Admin 登录+布局+配置管理路由占位；v1.8：P4.7 我的页+设置改密+证书预览；v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
+> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.7 员工端 + P5.1–P5.11 管理后台  
+> **下一阶段**：P6 集成与部署
 
 ---
 

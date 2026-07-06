@@ -81,6 +81,20 @@ describe('BannerService', () => {
 
       expect(result.total).toBe(0);
     });
+
+    it('按 title 模糊查询', async () => {
+      prisma.$transaction.mockResolvedValue([[], 0]);
+
+      await service.findAll({ page: 1, pageSize: 10, title: '夏季' });
+
+      expect(prisma.banner.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            title: { contains: '夏季' },
+          }),
+        }),
+      );
+    });
   });
 
   // ── findActive ─────────────────────────────────────────────────────────────
@@ -165,6 +179,46 @@ describe('BannerService', () => {
 
       expect(prisma.banner.create).toHaveBeenCalledTimes(1);
       expect(result.title).toBe('新年活动');
+    });
+
+    it('创建时可指定 isEnabled=false', async () => {
+      const row = makeRow({ isEnabled: false });
+      prisma.banner.create.mockResolvedValue(row);
+
+      const result = await service.create({
+        imageUrl: 'https://cdn.example.com/banner.jpg',
+        startTime: '2026-01-01T00:00:00Z',
+        endTime: '2026-12-31T23:59:59Z',
+        isEnabled: false,
+      });
+
+      expect(prisma.banner.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ isEnabled: false }),
+        }),
+      );
+      expect(result.isEnabled).toBe(false);
+    });
+
+    it('支持本地开发环境上传的 localhost 图片 URL', async () => {
+      const localUrl = 'http://localhost:3000/uploads/IMG_1749270000000_ABC123.jpg';
+      const row = makeRow({ imageUrl: localUrl });
+      prisma.banner.create.mockResolvedValue(row);
+
+      const result = await service.create({
+        imageUrl: localUrl,
+        startTime: '2026-07-01T00:00:00.000Z',
+        endTime: '2026-08-31T00:00:00.000Z',
+        title: '20',
+        sortOrder: 10,
+      });
+
+      expect(prisma.banner.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ imageUrl: localUrl, sortOrder: 10 }),
+        }),
+      );
+      expect(result.imageUrl).toBe(localUrl);
     });
   });
 

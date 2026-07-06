@@ -1,12 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsInt, IsISO8601, IsOptional, IsString, IsUrl, MaxLength, Min } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsISO8601, IsOptional, IsString, IsUrl, MaxLength, Min } from 'class-validator';
 
 const DISPLAY_TARGETS = ['RESIDENT', 'WORKER', 'ALL'] as const;
 const LINK_TYPES = ['NONE', 'PAGE', 'URL'] as const;
 
 export class CreateBannerDto {
   @ApiProperty({ description: '轮播图图片 URL', example: 'https://cdn.example.com/banner.jpg' })
-  @IsUrl()
+  @IsUrl({ require_tld: false })
   @MaxLength(512)
   imageUrl!: string;
 
@@ -53,4 +53,9 @@ export class CreateBannerDto {
   @IsInt()
   @Min(0)
   sortOrder?: number = 0;
+
+  @ApiPropertyOptional({ description: '是否启用', default: true })
+  @IsOptional()
+  @IsBoolean()
+  isEnabled?: boolean = true;
 }

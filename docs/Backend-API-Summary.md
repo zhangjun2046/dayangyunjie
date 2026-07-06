@@ -1,6 +1,6 @@
 # Backend API Summary（P2 全接口交接文档）
 
-> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；P4.2（2026-06-21）更新至 v3.5；P4.3（2026-06-21）更新至 v3.6；P4.4（2026-06-21）更新至 v3.7；P4.5（2026-06-22）更新至 v3.8；P4.6（2026-06-22）更新至 v3.9；P4.7（2026-06-22）更新至 v4.0；P5.1（2026-06-22）更新至 v4.1（管理后台 Admin 登录 + 布局框架对接完成）；**P5.2（2026-06-22）** 更新至 v4.2（Dashboard `getSummary` 重构为时间范围统计 + 管理后台数据看板 ECharts 对接完成）；**P5.5（2026-06-23）** 更新至 v4.5（管理后台家政咨询单管理对接完成）；**P5.6（2026-06-23）** 更新至 v4.6（管理后台服务人员管理对接完成）；**P5.7（2026-06-23）** 更新至 v4.7（管理后台投诉反馈管理对接完成）；**P5.9（2026-06-23）** 更新至 v4.8（管理后台服务配置管理对接完成）；**P5.10（2026-07-06）** 更新至 v4.9（管理后台运营人员配置对接完成）  
+> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；P4.2（2026-06-21）更新至 v3.5；P4.3（2026-06-21）更新至 v3.6；P4.4（2026-06-21）更新至 v3.7；P4.5（2026-06-22）更新至 v3.8；P4.6（2026-06-22）更新至 v3.9；P4.7（2026-06-22）更新至 v4.0；P5.1（2026-06-22）更新至 v4.1（管理后台 Admin 登录 + 布局框架对接完成）；**P5.2（2026-06-22）** 更新至 v4.2（Dashboard `getSummary` 重构为时间范围统计 + 管理后台数据看板 ECharts 对接完成）；**P5.5（2026-06-23）** 更新至 v4.5（管理后台家政咨询单管理对接完成）；**P5.6（2026-06-23）** 更新至 v4.6（管理后台服务人员管理对接完成）；**P5.7（2026-06-23）** 更新至 v4.7（管理后台投诉反馈管理对接完成）；**P5.9（2026-06-23）** 更新至 v4.8（管理后台服务配置管理对接完成）；**P5.10（2026-07-06）** 更新至 v4.9（管理后台运营人员配置对接完成）；**P5.11（2026-07-06）** 更新至 v5.0（管理后台轮播图管理对接完成）  
 > **用途**：供居民端（P3）、员工端（P4）、管理后台（P5）对接后端 API，避免上下文丢失  
 > **Base URL**：`http://localhost:3000/api/v1`  
 > **统一响应格式**：`{ code: number, message: string, data: T | null }`  
@@ -484,7 +484,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | POST | `/banners` | 新增轮播图 |
-| GET | `/banners` | 分页列表（Query：`displayTarget?`, `isEnabled?`） |
+| GET | `/banners` | 分页列表（Query：`displayTarget?`, `isEnabled?`, `title?`（P5.11 标题模糊查询）） |
 | GET | `/banners/active` | **有效轮播图**（isEnabled=true 且当前时间在 startTime~endTime 内，Query：`displayTarget?`） |
 | GET | `/banners/:id` | 详情 |
 | PUT | `/banners/:id` | 编辑 |
@@ -494,7 +494,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| `imageUrl` | string | ✅ | 图片 URL |
+| `imageUrl` | string | ✅ | 图片 URL（支持 `http://localhost:3000/uploads/` 等开发环境地址，`require_tld: false`） |
 | `title` | string | | 标题 |
 | `displayTarget` | string | | `RESIDENT`（默认）/ `WORKER` / `ALL` |
 | `linkType` | string | | `NONE`（默认）/ `PAGE` / `URL` |
@@ -502,6 +502,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 | `startTime` | string | ✅ | 生效开始时间（ISO8601） |
 | `endTime` | string | ✅ | 生效结束时间（ISO8601） |
 | `sortOrder` | number | | 排序权重，默认 0 |
+| `isEnabled` | boolean | | 是否启用，默认 true（P5.11 新增） |
 
 **Response（BannerDto）**
 
@@ -523,6 +524,8 @@ PENDING → PROCESSING → COMPLETED（终态）
 ```
 
 > **居民端对接**：小程序首页轮播图调用 `GET /banners/active?displayTarget=RESIDENT`，无需鉴权。**P3.2 已对接**（`src/api/banner.ts` → `fetchActiveBanners()`）。
+
+> **管理后台对接**：轮播图管理页 `/config/banners` 调用 Banner CRUD（✅ P5.11 已对接，`apps/admin/src/api/banner.ts`）。
 
 ---
 
@@ -570,7 +573,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 |----|---------|
 | **居民端（P3）** | 微信登录走 `/auth/wechat-login`（mock 阶段任意 code 可用）；创建订单时 `residentId` 从登录响应中取；评价提交后订单自动变 `REVIEWED`（✅ P3.7 已对接）；投诉 `POST /complaints` + 我的投诉 `GET /complaints?residentId=`（✅ P3.7 已对接）；地址管理 CRUD `GET/POST/PUT/DELETE /addresses`（✅ P3.7 已对接）；首页轮播图 `GET /banners/active?displayTarget=RESIDENT`（✅ P3.2 已对接）；客服电话 `GET /operators/contact`（✅ P3.2 已对接）；保洁预约 `POST /cleaning-orders`（✅ P3.3 已对接，含代下单字段）；废品预约 `POST /recycling-orders`（✅ P3.4 已对接，含代下单字段）；家政咨询 `POST /consult-orders`（✅ P3.5 已对接，含代下单字段）；代下单闭环验证（✅ P3.8 已通过，详见 `MiniApp-Architecture.md`）；H5 走 Vite 代理 `/api/v1`，小程序走 `VITE_API_BASE` |
 | **员工端（P4）** | 登录走 `POST /auth/worker-login`（✅ P4.1）；首页待接单列表 `GET /cleaning-orders?workerId=&statuses=ASSIGNED` + `GET /recycling-orders?workerId=&statuses=ASSIGNED`（✅ P4.2）；任务列表 `GET /cleaning-orders?workerId=&statuses=` / `GET /recycling-orders?workerId=&statuses=` 分页多状态筛选，排除 PENDING_ASSIGN（✅ P4.3）；任务详情 `GET /cleaning-orders/:id` / `GET /recycling-orders/:id`（✅ P4.4）；接单 `POST /cleaning-orders/:id/accept` 或废品同名接口（✅ P4.2/P4.3/P4.4）；GPS 签到 `POST /cleaning-orders/:id/gps-checkin`（✅ P4.4，仅 ACCEPTED 状态）；IN_SERVICE 态上传作业照片 `POST /upload/image?orderNo=`（含水印，✅ P4.5）；完成服务 `POST /cleaning-orders/:id/complete` / 废品同名接口（Body：`beforePhotoUrls[]`, `afterPhotoUrls[]`, `operatorId`，✅ P4.5）；PENDING_REVIEW/REVIEWED 只读详情 + `GET /reviews?orderType=&orderId=` 展示居民评价（✅ P4.6）；我的页 `GET /workers/:id`（个人信息/评分/证书）+ 今日订单统计（复用订单列表 API）+ `PUT /workers/:id/change-password`（✅ P4.7） |
-| **管理后台（P5）** | 登录走 `POST /auth/admin-login`（✅ P5.1）；API 基址 `/api/v1`；二级折叠菜单布局；看板接口在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；配置管理走 `/service-catalogs`（✅ P5.9 CRUD + toggle）、`/banners`、`/operators`（✅ P5.10 CRUD + keyword 搜索）；家政咨询单管理走 `/consult-orders` + `/consult-orders/:id/follow-ups` + `/consult-orders/:id/status`（✅ P5.5）；服务人员管理走 `/workers` CRUD + `POST /workers/:id/reset-password` + `GET /complaints?workerId=`（✅ P5.6）；投诉反馈管理走 `GET /complaints` + `GET /complaints/:id` + `PATCH /complaints/:id/status` + `POST /complaints/:id/follow-ups`（✅ P5.7） |
+| **管理后台（P5）** | 登录走 `POST /auth/admin-login`（✅ P5.1）；API 基址 `/api/v1`；二级折叠菜单布局；看板接口在 `/dashboard/`；派单用 `/cleaning-orders/:id/assign`（传 `workerId`）；配置管理走 `/service-catalogs`（✅ P5.9 CRUD + toggle）、`/banners`（✅ P5.11 CRUD + 展示端/标题筛选 + 图片上传）、`/operators`（✅ P5.10 CRUD + keyword 搜索）；家政咨询单管理走 `/consult-orders` + `/consult-orders/:id/follow-ups` + `/consult-orders/:id/status`（✅ P5.5）；服务人员管理走 `/workers` CRUD + `POST /workers/:id/reset-password` + `GET /complaints?workerId=`（✅ P5.6）；投诉反馈管理走 `GET /complaints` + `GET /complaints/:id` + `PATCH /complaints/:id/status` + `POST /complaints/:id/follow-ups`（✅ P5.7） |
 
 ---
 
@@ -1050,7 +1053,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 | `/workers` | 服务人员管理（P5.6 已完成） |
 | `/config/services` | 服务配置（P5.9 已完成） |
 | `/config/operators` | 运营人员配置（P5.10 已完成） |
-| `/config/banners` | 轮播图管理（P5.11 占位） |
+| `/config/banners` | 轮播图管理（P5.11 已完成） |
 | `/settings` | 系统设置（P5.8 占位） |
 
 **P5.1 侧栏菜单结构**（二级折叠 `el-sub-menu`）：
@@ -1460,10 +1463,59 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
-> **文档版本**：v4.9（P5.10 管理后台运营人员配置对接完成）
+---
+
+## P5.11 完成说明（2026-07-06）
+
+管理后台轮播图管理（P5.11）已完成，以下接口与前端已对接：
+
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `GET /banners` | 列表分页 + 展示端/状态/标题筛选 | ✅ P5.11 已对接 |
+| `POST /banners` | 新增轮播弹窗 | ✅ P5.11 已对接 |
+| `PUT /banners/:id` | 编辑轮播弹窗 | ✅ P5.11 已对接 |
+| `DELETE /banners/:id` | 删除确认 | ✅ P5.11 已对接 |
+| `POST /upload/image` | Banner 图上传（≤2M，jpg/png/webp） | ✅ P5.11 已对接 |
+| `GET /banners/active?displayTarget=RESIDENT` | 居民端首页轮播联动 | ✅ P3.2 已对接 |
+
+**P5.11 页面**：`/config/banners`（配置管理 > 轮播图管理）
+
+**P5.11 列表列**：序号 / 标题 / 展示端 / 跳转类型 / 排序值 / 状态 / 生效时间 / 创建时间 / 最后修改时间 / 操作
+
+**P5.11 筛选条件**：状态（启用/禁用）/ 展示端（居民端/员工端/全部）/ 标题关键字（`title` 模糊查询）
+
+**P5.11 新增/编辑弹窗**：
+- 基础信息：标题 / 展示端 / 排序值 / 是否启用 / 生效时间范围
+- 展示配置：Banner 图上传（建议 750×320px，≤2M）
+- 跳转配置：跳转类型（不跳转/页面/H5）+ 跳转路径
+
+**P5.11 关键新增/扩展文件**：
+
+- `apps/admin/src/api/banner.ts`（fetch/create/update/delete）
+- `apps/admin/src/views/config/banners/index.vue`（完整列表 + 新增/编辑 Dialog）
+- `apps/server/src/modules/banner/dto/query-banner.dto.ts`（`title` 模糊查询）
+- `apps/server/src/modules/banner/dto/create-banner.dto.ts`（`isEnabled` + `imageUrl` 校验兼容 localhost）
+- `apps/server/src/modules/banner/dto/update-banner.dto.ts`（`imageUrl` 校验兼容 localhost）
+- `apps/server/src/modules/banner/banner.service.ts`（title 筛选 + isEnabled 写入）
+- `apps/admin/src/api/request.ts`（400 错误优先展示后端 message）
+
+**P5.11 验收清单**：
+
+| 验收项 | 结果 |
+|--------|------|
+| Banner CRUD 全功能可用 | ✅ |
+| 展示端/状态/标题筛选可用 | ✅ |
+| 新增轮播后居民端首页展示更新 | ✅ |
+| 本地开发环境图片 URL 可正常保存 | ✅ |
+| `banner.spec` 13 项通过 | ✅ |
+| `npm run build` 通过 | ✅ |
+
+---
+
+> **文档版本**：v5.0（P5.11 管理后台轮播图管理对接完成）
 > **生成日期**：2026-06-21
-> **修订日期**：2026-07-06（v4.9：P5.10 运营人员列表/新增编辑/删除 + QueryOperatorDto keyword 模糊查询 + 手机号完整展示；v4.8：P5.9 服务配置列表/新增编辑/启用停用 toggle + QueryServiceCatalogDto name 模糊查询 + isEnabled 默认过滤放开；v4.7：P5.7 投诉反馈列表/详情抽屉/跟进结案 + complaints 关联订单富 DTO + keyword/contactPhone 筛选；v4.6：P5.6 服务人员列表/新增编辑/详情抽屉/重置密码 + todayOrders 聚合 + complaints workerId 筛选 + CreateWorkerDto 扩展；v4.5：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v4.4：P5.4 废品订单列表/分配/代下单 + CreateRecyclingOrderDto 扩展 + findOne worker 关联；v4.3：P5.3 保洁订单列表/分配/代下单 + CreateCleaningOrderDto 扩展；v4.2：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v4.1：P5.1 Admin 登录+二级折叠菜单+配置管理路由占位；v4.0：P4.7 我的页员工详情+证书预览+修改密码；v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
-> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.10 管理后台对接说明
+> **修订日期**：2026-07-06（v5.0：P5.11 轮播图列表/新增编辑/删除 + QueryBannerDto title 模糊查询 + CreateBannerDto isEnabled + imageUrl localhost 兼容 + 居民端 active 联动；v4.9：P5.10 运营人员列表/新增编辑/删除 + QueryOperatorDto keyword 模糊查询 + 手机号完整展示；v4.8：P5.9 服务配置列表/新增编辑/启用停用 toggle + QueryServiceCatalogDto name 模糊查询 + isEnabled 默认过滤放开；v4.7：P5.7 投诉反馈列表/详情抽屉/跟进结案 + complaints 关联订单富 DTO + keyword/contactPhone 筛选；v4.6：P5.6 服务人员列表/新增编辑/详情抽屉/重置密码 + todayOrders 聚合 + complaints workerId 筛选 + CreateWorkerDto 扩展；v4.5：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v4.4：P5.4 废品订单列表/分配/代下单 + CreateRecyclingOrderDto 扩展 + findOne worker 关联；v4.3：P5.3 保洁订单列表/分配/代下单 + CreateCleaningOrderDto 扩展；v4.2：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v4.1：P5.1 Admin 登录+二级折叠菜单+配置管理路由占位；v4.0：P4.7 我的页员工详情+证书预览+修改密码；v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.11 管理后台对接说明
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销
 > **P3.6_repair 修正**：彻底删除居民验收接口及前端按钮，废品与保洁完全对称
@@ -1488,3 +1540,5 @@ PENDING → PROCESSING → COMPLETED（终态）
 > **P5.9 新增**：管理后台服务配置 `/config/services`；列表（所属业务/服务名称/副标题/图标/排序/状态/创建时间 + 无价格列）+ 新增/编辑弹窗 + 启用停用 toggle + 删除确认；后端 `QueryServiceCatalogDto` 新增 `name` 模糊查询 + `isEnabled` 默认过滤放开；`apps/admin/src/api/service-catalog.ts` 扩展 CRUD + toggle
 
 > **P5.10 新增**：管理后台运营人员配置 `/config/operators`；列表（姓名/手机号完整展示/用途/创建时间 + 无启用停用列）+ 新增/编辑弹窗 + 删除确认；后端 `QueryOperatorDto` 扩展 `name`/`phone`/`keyword` 模糊查询；`apps/admin/src/api/operator.ts` 新建 CRUD
+
+> **P5.11 新增**：管理后台轮播图管理 `/config/banners`；列表（标题/展示端/跳转类型/排序值/状态/生效时间/创建与修改时间）+ 状态/展示端/标题筛选 + 新增/编辑弹窗（三块表单 + 图片上传）+ 删除确认 + 状态 Tag 切换；后端 `QueryBannerDto.title` 模糊查询 + `CreateBannerDto.isEnabled` + `imageUrl` localhost 兼容；`apps/admin/src/api/banner.ts` 新建 CRUD；居民端 `GET /banners/active` 联动

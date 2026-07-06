@@ -12,10 +12,11 @@ export class BannerService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async findAll(query: QueryBannerDto) {
-    const { page = 1, pageSize = 10, displayTarget, isEnabled } = query;
+    const { page = 1, pageSize = 10, displayTarget, isEnabled, title } = query;
     const where: Prisma.BannerWhereInput = {
       ...(displayTarget !== undefined ? { displayTarget } : {}),
       ...(isEnabled !== undefined ? { isEnabled } : {}),
+      ...(title !== undefined && title !== '' ? { title: { contains: title } } : {}),
     };
 
     const [rows, total] = await this.prismaService.$transaction([
@@ -73,6 +74,7 @@ export class BannerService {
         startTime: new Date(dto.startTime),
         endTime: new Date(dto.endTime),
         sortOrder: dto.sortOrder ?? 0,
+        isEnabled: dto.isEnabled ?? true,
       },
     });
     return this.toDto(row);

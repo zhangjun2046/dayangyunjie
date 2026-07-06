@@ -2523,7 +2523,7 @@ ASSIGNED 状态卡片「立即接单」调用 §28.2 同名接口，成功后刷
 | `/workers` | `views/workers/index.vue` | 员工管理 > 服务人员管理 | P5.6 已完成 |
 | `/config/services` | `views/config/services/index.vue` | 配置管理 > 服务配置 | P5.9 已完成 |
 | `/config/operators` | `views/config/operators/index.vue` | 配置管理 > 运营人员配置 | P5.10 已完成 |
-| `/config/banners` | `views/config/banners/index.vue` | 配置管理 > 轮播图管理 | P5.11 占位 |
+| `/config/banners` | `views/config/banners/index.vue` | 配置管理 > 轮播图管理 | P5.11 已完成 |
 | `/settings` | `views/settings/index.vue` | 系统设置 | P5.8 占位 |
 
 ### 34.4 前端关键文件
@@ -2954,6 +2954,69 @@ Body: `{ status: 'FOLLOWING' | 'COMPLETED', operatorId: number, remark?: string 
 
 ---
 
-> **文档版本**：v4.6（P5.10 管理后台运营人员信息配置验收通过）  
+### 34.20 P5.11 管理端轮播图管理（2026-07-06）
+
+**页面**：`/config/banners`（`apps/admin/src/views/config/banners/index.vue`）
+
+#### GET `/banners` — 管理端列表查询
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `displayTarget` | string | `RESIDENT` / `WORKER` / `ALL` |
+| `isEnabled` | boolean | 启用/禁用筛选 |
+| `title` | string | 标题模糊查询（P5.11 新增） |
+| `page` | number | 页码，默认 1 |
+| `pageSize` | number | 每页条数，默认 10 |
+
+**列表列**：序号 / 标题 / 展示端 / 跳转类型 / 排序值 / 状态 / 生效时间 / 创建时间 / 最后修改时间 / 操作
+
+#### POST `/banners` — 新增轮播
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `imageUrl` | string | 是 | 图片 URL（支持 `http://localhost:3000/uploads/` 开发地址） |
+| `title` | string | | 标题 |
+| `displayTarget` | string | | `RESIDENT`（默认）/ `WORKER` / `ALL` |
+| `linkType` | string | | `NONE`（默认）/ `PAGE` / `URL` |
+| `linkTarget` | string | | 跳转路径（`linkType=NONE` 时不传） |
+| `startTime` | string | 是 | 生效开始时间（ISO8601） |
+| `endTime` | string | 是 | 生效结束时间（ISO8601） |
+| `sortOrder` | number | | 排序权重，默认 0 |
+| `isEnabled` | boolean | | 是否启用，默认 true（P5.11 新增） |
+
+#### PUT `/banners/:id` — 编辑轮播
+
+Body 同 POST，字段均可选更新。
+
+#### DELETE `/banners/:id` — 删除轮播
+
+#### POST `/upload/image` — Banner 图上传
+
+管理端新增/编辑弹窗调用，返回 `{ url }` 写入 `imageUrl`。
+
+**P5.11 关键文件**：
+
+| 路径 | 说明 |
+|------|------|
+| `apps/admin/src/api/banner.ts` | Banner CRUD API 封装 |
+| `apps/admin/src/views/config/banners/index.vue` | 列表 + 筛选 + 新增/编辑 Dialog + 删除确认 |
+| `apps/server/src/modules/banner/dto/query-banner.dto.ts` | `title` 模糊查询 |
+| `apps/server/src/modules/banner/dto/create-banner.dto.ts` | `isEnabled` + `imageUrl` localhost 兼容 |
+| `apps/server/src/modules/banner/banner.service.ts` | title 筛选 + isEnabled 写入 |
+
+### 34.21 P5.11 验收清单（2026-07-06）
+
+| 验收项 | 结果 |
+|--------|------|
+| Banner CRUD 全功能可用 | ✅ |
+| 展示端/状态/标题筛选可用 | ✅ |
+| 新增轮播后居民端首页展示更新 | ✅ |
+| 本地开发环境图片 URL 可正常保存 | ✅ |
+| `banner.spec` 13 项通过 | ✅ |
+| `npm run build` 通过 | ✅ |
+
+---
+
+> **文档版本**：v4.7（P5.11 管理后台轮播图管理验收通过）  
 > **修订日期**：2026-07-06  
-> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.10 管理后台
+> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.11 管理后台

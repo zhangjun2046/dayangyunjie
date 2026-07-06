@@ -39,7 +39,8 @@ request.interceptors.response.use(
       ElMessage.warning('登录已过期，请重新登录');
       window.location.href = '/login';
     } else {
-      ElMessage.error(error.message || '网络异常');
+      const msg = error.response?.data?.message || error.message || '网络异常';
+      ElMessage.error(msg);
     }
     return Promise.reject(error);
   },
