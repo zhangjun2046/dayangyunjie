@@ -2522,7 +2522,7 @@ ASSIGNED 状态卡片「立即接单」调用 §28.2 同名接口，成功后刷
 | `/data/dashboard` | `views/data/dashboard/index.vue` | 数据管理 > 数据看板 | P5.2 已完成 |
 | `/workers` | `views/workers/index.vue` | 员工管理 > 服务人员管理 | P5.6 已完成 |
 | `/config/services` | `views/config/services/index.vue` | 配置管理 > 服务配置 | P5.9 已完成 |
-| `/config/operators` | `views/config/operators/index.vue` | 配置管理 > 运营人员配置 | P5.10 占位 |
+| `/config/operators` | `views/config/operators/index.vue` | 配置管理 > 运营人员配置 | P5.10 已完成 |
 | `/config/banners` | `views/config/banners/index.vue` | 配置管理 > 轮播图管理 | P5.11 占位 |
 | `/settings` | `views/settings/index.vue` | 系统设置 | P5.8 占位 |
 
@@ -2914,6 +2914,46 @@ Body: `{ status: 'FOLLOWING' | 'COMPLETED', operatorId: number, remark?: string 
 
 ---
 
-> **文档版本**：v4.5（P5.9 管理后台服务配置管理验收通过）  
-> **修订日期**：2026-06-23  
-> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.9 管理后台
+### 34.18 P5.10 管理端运营人员信息配置（2026-07-06）
+
+**页面**：`/config/operators`（配置管理 > 运营人员配置）
+
+**功能概述**：
+
+- 列表：序号 / 姓名 / 手机号（完整展示）/ 用途 / 创建时间 / 操作（**无启用/停用列**）
+- 筛选：姓名或手机号统一搜索（`keyword` Query 参数，OR 匹配 `name`/`phone`）
+- 新增/编辑弹窗：姓名 / 联系电话（11 位校验）/ 作用（目前仅「接单」）
+- 删除：`DELETE /operators/:id`
+
+**P5.10 后端扩展**：
+
+| 变更 | 说明 |
+|------|------|
+| `QueryOperatorDto.name` | 新增姓名模糊查询 |
+| `QueryOperatorDto.phone` | 新增手机号模糊查询 |
+| `QueryOperatorDto.keyword` | 新增姓名或手机号 OR 模糊查询 |
+| `findAll` where 子句 | 条件展开 `name` / `phone` / `keyword OR` |
+
+**P5.10 关键文件**：
+
+| 路径 | 说明 |
+|------|------|
+| `apps/admin/src/api/operator.ts` | CRUD API 封装 |
+| `apps/admin/src/views/config/operators/index.vue` | 列表 + 新增/编辑 Dialog |
+| `apps/server/src/modules/operator/dto/query-operator.dto.ts` | name / phone / keyword 查询参数 |
+| `apps/server/src/modules/operator/operator.service.ts` | findAll 条件过滤 |
+
+### 34.19 P5.10 验收清单（2026-07-06）
+
+| 验收项 | 结果 |
+|--------|------|
+| Operator CRUD 全功能可用 | ✅ |
+| 手机号完整展示（无脱敏） | ✅ |
+| 姓名/手机号搜索可用 | ✅ |
+| `npm run build` 通过 | ✅ |
+
+---
+
+> **文档版本**：v4.6（P5.10 管理后台运营人员信息配置验收通过）  
+> **修订日期**：2026-07-06  
+> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.10 管理后台

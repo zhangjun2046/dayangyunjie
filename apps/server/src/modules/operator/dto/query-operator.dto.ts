@@ -23,4 +23,22 @@ export class QueryOperatorDto {
   @IsString()
   @MaxLength(32)
   purpose?: string;
+
+  @ApiPropertyOptional({ description: '姓名模糊搜索', example: '张' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  name?: string;
+
+  @ApiPropertyOptional({ description: '手机号模糊搜索', example: '138' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  phone?: string;
+
+  @ApiPropertyOptional({ description: '姓名或手机号模糊搜索', example: '张' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  keyword?: string;
 }

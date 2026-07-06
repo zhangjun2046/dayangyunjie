@@ -9,7 +9,7 @@
 | `apps/server`           | NestJS 后端 API                                                |
 | `apps/miniapp-customer` | 居民端小程序（P1.4 完善；含 shared 验收桩）                    |
 | `apps/miniapp-worker`   | 员工端小程序（P4.7 我的页已完成；含 auth store + order/upload/review/worker API） |
-| `apps/admin`            | 管理后台（P5.6 服务人员管理已完成；含 auth + dashboard + cleaning/recycling/consult 订单 + workers/complaint API） |
+| `apps/admin`            | 管理后台（P5.10 运营人员配置已完成；含 auth + dashboard + cleaning/recycling/consult 订单 + workers/complaint/service-catalog/operator API） |
 | `packages/shared`       | 共享枚举、DTO、`ApiResponse`（`@dayangyunjie/shared`）         |
 | `docs/`                 | CodingPlan、tech、Schema 等技术文档                            |
 | `requirement.md`        | 需求文档（主稿；原型图仍在资料区 `dayangyunjie\requirement\`） |
@@ -88,3 +88,4 @@ npx prisma migrate dev
 - 使用Sonnet4.6 LLM完成P5.6，实现服务人员管理（今日订单列 + 重置密码 + 技能单选 + 证书区 + 投诉记录列表 + 移除创收金额）
 - 使用Sonnet4.6 LLM完成P5.7，实现投诉反馈管理（关联订单列 + 投诉内容列 + 移除旧列 + 完成按钮）
 - 使用Sonnet4.6 LLM完成P5.9，实现服务配置管理（ServiceCatalog CRUD + 启用停用 toggle + 无价格字段）
+- 使用默认 LLM完成P5.10，实现运营人员信息配置（Operator CRUD + 手机号完整展示）

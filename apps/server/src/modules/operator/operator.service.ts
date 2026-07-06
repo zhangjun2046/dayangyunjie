@@ -11,9 +11,16 @@ export class OperatorService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async findAll(query: QueryOperatorDto) {
-    const { page = 1, pageSize = 10, purpose } = query;
+    const { page = 1, pageSize = 10, purpose, name, phone, keyword } = query;
     const where: Prisma.OperatorWhereInput = {
       ...(purpose !== undefined ? { purpose: { contains: purpose } } : {}),
+      ...(name !== undefined ? { name: { contains: name } } : {}),
+      ...(phone !== undefined ? { phone: { contains: phone } } : {}),
+      ...(keyword
+        ? {
+            OR: [{ name: { contains: keyword } }, { phone: { contains: keyword } }],
+          }
+        : {}),
     };
 
     const [rows, total] = await this.prismaService.$transaction([
