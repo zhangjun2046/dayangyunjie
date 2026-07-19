@@ -204,9 +204,6 @@ onMounted(() => {
 // 每次页面重新显示时刷新列表（如从订单详情/评价页返回后状态已更新）
 onShow(() => {
   console.info('[orders] onShow → refresh list');
-  // #region agent log
-  fetch('http://127.0.0.1:7274/ingest/fee21d48-4d03-4852-be1e-1872cabcbb9a', {method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'59cbfd'},body:JSON.stringify({sessionId:'59cbfd',location:'orders/index.vue:onShow',message:'orders onShow fired',data:{activeTab:activeTab.value,activeFilter:activeFilter.value,ordersCount:orders.value.length},hypothesisId:'C',timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   resetAndLoad();
 });
 
@@ -274,10 +271,6 @@ async function loadData(isMore: boolean) {
     } else {
       orders.value = newItems;
     }
-
-    // #region agent log
-    fetch('http://127.0.0.1:7274/ingest/fee21d48-4d03-4852-be1e-1872cabcbb9a', {method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'59cbfd'},body:JSON.stringify({sessionId:'59cbfd',location:'orders/index.vue:loadData',message:'orders loaded - statuses',data:{tab:activeTab.value,filter:filterKey,statuses:newItems.map((o:AnyOrder)=>({id:o.id,status:o.status}))},hypothesisId:'C',timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
 
     noMore.value = orders.value.length >= result.total;
     if (!noMore.value) {

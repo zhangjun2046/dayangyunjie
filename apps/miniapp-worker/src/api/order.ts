@@ -57,7 +57,8 @@ interface RecyclingOrderDto {
   id: number;
   orderNo: string;
   status: string;
-  serviceType: string;
+  /** 回收类型名（与保洁的 serviceItem 同名字段，后端统一为 serviceItem） */
+  serviceItem: string;
   appointDate: string;
   appointTimeSlot: string;
   workerId: number | null;
@@ -156,7 +157,7 @@ export async function fetchAssignedOrders(workerId: number): Promise<AssignedOrd
     id: o.id,
     orderNo: o.orderNo,
     orderType: 'recycling' as const,
-    serviceName: o.serviceType,
+    serviceName: o.serviceItem,
     appointDate: formatAppointDate(o.appointDate),
     appointTimeSlot: o.appointTimeSlot,
     address: resolveAddress(o.addressSnapshot),
@@ -202,7 +203,7 @@ export async function fetchWorkerOrders(
     const serviceName =
       orderType === 'cleaning'
         ? (o as CleaningOrderDto).serviceItem
-        : (o as RecyclingOrderDto).serviceType;
+        : (o as RecyclingOrderDto).serviceItem;
     return {
       id: o.id,
       orderNo: o.orderNo,

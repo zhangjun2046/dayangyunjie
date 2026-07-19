@@ -324,9 +324,6 @@ async function loadDetail() {
     } else {
       order.value = (await fetchConsultOrderDetail(orderId.value)) as unknown as AnyOrder;
     }
-    // #region agent log
-    fetch('http://127.0.0.1:7274/ingest/fee21d48-4d03-4852-be1e-1872cabcbb9a', {method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'59cbfd'},body:JSON.stringify({sessionId:'59cbfd',location:'order-detail/index.vue:loadDetail',message:'loadDetail completed',data:{orderId:orderId.value,status:order.value?.status ?? 'null'},hypothesisId:'B',timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : '加载失败';
     uni.showToast({ title: msg, icon: 'none' });

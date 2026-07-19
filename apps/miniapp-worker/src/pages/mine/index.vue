@@ -15,7 +15,7 @@
     <view class="stats-row">
       <view class="stat-card" @tap="onGoTasks">
         <view class="stat-icon-wrap">
-          <text class="stat-icon">📋</text>
+          <image class="stat-icon-img" src="/static/icons/task.png" mode="aspectFit" />
         </view>
         <view class="stat-body">
           <text class="stat-label">今日订单</text>
@@ -59,7 +59,7 @@
       </view>
       <view class="menu-item" @tap="onViewPrivacy">
         <view class="menu-left">
-          <text class="menu-icon">📄</text>
+          <image class="menu-icon-img" src="/static/icons/agreement.png" mode="aspectFit" />
           <text class="menu-label">用户协议与隐私政策</text>
         </view>
         <text class="menu-arrow">›</text>
@@ -286,6 +286,12 @@ function onLogout() {
   font-size: 34rpx;
 }
 
+.stat-icon-img {
+  /* 图标 PNG 自带底色徽标，需与容器尺寸接近，避免外圈大、图标小 */
+  width: 56rpx;
+  height: 56rpx;
+}
+
 .stat-body {
   display: flex;
   flex-direction: column;
@@ -378,6 +384,12 @@ function onLogout() {
   font-size: 32rpx;
   width: 40rpx;
   text-align: center;
+}
+
+.menu-icon-img {
+  /* agreement.png 自带底色徽标，适当放大以与设置项的图标视觉重量匹配 */
+  width: 44rpx;
+  height: 44rpx;
 }
 
 .menu-label {

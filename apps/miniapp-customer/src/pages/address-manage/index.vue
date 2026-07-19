@@ -11,15 +11,18 @@
         :key="addr.id"
         class="addr-card"
       >
-        <view class="addr-main">
-          <view class="addr-header">
-            <text class="addr-name">{{ addr.contactName }}</text>
-            <text class="addr-phone">{{ addr.contactPhone }}</text>
-            <view v-if="addr.isDefault" class="default-badge">
-              <text class="default-text">默认</text>
+        <view class="addr-body">
+          <image class="addr-icon" src="/static/icons/address-card.png" mode="aspectFit" />
+          <view class="addr-main">
+            <view class="addr-header">
+              <text class="addr-name">{{ addr.contactName }}</text>
+              <text class="addr-phone">{{ addr.contactPhone }}</text>
+              <view v-if="addr.isDefault" class="default-badge">
+                <text class="default-text">默认</text>
+              </view>
             </view>
+            <text class="addr-detail">{{ addr.province }}{{ addr.city }}{{ addr.district }}{{ addr.detail }}</text>
           </view>
-          <text class="addr-detail">{{ addr.province }}{{ addr.city }}{{ addr.district }}{{ addr.detail }}</text>
         </view>
         <view class="addr-actions">
           <view
@@ -302,8 +305,23 @@ async function onDelete(id: number) {
   box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
 }
 
-.addr-main {
+.addr-body {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 16rpx;
   margin-bottom: 20rpx;
+}
+
+.addr-icon {
+  width: 40rpx;
+  height: 40rpx;
+  margin-top: 4rpx;
+  flex-shrink: 0;
+}
+
+.addr-main {
+  flex: 1;
 }
 
 .addr-header {

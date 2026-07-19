@@ -11,14 +11,19 @@
         :class="{ selected: bookingStore.selectedAddress?.id === addr.id }"
         @tap="selectAddress(addr)"
       >
-        <view class="addr-top">
-          <view v-if="addr.isDefault" class="default-badge">默认</view>
-          <text class="addr-name">{{ addr.contactName }}</text>
-          <text class="addr-phone">{{ maskPhone(addr.contactPhone) }}</text>
+        <view class="addr-body">
+          <image class="addr-icon" src="/static/icons/address-card.png" mode="aspectFit" />
+          <view class="addr-main">
+            <view class="addr-top">
+              <view v-if="addr.isDefault" class="default-badge">默认</view>
+              <text class="addr-name">{{ addr.contactName }}</text>
+              <text class="addr-phone">{{ maskPhone(addr.contactPhone) }}</text>
+            </view>
+            <text class="addr-detail">{{ addr.district }} {{ addr.detail }}</text>
+          </view>
         </view>
-        <text class="addr-detail">{{ addr.district }} {{ addr.detail }}</text>
         <view v-if="bookingStore.selectedAddress?.id === addr.id" class="check-mark">
-          <text class="check-icon">✓</text>
+          <image class="check-icon-img" src="/static/icons/radio-checked.png" mode="aspectFit" />
         </view>
       </view>
 
@@ -341,6 +346,25 @@ onLoad((options?: Record<string, string>) => {
   border-color: #1677ff;
 }
 
+.addr-body {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 16rpx;
+  padding-right: 56rpx;
+}
+
+.addr-icon {
+  width: 40rpx;
+  height: 40rpx;
+  margin-top: 4rpx;
+  flex-shrink: 0;
+}
+
+.addr-main {
+  flex: 1;
+}
+
 .addr-top {
   display: flex;
   align-items: center;
@@ -379,17 +403,14 @@ onLoad((options?: Record<string, string>) => {
   right: 24rpx;
   width: 44rpx;
   height: 44rpx;
-  border-radius: 50%;
-  background: #1677ff;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.check-icon {
-  color: #fff;
-  font-size: 26rpx;
-  font-weight: 700;
+.check-icon-img {
+  width: 44rpx;
+  height: 44rpx;
 }
 
 .empty-wrap {

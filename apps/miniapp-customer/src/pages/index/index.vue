@@ -58,8 +58,8 @@
       <view class="service-row">
         <view class="service-card" @tap="onServiceTap('cleaning')">
           <view class="card-top">
-            <view class="icon-circle blue">
-              <image class="icon-image" src="/static/icons/cleaning.svg" mode="aspectFit" />
+            <view class="icon-circle">
+              <image class="icon-image" src="/static/icons/cleaning.png" mode="aspectFit" />
             </view>
             <view class="card-info">
               <text class="card-title">保洁服务</text>
@@ -73,8 +73,8 @@
 
         <view class="service-card" @tap="onServiceTap('recycling')">
           <view class="card-top">
-            <view class="icon-circle green">
-              <image class="icon-image" src="/static/icons/recycling.svg" mode="aspectFit" />
+            <view class="icon-circle">
+              <image class="icon-image" src="/static/icons/recycling.png" mode="aspectFit" />
             </view>
             <view class="card-info">
               <text class="card-title">废品回收</text>
@@ -91,8 +91,8 @@
       <view class="service-row">
         <view class="service-card service-card-wide" @tap="onServiceTap('consult')">
           <view class="card-top">
-            <view class="icon-circle orange">
-              <image class="icon-image" src="/static/icons/housekeeping.svg" mode="aspectFit" />
+            <view class="icon-circle">
+              <image class="icon-image" src="/static/icons/housekeeping.png" mode="aspectFit" />
             </view>
             <view class="card-info">
               <text class="card-title">家政服务</text>
@@ -109,7 +109,7 @@
     <!-- 底部客服条 -->
     <view class="customer-service-bar">
       <view class="cs-info">
-        <image class="cs-avatar" src="/static/images/default-avatar.png" mode="aspectFill" />
+        <image class="cs-avatar" src="/static/images/customer-service-avatar.png" mode="aspectFill" />
         <view class="cs-text-wrap">
           <text class="cs-label">{{ contactName }}</text>
           <text class="cs-phone">{{ contactPhone }}</text>
@@ -288,15 +288,9 @@ function navigateToServiceDetail(type: string) {
 
 async function onProfileCompleted(payload: { phone: string }) {
   console.info('[home] profile completed, phone=', payload.phone.slice(0, 3) + '****', 'pendingServiceType=', pendingServiceType);
-  // #region agent log
-  try{fetch('http://127.0.0.1:7274/ingest/fee21d48-4d03-4852-be1e-1872cabcbb9a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1d02fc'},body:JSON.stringify({sessionId:'1d02fc',location:'index.vue:onProfileCompleted',message:'onProfileCompleted entry',data:{isLoggedIn:authStore.isLoggedIn,residentPhone:authStore.resident?.phone,residentId:authStore.resident?.id},timestamp:Date.now(),hypothesisId:'H-A-B',runId:'run2'})}).catch(()=>{});}catch(_e){}
-  // #endregion
 
   if (!authStore.isLoggedIn) {
     await doWechatLogin();
-    // #region agent log
-    try{fetch('http://127.0.0.1:7274/ingest/fee21d48-4d03-4852-be1e-1872cabcbb9a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'1d02fc'},body:JSON.stringify({sessionId:'1d02fc',location:'index.vue:afterWechatLogin',message:'after doWechatLogin',data:{isLoggedIn:authStore.isLoggedIn,residentPhoneAfterLogin:authStore.resident?.phone,residentId:authStore.resident?.id},timestamp:Date.now(),hypothesisId:'H-B',runId:'run2'})}).catch(()=>{});}catch(_e){}
-    // #endregion
     // resident.value 已由 wechatLogin 填入，现在再写一次 phone 确保持久化
     authStore.setPhone(payload.phone);
     console.info('[home] initial login completed via phone auth, isLoggedIn=', authStore.isLoggedIn);
@@ -513,8 +507,8 @@ function onCallService() {
 
 /* 图标圆 */
 .icon-circle {
-  width: 96rpx;
-  height: 96rpx;
+  width: 76rpx;
+  height: 76rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -523,32 +517,22 @@ function onCallService() {
 }
 
 .service-card-wide .icon-circle {
-  width: 80rpx;
-  height: 80rpx;
-}
-
-.icon-circle.blue {
-  background-color: #e8f1ff;
-}
-
-.icon-circle.green {
-  background-color: #e8f9f0;
-}
-
-.icon-circle.orange {
-  background-color: #fff3e8;
+  width: 64rpx;
+  height: 64rpx;
 }
 
 .icon-image {
-  width: 48rpx;
-  height: 48rpx;
+  /* 图标 PNG 自带圆角方形底色，无需再叠加外层圆形背景，
+     故尺寸与 icon-circle 容器基本一致，避免“外圈大、图标小”的比例失衡 */
+  width: 76rpx;
+  height: 76rpx;
   display: block;
   flex-shrink: 0;
 }
 
 .service-card-wide .icon-image {
-  width: 40rpx;
-  height: 40rpx;
+  width: 64rpx;
+  height: 64rpx;
 }
 
 .card-info {

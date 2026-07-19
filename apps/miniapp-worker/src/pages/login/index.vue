@@ -44,9 +44,11 @@
     <!-- 底部协议区 -->
     <view class="agreement-bar">
       <view class="agreement-inner" @tap="toggleAgreement">
-        <view class="checkbox" :class="{ 'checkbox--checked': agreed }">
-          <text v-if="agreed" class="checkbox-icon">✓</text>
-        </view>
+        <image
+          class="checkbox-img"
+          :src="agreed ? '/static/icons/radio-checked.png' : '/static/icons/radio-unchecked.png'"
+          mode="aspectFit"
+        />
         <text class="agreement-text">我已阅读并同意</text>
         <text class="agreement-link" @tap.stop="onViewAgreement('user')">《用户协议》</text>
         <text class="agreement-text">和</text>
@@ -233,28 +235,11 @@ async function onLogin() {
 }
 
 /* 自定义勾选框 */
-.checkbox {
+.checkbox-img {
   width: 36rpx;
   height: 36rpx;
-  border-radius: 50%;
-  border: 2rpx solid #1677ff;
-  background: #ffffff;
   margin-right: 12rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
-}
-
-.checkbox--checked {
-  background: #1677ff;
-  border-color: #1677ff;
-}
-
-.checkbox-icon {
-  font-size: 24rpx;
-  color: #ffffff;
-  line-height: 1;
 }
 
 .agreement-text {

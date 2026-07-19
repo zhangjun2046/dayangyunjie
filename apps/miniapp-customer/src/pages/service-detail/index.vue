@@ -159,7 +159,7 @@ const SERVICE_MAP = {
   cleaning: {
     name: '保洁服务',
     tagline: '专业上门 · 品质保障',
-    icon: '/static/icons/cleaning.svg',
+    icon: '/static/icons/cleaning.png',
     descItems: [
       '专业培训的保洁人员上门服务，持证上岗。',
       '使用环保清洁剂及专业工具，高效去污。',
@@ -171,7 +171,7 @@ const SERVICE_MAP = {
   recycling: {
     name: '废品回收',
     tagline: '免费上门 · 绿色环保',
-    icon: '/static/icons/recycling.svg',
+    icon: '/static/icons/recycling.png',
     descItems: [
       '支持大件旧家电、小件废纸箱等多品类上门回收。',
       '服务员按预约时间准时到达，搬运工具齐全。',
@@ -183,7 +183,7 @@ const SERVICE_MAP = {
   consult: {
     name: '家政服务',
     tagline: '专业顾问 · 一站咨询',
-    icon: '/static/icons/housekeeping.svg',
+    icon: '/static/icons/housekeeping.png',
     descItems: [
       '填写服务需求后，运营人员将在 24 小时内电话回访。',
       '由专业顾问了解您的家政需求并制定方案。',

@@ -1,6 +1,6 @@
 # MiniApp-Architecture.md — 小程序架构交接文档
 
-> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）；P4.1–P4.7 员工端；P5.1–P5.12 管理后台业务页；**P5.8/P5.8b（2026-07-19）** 补充系统管理-用户管理 + 功能授权；**P5.12（2026-07-19）** 管理后台首页/工作台（欢迎条 + 权限过滤待办卡片，无新增后端接口）  
+> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）；P4.1–P4.7 员工端；P5.1–P5.12 管理后台业务页；**P5.8/P5.8b（2026-07-19）** 补充系统管理-用户管理 + 功能授权；**P5.12（2026-07-19）** 管理后台首页/工作台（欢迎条 + 权限过滤待办卡片，无新增后端接口）；**P-UI Icon 替换（2026-07-19）** 居民端/员工端 PNG 图标替换与尺寸校准  
 > **用途**：供 P4（员工端）、P5（管理后台）及后续维护对接，记录居民端已完成的页面结构、Store 设计、组件、API 封装与代下单数据流；并记录员工端与管理后台实现  
 > **应用目录**：`apps/miniapp-customer/`（居民端）、`apps/miniapp-worker/`（员工端）、`apps/admin/`（管理后台）
 
@@ -71,7 +71,8 @@ apps/miniapp-customer/
 │   ├── components/
 │   │   ├── PrivacyModal.vue     # 隐私协议弹窗（首次必弹）
 │   │   ├── ProfileCompleteModal.vue  # 身份补全弹窗（首次下单前）
-│   │   └── OrderStatusTimeline.vue   # 订单状态时间轴
+│   │   ├── OrderStatusTimeline.vue   # 订单状态时间轴
+│   │   └── BookingSuccessOverlay.vue # 预约成功浮层（含 booking-success 图标）
 │   ├── composables/
 │   │   └── useRouteGuard.ts    # 路由守卫（未登录拦截）
 │   ├── api/
@@ -87,9 +88,13 @@ apps/miniapp-customer/
 │   │   ├── review.ts           # 评价提交/查询
 │   │   ├── service-catalog.ts  # 服务目录查询
 │   │   └── upload.ts           # 图片上传
+│   ├── static/
+│   │   ├── tab/                # tabBar 图标（home/orders/mine，含 active 态，PNG）
+│   │   ├── icons/              # 业务图标 PNG（服务入口/预约子类/地址/协议等）
+│   │   └── images/             # 头像等位图资源
 │   └── utils/
 │       └── lunar.ts            # 公历→农历转换（日历组件辅助）
-├── pages.json                  # 路由配置（14 个页面）
+├── pages.json                  # 路由配置（14 个页面）+ tabBar iconPath
 ├── vite.config.ts              # Vite 配置 + H5 代理
 ├── .env.development            # 开发环境变量
 └── .env.production             # 生产环境变量
@@ -490,7 +495,7 @@ Login Page → 校验协议+手机号+密码
 
 | 卡片字段 | 来源 |
 |---------|------|
-| `serviceName` | 保洁 `serviceItem` / 废品 `serviceType` |
+| `serviceName` | 保洁 / 废品均取 `serviceItem`（废品勿读 `serviceType`，后端字段已统一） |
 | `appointDate` | ISO 日期截取前 10 位，`YYYY-MM-DD` → `YYYY.MM.DD` |
 | `appointTimeSlot` | 原样展示 |
 | `address` | `addressSnapshot`：区 + detail + buildingInfo 拼接 |
@@ -1097,12 +1102,43 @@ loadData()
 - `apps/admin/src/views/dashboard/index.vue`（完整重写）
 - `apps/admin/src/views/orders/{cleaning,recycling,consult,complaint}/index.vue`（`route.query.status` 预置筛选）
 
+### 18.16 P-UI Icon 替换（居民端 + 员工端，已完成）
+
+> **验收状态**：✅ 已通过（2026-07-19）
+
+双端小程序静态图标统一替换为设计稿 PNG，并校准「外层徽标容器 vs 内层 glyph」尺寸，避免自带底色的 PNG 再被套一层过大圆形背景导致视觉失衡。
+
+**居民端（`apps/miniapp-customer`）**：
+
+| 类别 | 路径 | 说明 |
+|------|------|------|
+| tabBar | `src/static/tab/{home,orders,mine}{,-active}.png` | 首页/订单/我的，120×120，glyph 填充约 86% |
+| 服务入口 | `src/static/icons/{cleaning,recycling,housekeeping}.png` | 首页三大服务卡；CSS 去掉冗余色圈，`icon-image` 与容器同尺寸 |
+| 预约子类 | `deep-cleaning` / `daily-cleaning` / `bulky-item` / `small-item` 等 | 保洁/废品向导卡片图标 |
+| 其它 | `add-photo` / `address-*` / `customer-service` / `privacy-shield` / `radio-*` / `booking-success` 等 | 各业务页占位与操作图标 |
+| 下线 | `cleaning.svg` / `recycling.svg` / `housekeeping.svg` | 已删除，统一用 PNG |
+
+**员工端（`apps/miniapp-worker`）**：
+
+| 类别 | 路径 | 说明 |
+|------|------|------|
+| tabBar | `src/static/tab/{home,tasks,mine}{,-active}.png` | 首页/任务/我的，风格对齐居民端 |
+| 任务/详情 | `cleaning.png` / `recycling.png` / `customer.png` / `phone.png` / `add-photo.png` / `step-*.png` | 列表与详情联系条、作业区 |
+| 我的页 | `task.png` / `agreement.png` | 统计卡与协议菜单；`stat-icon-img` / `menu-icon-img` 放大以填满徽标 |
+
+**关联缺陷修复（同次提交）**：
+
+1. 员工端废品任务卡 `serviceName` 空白：`api/order.ts` 将废品映射由错误字段 `serviceType` 改为 `serviceItem`（与后端 / 居民端 DTO 一致）。
+2. 居民端订单页运行时报 `fetch is not a function`：移除调试用 `http://127.0.0.1:7274/ingest/...` 埋点（`orders` / `order-detail` / `index` / `store/auth`）。
+
+**尺寸约定**：PNG 若已含圆角底色徽标，外层 `.icon-circle` / `.service-icon` / `.stat-icon-wrap` 仅作布局容器；内层 `image` 宽度宜为容器的约 **75%–100%**，勿再额外缩小到一半。
+
 ---
 
-> **文档版本**：v3.1（P5.12 管理后台首页/工作台验收通过）  
+> **文档版本**：v3.2（P-UI Icon 替换验收通过）  
 > **生成日期**：2026-06-21  
-> **修订日期**：2026-07-19（v3.1：P5.12 `/dashboard` 改写为欢迎条 + 4 张按功能授权过滤的待办卡片，复用列表接口 total，无新增后端接口；**P5 阶段全部收尾**；v3.0：P5.8 Admin 扩展字段+禁用即时失效+重置/改密 + P5.8b AdminPermission 权限树+侧栏动态渲染+路由守卫；v2.8：P5.11 轮播图列表/新增编辑/删除 + title 模糊查询 + isEnabled + localhost 图片 URL 兼容 + 居民端 active 联动；v2.7：P5.10 运营人员列表/新增编辑/删除 + keyword 模糊查询 + 手机号完整展示；v2.6：P5.9 服务配置列表/新增编辑/启用停用 toggle + name 模糊查询 + isEnabled 默认过滤放开；v2.5：P5.7 投诉反馈列表/详情抽屉/跟进结案 + complaints 关联订单富 DTO + keyword/contactPhone 筛选；v2.4：P5.6 服务人员列表/新增编辑/详情抽屉/重置密码 + todayOrders + complaints workerId；v2.3：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v2.2：P5.4 废品订单列表/分配/代下单 + 详情无重量/金额/收款；v2.1：P5.3 保洁订单列表/分配/代下单 + 服务时段与居民端对齐；v2.0：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v1.9：P5.1 Admin 登录+布局+配置管理路由占位；v1.8：P4.7 我的页+设置改密+证书预览；v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
-> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.7 员工端 + P5.1–P5.12 管理后台（含 P5.8/P5.8b 系统管理 + P5.12 首页工作台）  
+> **修订日期**：2026-07-19（v3.2：居民端/员工端 PNG Icon 替换 + tabBar/业务图标尺寸校准 + 废品 `serviceItem` 映射修正 + 调试 fetch 清理；v3.1：P5.12 `/dashboard` 改写为欢迎条 + 4 张按功能授权过滤的待办卡片，复用列表接口 total，无新增后端接口；**P5 阶段全部收尾**；v3.0：P5.8 Admin 扩展字段+禁用即时失效+重置/改密 + P5.8b AdminPermission 权限树+侧栏动态渲染+路由守卫；v2.8：P5.11 轮播图列表/新增编辑/删除 + title 模糊查询 + isEnabled + localhost 图片 URL 兼容 + 居民端 active 联动；v2.7：P5.10 运营人员列表/新增编辑/删除 + keyword 模糊查询 + 手机号完整展示；v2.6：P5.9 服务配置列表/新增编辑/启用停用 toggle + name 模糊查询 + isEnabled 默认过滤放开；v2.5：P5.7 投诉反馈列表/详情抽屉/跟进结案 + complaints 关联订单富 DTO + keyword/contactPhone 筛选；v2.4：P5.6 服务人员列表/新增编辑/详情抽屉/重置密码 + todayOrders + complaints workerId；v2.3：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v2.2：P5.4 废品订单列表/分配/代下单 + 详情无重量/金额/收款；v2.1：P5.3 保洁订单列表/分配/代下单 + 服务时段与居民端对齐；v2.0：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v1.9：P5.1 Admin 登录+布局+配置管理路由占位；v1.8：P4.7 我的页+设置改密+证书预览；v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
+> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.7 员工端 + P5.1–P5.12 管理后台（含 P5.8/P5.8b 系统管理 + P5.12 首页工作台）+ P-UI Icon 替换  
 > **下一阶段**：P6 集成与部署
 
 ---

@@ -187,6 +187,9 @@
         <text class="next-text">{{ store.step === 2 ? '提交' : '下一步' }}</text>
       </view>
     </view>
+
+    <!-- 提交成功提示卡 -->
+    <BookingSuccessOverlay ref="successOverlayRef" />
   </view>
 </template>
 
@@ -197,9 +200,11 @@ import { useBookingConsultStore } from '@/store/booking-consult';
 import { useAuthStore } from '@/store/auth';
 import { fetchConsultCatalogs, type ServiceCatalogDto } from '@/api/service-catalog';
 import { createConsultOrder } from '@/api/consult-order';
+import BookingSuccessOverlay from '@/components/BookingSuccessOverlay.vue';
 
 const store = useBookingConsultStore();
 const authStore = useAuthStore();
+const successOverlayRef = ref<InstanceType<typeof BookingSuccessOverlay> | null>(null);
 
 // ───────────────────── 常量 ─────────────────────
 const STEP_LABELS = ['选择类型', '填写需求'];
@@ -321,15 +326,11 @@ async function submitOrder() {
     console.info('[booking-consult] order created, orderNo=', result.orderNo);
     store.reset();
 
-    uni.showToast({
-      title: `提交成功\n${result.orderNo}`,
-      icon: 'success',
-      duration: 2500,
-    });
+    successOverlayRef.value?.show({ title: '提交成功', orderNo: result.orderNo });
 
     setTimeout(() => {
       uni.switchTab({ url: '/pages/orders/index' });
-    }, 2600);
+    }, 2000);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : '提交失败，请重试';
     uni.showToast({ title: msg, icon: 'none' });

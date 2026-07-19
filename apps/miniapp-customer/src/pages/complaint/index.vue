@@ -49,7 +49,7 @@
             class="img-add"
             @tap="onChooseImage"
           >
-            <text class="img-add-icon">🖼</text>
+            <image class="img-add-icon" src="/static/icons/add-photo.png" mode="aspectFit" />
           </view>
         </view>
         <view v-if="uploadingCount > 0" class="uploading-tip">
@@ -310,8 +310,8 @@ async function onSubmit() {
 }
 
 .img-add-icon {
-  font-size: 60rpx;
-  color: #bbb;
+  width: 60rpx;
+  height: 60rpx;
 }
 
 .uploading-tip {

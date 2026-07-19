@@ -32,7 +32,7 @@
         <view class="contact-bar">
           <view class="contact-left">
             <view class="contact-avatar">
-              <text class="avatar-icon">👤</text>
+              <image class="avatar-icon-img" src="/static/icons/customer.png" mode="aspectFit" />
             </view>
             <text class="contact-phone">{{ order.contactPhone }}</text>
           </view>
@@ -41,7 +41,7 @@
               <text class="contact-btn-icon">🗺️</text>
             </view>
             <view class="contact-btn contact-btn--call" @tap="handleCall">
-              <text class="contact-btn-icon">📞</text>
+              <image class="contact-btn-icon-img" src="/static/icons/phone.png" mode="aspectFit" />
             </view>
           </view>
         </view>
@@ -142,7 +142,7 @@
               </view>
               <view class="photo-upload-area photo-upload-area--disabled">
                 <view class="photo-placeholder">
-                  <text class="photo-camera-icon">📷</text>
+                  <image class="photo-camera-icon-img" src="/static/icons/add-photo.png" mode="aspectFit" />
                 </view>
                 <text class="photo-disabled-tip">开始服务后可上传</text>
               </view>
@@ -156,7 +156,7 @@
               </view>
               <view class="photo-upload-area photo-upload-area--disabled">
                 <view class="photo-placeholder">
-                  <text class="photo-camera-icon">📷</text>
+                  <image class="photo-camera-icon-img" src="/static/icons/add-photo.png" mode="aspectFit" />
                 </view>
                 <text class="photo-disabled-tip">开始服务后可上传</text>
               </view>
@@ -169,7 +169,8 @@
             <view class="photo-group">
               <view class="photo-group-header">
                 <view :class="['photo-seq-badge', beforePhotos.length > 0 ? '' : 'photo-seq-badge--pending']">
-                  <text class="photo-seq-text">1</text>
+                  <image v-if="beforePhotos.length > 0" class="photo-seq-icon" src="/static/icons/step-1.png" mode="aspectFit" />
+                  <text v-else class="photo-seq-text">1</text>
                 </view>
                 <text class="photo-group-label">上传服务前照片</text>
                 <text class="photo-count-tip">{{ beforePhotos.length }}/9</text>
@@ -191,7 +192,7 @@
                   @tap="handleAddPhoto('before')"
                 >
                   <text v-if="uploadingBefore" class="photo-uploading-icon">⏳</text>
-                  <text v-else class="photo-camera-icon">📷</text>
+                  <image v-else class="photo-camera-icon-img" src="/static/icons/add-photo.png" mode="aspectFit" />
                 </view>
               </view>
             </view>
@@ -199,7 +200,8 @@
             <view class="photo-group">
               <view class="photo-group-header">
                 <view :class="['photo-seq-badge', afterPhotos.length > 0 ? '' : 'photo-seq-badge--pending']">
-                  <text class="photo-seq-text">2</text>
+                  <image v-if="afterPhotos.length > 0" class="photo-seq-icon" src="/static/icons/step-2.png" mode="aspectFit" />
+                  <text v-else class="photo-seq-text">2</text>
                 </view>
                 <text class="photo-group-label">上传服务后照片</text>
                 <text class="photo-count-tip">{{ afterPhotos.length }}/9</text>
@@ -221,7 +223,7 @@
                   @tap="handleAddPhoto('after')"
                 >
                   <text v-if="uploadingAfter" class="photo-uploading-icon">⏳</text>
-                  <text v-else class="photo-camera-icon">📷</text>
+                  <image v-else class="photo-camera-icon-img" src="/static/icons/add-photo.png" mode="aspectFit" />
                 </view>
               </view>
             </view>
@@ -233,7 +235,8 @@
             <view class="photo-group">
               <view class="photo-group-header">
                 <view :class="['photo-seq-badge', beforeWorkPhotos.length > 0 ? '' : 'photo-seq-badge--pending']">
-                  <text class="photo-seq-text">1</text>
+                  <image v-if="beforeWorkPhotos.length > 0" class="photo-seq-icon" src="/static/icons/step-1.png" mode="aspectFit" />
+                  <text v-else class="photo-seq-text">1</text>
                 </view>
                 <text class="photo-group-label">服务前照片</text>
                 <text class="photo-count-tip">{{ beforeWorkPhotos.length }} 张</text>
@@ -255,7 +258,8 @@
             <view class="photo-group">
               <view class="photo-group-header">
                 <view :class="['photo-seq-badge', afterWorkPhotos.length > 0 ? '' : 'photo-seq-badge--pending']">
-                  <text class="photo-seq-text">2</text>
+                  <image v-if="afterWorkPhotos.length > 0" class="photo-seq-icon" src="/static/icons/step-2.png" mode="aspectFit" />
+                  <text v-else class="photo-seq-text">2</text>
                 </view>
                 <text class="photo-group-label">服务后照片</text>
                 <text class="photo-count-tip">{{ afterWorkPhotos.length }} 张</text>
@@ -1051,8 +1055,10 @@ async function handleStartService(): Promise<void> {
   justify-content: center;
 }
 
-.avatar-icon {
-  font-size: 36rpx;
+.avatar-icon-img {
+  /* 图标 PNG 自带底色徽标，需与容器尺寸接近，避免外圈大、图标小 */
+  width: 58rpx;
+  height: 58rpx;
 }
 
 .contact-phone {
@@ -1085,8 +1091,10 @@ async function handleStartService(): Promise<void> {
   background: #e8f5e9;
 }
 
-.contact-btn-icon {
-  font-size: 32rpx;
+.contact-btn-icon-img {
+  /* 图标 PNG 自带底色徽标，需与容器尺寸接近，避免外圈大、图标小 */
+  width: 58rpx;
+  height: 58rpx;
 }
 
 /* ===== 信息卡 ===== */
@@ -1319,6 +1327,11 @@ async function handleStartService(): Promise<void> {
   font-weight: 600;
 }
 
+.photo-seq-icon {
+  width: 40rpx;
+  height: 40rpx;
+}
+
 .photo-group-label {
   font-size: 28rpx;
   color: #333;
@@ -1351,10 +1364,10 @@ async function handleStartService(): Promise<void> {
   justify-content: center;
 }
 
-.photo-camera-icon {
-  font-size: 48rpx;
-  filter: grayscale(1);
-  opacity: 0.4;
+.photo-camera-icon-img {
+  width: 56rpx;
+  height: 56rpx;
+  opacity: 0.5;
 }
 
 .photo-disabled-tip {

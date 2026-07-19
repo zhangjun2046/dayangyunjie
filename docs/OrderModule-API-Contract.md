@@ -2102,7 +2102,7 @@ PENDING_ASSIGN ? ASSIGNED ? ACCEPTED ? IN_SERVICE ? PENDING_REVIEW ? REVIEWED
 | 字段 | 说明 |
 |------|------|
 | `id` / `orderNo` / `status` | 订单标识与状态 |
-| `serviceItem`（保洁）/ `serviceType`（废品） | 服务名称 |
+| `serviceItem`（保洁 / 废品均为此字段） | 服务名称（员工端勿再读废品的 `serviceType`） |
 | `appointDate` | ISO 8601 字符串（如 `2026-06-17T00:00:00.000Z`），前端截取日期部分 |
 | `appointTimeSlot` | 时段（如 `09:00`） |
 | `addressSnapshot` | 下单地址快照 JSON：`{ province, city, district, detail, buildingInfo, ... }` |
@@ -3163,8 +3163,26 @@ Body 同 POST，字段均可选更新。
 | 点击任意卡片跳转并预置状态筛选（Tab 高亮 + 列表已过滤） | ✅ |
 | `npm run build`（shared + admin）通过 | ✅ |
 
+### 34.29 P-UI Icon 替换（居民端 + 员工端，2026-07-19 ✅）
+
+**范围**：纯前端静态资源与样式；**无新增/变更后端 REST 接口**。
+
+**变更摘要**：
+- 居民端 `static/tab` + `static/icons`：tabBar 与业务图标改为 PNG；下线 `cleaning.svg` / `recycling.svg` / `housekeeping.svg`
+- 员工端 `static/tab` + `static/icons`：对齐居民端风格；任务列表/详情/我的页图标尺寸校准
+- **契约澄清**：`RecyclingOrderDto.serviceItem` 为废品服务名称唯一字段；员工端列表映射已修正（原误用 `serviceType` 导致任务卡小类空白）。咨询单 `ConsultOrder.serviceType` 仍为咨询类型字段，勿与废品混淆
+
+**验收**：
+| 验收项 | 结果 |
+|--------|------|
+| 居民端 tabBar（首页/订单/我的）图标可见且尺寸合适 | ✅ |
+| 居民端首页/预约页服务图标外圈与内 icon 比例匹配 | ✅ |
+| 员工端 tabBar（首页/任务/我的）图标可见且尺寸合适 | ✅ |
+| 员工端任务列表废品小类（serviceItem）正常显示 | ✅ |
+| 员工端任务详情联系条 / 我的页统计卡图标比例匹配 | ✅ |
+
 ---
 
-> **文档版本**：v5.1（P5.12 管理后台首页/工作台）  
-> **修订日期**：2026-07-19（v5.1：P5.12 `/dashboard` 改写为欢迎条 + 4 张按功能授权过滤的待办卡片，复用列表接口 `total`，无新增后端接口；v5.0：P5.8b 功能授权）  
-> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.12 管理后台（含 P5.8/P5.8b 系统管理 + P5.12 首页工作台）
+> **文档版本**：v5.2（P-UI Icon 替换）  
+> **修订日期**：2026-07-19（v5.2：居民端/员工端 PNG Icon 替换 + 废品订单字段 `serviceItem` 前端映射修正说明；v5.1：P5.12 `/dashboard` 改写为欢迎条 + 4 张按功能授权过滤的待办卡片，复用列表接口 `total`，无新增后端接口；v5.0：P5.8b 功能授权）  
+> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.12 管理后台（含 P5.8/P5.8b 系统管理 + P5.12 首页工作台）+ P-UI Icon 替换

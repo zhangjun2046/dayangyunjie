@@ -14,7 +14,7 @@
 
     <!-- 空状态 -->
     <view v-else-if="orders.length === 0" class="status-wrap empty-wrap">
-      <text class="empty-icon">📋</text>
+      <image class="empty-icon-img" src="/static/icons/task.png" mode="aspectFit" />
       <text class="empty-text">暂无待接单任务</text>
       <text class="empty-sub">下拉刷新可更新列表</text>
     </view>
@@ -30,7 +30,11 @@
         <view class="card-main">
           <!-- 服务类型图标 -->
           <view :class="['service-icon', item.orderType === 'cleaning' ? 'icon-cleaning' : 'icon-recycling']">
-            <text class="icon-char">{{ item.orderType === 'cleaning' ? '🧹' : '♻️' }}</text>
+            <image
+              class="icon-img"
+              :src="item.orderType === 'cleaning' ? '/static/icons/cleaning.png' : '/static/icons/recycling.png'"
+              mode="aspectFit"
+            />
           </view>
           <!-- 文字信息 -->
           <view class="card-info">
@@ -174,8 +178,9 @@ function handleViewDetail(item: AssignedOrderItem): void {
   gap: 16rpx;
 }
 
-.empty-icon {
-  font-size: 80rpx;
+.empty-icon-img {
+  width: 96rpx;
+  height: 96rpx;
 }
 
 .empty-text {
@@ -231,9 +236,9 @@ function handleViewDetail(item: AssignedOrderItem): void {
   background-color: #fff3e0;
 }
 
-.icon-char {
-  font-size: 44rpx;
-  line-height: 1;
+.icon-img {
+  width: 48rpx;
+  height: 48rpx;
 }
 
 /* 卡片文字信息 */

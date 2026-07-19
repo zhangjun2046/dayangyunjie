@@ -17,21 +17,21 @@
     <view class="menu-group">
       <view class="menu-item" @tap="onGoAddress">
         <view class="menu-left">
-          <text class="menu-icon">📍</text>
+          <image class="menu-icon" src="/static/icons/address-pin.png" mode="aspectFit" />
           <text class="menu-label">我的地址</text>
         </view>
         <text class="menu-arrow">›</text>
       </view>
       <view class="menu-item" @tap="onGoComplaintList">
         <view class="menu-left">
-          <text class="menu-icon">📋</text>
+          <text class="menu-icon-emoji">📋</text>
           <text class="menu-label">我的投诉</text>
         </view>
         <text class="menu-arrow">›</text>
       </view>
       <view class="menu-item" @tap="onNotification">
         <view class="menu-left">
-          <text class="menu-icon">🔔</text>
+          <image class="menu-icon" src="/static/icons/notification-bell.png" mode="aspectFit" />
           <text class="menu-label">消息通知</text>
         </view>
         <text class="menu-arrow">›</text>
@@ -42,21 +42,21 @@
     <view class="menu-group">
       <view class="menu-item" @tap="onCallService">
         <view class="menu-left">
-          <text class="menu-icon">🎧</text>
+          <image class="menu-icon" src="/static/icons/customer-service.png" mode="aspectFit" />
           <text class="menu-label">客服联系方式</text>
         </view>
         <text class="menu-arrow">›</text>
       </view>
       <view class="menu-item" @tap="onServiceAgreement">
         <view class="menu-left">
-          <text class="menu-icon">🤝</text>
+          <text class="menu-icon-emoji">🤝</text>
           <text class="menu-label">服务协议</text>
         </view>
         <text class="menu-arrow">›</text>
       </view>
       <view class="menu-item" @tap="onViewPrivacy">
         <view class="menu-left">
-          <text class="menu-icon">🛡</text>
+          <image class="menu-icon" src="/static/icons/privacy-shield.png" mode="aspectFit" />
           <text class="menu-label">隐私协议</text>
         </view>
         <view class="menu-right">
@@ -245,6 +245,12 @@ function onLogout() {
 }
 
 .menu-icon {
+  width: 36rpx;
+  height: 36rpx;
+  flex-shrink: 0;
+}
+
+.menu-icon-emoji {
   font-size: 32rpx;
   width: 40rpx;
   text-align: center;

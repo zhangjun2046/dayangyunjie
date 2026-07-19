@@ -39,7 +39,8 @@
         >
           <view class="card-left">
             <view class="card-icon-wrap" :class="iconBgClass(item)">
-              <text class="card-icon">{{ item.icon || '♻️' }}</text>
+              <image v-if="itemIconSrc(item)" class="card-icon-img" :src="itemIconSrc(item)!" mode="aspectFit" />
+              <text v-else class="card-icon">{{ item.icon || '♻️' }}</text>
             </view>
             <view class="card-text">
               <text class="card-name">{{ item.name }}</text>
@@ -161,11 +162,11 @@
         <text class="sub-title">是否为代家人下单</text>
         <view class="radio-group">
           <view class="radio-item" @tap="store.isProxy = true">
-            <view class="radio-circle" :class="{ checked: store.isProxy }" />
+            <image class="radio-icon" :src="store.isProxy ? '/static/icons/radio-checked.png' : '/static/icons/radio-unchecked.png'" mode="aspectFit" />
             <text class="radio-label">是</text>
           </view>
           <view class="radio-item" @tap="store.isProxy = false">
-            <view class="radio-circle" :class="{ checked: !store.isProxy }" />
+            <image class="radio-icon" :src="!store.isProxy ? '/static/icons/radio-checked.png' : '/static/icons/radio-unchecked.png'" mode="aspectFit" />
             <text class="radio-label">否</text>
           </view>
         </view>
@@ -285,6 +286,9 @@
         <text class="next-text">{{ store.step === 3 ? '确定预约' : '下一步' }}</text>
       </view>
     </view>
+
+    <!-- 预约成功提示卡 -->
+    <BookingSuccessOverlay ref="successOverlayRef" />
   </view>
 </template>
 
@@ -297,9 +301,11 @@ import { fetchRecyclingCatalogs, type ServiceCatalogDto } from '@/api/service-ca
 import { fetchAddresses } from '@/api/address';
 import { createRecyclingOrder } from '@/api/recycling-order';
 import { getSolarToLunar } from '@/utils/lunar';
+import BookingSuccessOverlay from '@/components/BookingSuccessOverlay.vue';
 
 const store = useBookingRecyclingStore();
 const authStore = useAuthStore();
+const successOverlayRef = ref<InstanceType<typeof BookingSuccessOverlay> | null>(null);
 
 // ───────────────────── 常量 ─────────────────────
 const STEP_LABELS = ['选择服务', '预约时间', '确认订单'];
@@ -323,6 +329,13 @@ const isLargeItem = computed(() =>
 /** 卡片图标背景色：大件蓝、小件橙 */
 function iconBgClass(item: ServiceCatalogDto) {
   return item.name?.includes('大件') ? 'icon-bg-blue' : 'icon-bg-orange';
+}
+
+/** 卡片图标：按名称匹配大件/小件专属图标，无匹配时回退 emoji */
+function itemIconSrc(item: ServiceCatalogDto): string | null {
+  if (item.name?.includes('大件')) return '/static/icons/bulky-item.png';
+  if (item.name?.includes('小件')) return '/static/icons/small-item.png';
+  return null;
 }
 
 async function loadCatalogs() {
@@ -519,15 +532,11 @@ async function submitOrder() {
     console.info('[booking-recycling] order created, orderNo=', result.orderNo);
     store.reset();
 
-    uni.showToast({
-      title: `预约成功\n${result.orderNo}`,
-      icon: 'success',
-      duration: 2500,
-    });
+    successOverlayRef.value?.show({ title: '预约成功', orderNo: result.orderNo });
 
     setTimeout(() => {
       uni.switchTab({ url: '/pages/orders/index' });
-    }, 2600);
+    }, 2000);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : '提交失败，请重试';
     uni.showToast({ title: msg, icon: 'none' });
@@ -698,6 +707,12 @@ onShow(() => {
 
 .card-icon {
   font-size: 44rpx;
+}
+
+.card-icon-img {
+  /* 图标 PNG 自带底色徽标，需与容器尺寸接近，避免外圈大、图标小 */
+  width: 80rpx;
+  height: 80rpx;
 }
 
 .card-text {
@@ -1023,17 +1038,9 @@ onShow(() => {
   gap: 12rpx;
 }
 
-.radio-circle {
+.radio-icon {
   width: 36rpx;
   height: 36rpx;
-  border-radius: 50%;
-  border: 2rpx solid #ccc;
-  background-color: #fff;
-}
-
-.radio-circle.checked {
-  border-color: #07c160;
-  background-color: #07c160;
 }
 
 .radio-label {
