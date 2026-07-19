@@ -513,6 +513,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
 import { Search, Plus, Loading } from '@element-plus/icons-vue';
 
@@ -970,7 +971,14 @@ const openAssignFromDetail = () => {
 
 // ─── 初始化 ───────────────────────────────────────────────────────────────────
 
+const route = useRoute();
+
 onMounted(() => {
+  // P5.12 首页待办卡片跳转预置状态筛选（如 /orders/cleaning?status=PENDING_ASSIGN）
+  const statusFromQuery = route.query.status as string | undefined;
+  if (statusFromQuery) {
+    queryParams.status = statusFromQuery as TabValue;
+  }
   loadOrders();
 });
 </script>

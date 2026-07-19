@@ -303,6 +303,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus';
 import { Search, Loading } from '@element-plus/icons-vue';
 
@@ -552,7 +553,14 @@ const completeComplaint = async () => {
 
 // ─── 初始化 ───────────────────────────────────────────────────────────────────
 
+const route = useRoute();
+
 onMounted(() => {
+  // P5.12 首页待办卡片跳转预置状态筛选（如 /orders/complaint?status=PENDING）
+  const statusFromQuery = route.query.status as string | undefined;
+  if (statusFromQuery) {
+    queryParams.status = statusFromQuery as TabValue;
+  }
   loadComplaints();
 });
 </script>

@@ -1,6 +1,6 @@
 # Backend API Summary（P2 全接口交接文档）
 
-> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；P4.2（2026-06-21）更新至 v3.5；P4.3（2026-06-21）更新至 v3.6；P4.4（2026-06-21）更新至 v3.7；P4.5（2026-06-22）更新至 v3.8；P4.6（2026-06-22）更新至 v3.9；P4.7（2026-06-22）更新至 v4.0；P5.1（2026-06-22）更新至 v4.1（管理后台 Admin 登录 + 布局框架对接完成）；**P5.2（2026-06-22）** 更新至 v4.2（Dashboard `getSummary` 重构为时间范围统计 + 管理后台数据看板 ECharts 对接完成）；**P5.5（2026-06-23）** 更新至 v4.5（管理后台家政咨询单管理对接完成）；**P5.6（2026-06-23）** 更新至 v4.6（管理后台服务人员管理对接完成）；**P5.7（2026-06-23）** 更新至 v4.7（管理后台投诉反馈管理对接完成）；**P5.9（2026-06-23）** 更新至 v4.8（管理后台服务配置管理对接完成）；**P5.10（2026-07-06）** 更新至 v4.9（管理后台运营人员配置对接完成）；**P5.11（2026-07-06）** 更新至 v5.0（管理后台轮播图管理对接完成）；**P5.8（2026-07-19）** 更新至 v5.1（系统管理-用户管理：Admin 扩展字段 + `AdminJwtAuthGuard` + toggle-status/reset-password/change-password）；**P5.8b（2026-07-19）** 更新至 v5.2（系统管理-功能授权：`AdminPermission` + 权限树分配 + 侧栏动态渲染 + 路由守卫）  
+> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；P4.2（2026-06-21）更新至 v3.5；P4.3（2026-06-21）更新至 v3.6；P4.4（2026-06-21）更新至 v3.7；P4.5（2026-06-22）更新至 v3.8；P4.6（2026-06-22）更新至 v3.9；P4.7（2026-06-22）更新至 v4.0；P5.1（2026-06-22）更新至 v4.1（管理后台 Admin 登录 + 布局框架对接完成）；**P5.2（2026-06-22）** 更新至 v4.2（Dashboard `getSummary` 重构为时间范围统计 + 管理后台数据看板 ECharts 对接完成）；**P5.5（2026-06-23）** 更新至 v4.5（管理后台家政咨询单管理对接完成）；**P5.6（2026-06-23）** 更新至 v4.6（管理后台服务人员管理对接完成）；**P5.7（2026-06-23）** 更新至 v4.7（管理后台投诉反馈管理对接完成）；**P5.9（2026-06-23）** 更新至 v4.8（管理后台服务配置管理对接完成）；**P5.10（2026-07-06）** 更新至 v4.9（管理后台运营人员配置对接完成）；**P5.11（2026-07-06）** 更新至 v5.0（管理后台轮播图管理对接完成）；**P5.8（2026-07-19）** 更新至 v5.1（系统管理-用户管理：Admin 扩展字段 + `AdminJwtAuthGuard` + toggle-status/reset-password/change-password）；**P5.8b（2026-07-19）** 更新至 v5.2（系统管理-功能授权：`AdminPermission` + 权限树分配 + 侧栏动态渲染 + 路由守卫）；**P5.12（2026-07-19）** 更新至 v5.3（管理后台首页/工作台：欢迎条 + 4 张权限过滤待办卡片，纯前端复用已有列表接口，无新增接口）  
 > **用途**：供居民端（P3）、员工端（P4）、管理后台（P5）对接后端 API，避免上下文丢失  
 > **Base URL**：`http://localhost:3000/api/v1`  
 > **统一响应格式**：`{ code: number, message: string, data: T | null }`  
@@ -1502,6 +1502,42 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
+## P5.12 完成说明（2026-07-19）
+
+管理后台首页/工作台（P5.12）已完成，**无新增后端接口**，纯前端复用已有列表接口的分页 `total` 字段：
+
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `GET /cleaning-orders?status=PENDING_ASSIGN&page=1&pageSize=1` | 待办卡片「待派单保洁订单」数字徽章 | ✅ P5.12 已对接（复用 P5.3） |
+| `GET /recycling-orders?status=PENDING_ASSIGN&page=1&pageSize=1` | 待办卡片「待派单废品订单」数字徽章 | ✅ P5.12 已对接（复用 P5.4） |
+| `GET /consult-orders?status=FOLLOW_UP&page=1&pageSize=1` | 待办卡片「待跟进家政咨询单」数字徽章 | ✅ P5.12 已对接（复用 P5.5） |
+| `GET /complaints?status=PENDING&page=1&pageSize=1` | 待办卡片「待处理投诉」数字徽章 | ✅ P5.12 已对接（复用 P5.7） |
+
+**P5.12 页面**：`/dashboard`（登录后默认落地页，非侧栏菜单项，不受功能授权权限树限制，所有登录用户默认可见）
+
+**P5.12 页面内容**：欢迎条（当前用户姓名 + 角色「超级管理员/普通管理员」+ 按时段问候语）+ 4 张待办事项卡片（待派单保洁/待派单废品/待跟进家政/待处理投诉，各展示数字徽章，点击跳转对应列表页并通过 URL Query `status=` 预置状态筛选）
+
+**P5.12 权限过滤规则**：卡片按 `useUserStore().hasMenu(menuKey)` 判断显示/隐藏（`orders.cleaning`/`orders.recycling`/`orders.consult`/`orders.complaint`），逻辑与侧栏菜单动态渲染一致；超级管理员始终展示全部四张；四个请求仅对可见卡片并发触发，单个请求失败不影响其余卡片
+
+**P5.12 跳转预置筛选实现**：4 个订单列表页（`views/orders/{cleaning,recycling,consult,complaint}/index.vue`）`onMounted` 新增读取 `route.query.status` 回填 `queryParams.status` 逻辑，命中后自动高亮对应状态 Tab 并按该状态请求列表
+
+**P5.12 关键新增/扩展文件**：
+
+- `apps/admin/src/views/dashboard/index.vue`（完整重写，替换 P1.5 占位内容）
+- `apps/admin/src/views/orders/cleaning/index.vue` / `recycling/index.vue` / `consult/index.vue` / `complaint/index.vue`（`onMounted` 增加 `route.query.status` 预置筛选）
+
+**P5.12 验收清单**：
+
+| 验收项 | 结果 |
+|--------|------|
+| 首页不再显示 P1.5 占位文案 | ✅ |
+| 超级管理员登录：4 张待办卡片全部展示，数字与对应列表页条数一致 | ✅ |
+| 仅授权 `orders.cleaning` 账号登录：首页仅展示「待派单保洁」卡片 | ✅ |
+| 点击任意卡片跳转并预置状态筛选（对应 Tab 高亮 + 列表已按状态过滤） | ✅ |
+| `npm run build`（shared + admin）通过 | ✅ |
+
+---
+
 ## P5.9 完成说明（2026-06-23）
 
 管理后台服务配置管理（P5.9）已完成，以下接口与前端已对接：
@@ -1628,10 +1664,10 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
-> **文档版本**：v5.2（P5.8b 系统管理-功能授权对接完成）
+> **文档版本**：v5.3（P5.12 管理后台首页/工作台对接完成）
 > **生成日期**：2026-06-21
-> **修订日期**：2026-07-19（v5.2：P5.8b AdminPermission 表 + GET/PUT /admins/:id/permissions + 11 menuKey 权限树 + 侧栏动态渲染 + 路由守卫；v5.1：P5.8 Admin 扩展字段（username/phone/status/source/isSuperAdmin）+ AdminJwtAuthGuard 查库校验状态 + toggle-status/reset-password/change-password 新端点 + 默认密码 Dyyj123.. + 超级管理员/自身账号保护规则；v5.0：P5.11 轮播图列表/新增编辑/删除 + QueryBannerDto title 模糊查询 + CreateBannerDto isEnabled + imageUrl localhost 兼容 + 居民端 active 联动；v4.9：P5.10 运营人员列表/新增编辑/删除 + QueryOperatorDto keyword 模糊查询 + 手机号完整展示；v4.8：P5.9 服务配置列表/新增编辑/启用停用 toggle + QueryServiceCatalogDto name 模糊查询 + isEnabled 默认过滤放开；v4.7：P5.7 投诉反馈列表/详情抽屉/跟进结案 + complaints 关联订单富 DTO + keyword/contactPhone 筛选；v4.6：P5.6 服务人员列表/新增编辑/详情抽屉/重置密码 + todayOrders 聚合 + complaints workerId 筛选 + CreateWorkerDto 扩展；v4.5：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v4.4：P5.4 废品订单列表/分配/代下单 + CreateRecyclingOrderDto 扩展 + findOne worker 关联；v4.3：P5.3 保洁订单列表/分配/代下单 + CreateCleaningOrderDto 扩展；v4.2：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v4.1：P5.1 Admin 登录+二级折叠菜单+配置管理路由占位；v4.0：P4.7 我的页员工详情+证书预览+修改密码；v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
-> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.11 管理后台对接说明 + P5.8/P5.8b 系统管理
+> **修订日期**：2026-07-19（v5.3：P5.12 首页改写为工作台——欢迎条 + 4 张按功能授权过滤的待办事项卡片，复用 P5.3/P5.4/P5.5/P5.7 列表接口 total 字段，无新增后端接口；4 个订单列表页 onMounted 新增 route.query.status 预置筛选；v5.2：P5.8b AdminPermission 表 + GET/PUT /admins/:id/permissions + 11 menuKey 权限树 + 侧栏动态渲染 + 路由守卫；v5.1：P5.8 Admin 扩展字段（username/phone/status/source/isSuperAdmin）+ AdminJwtAuthGuard 查库校验状态 + toggle-status/reset-password/change-password 新端点 + 默认密码 Dyyj123.. + 超级管理员/自身账号保护规则；v5.0：P5.11 轮播图列表/新增编辑/删除 + QueryBannerDto title 模糊查询 + CreateBannerDto isEnabled + imageUrl localhost 兼容 + 居民端 active 联动；v4.9：P5.10 运营人员列表/新增编辑/删除 + QueryOperatorDto keyword 模糊查询 + 手机号完整展示；v4.8：P5.9 服务配置列表/新增编辑/启用停用 toggle + QueryServiceCatalogDto name 模糊查询 + isEnabled 默认过滤放开；v4.7：P5.7 投诉反馈列表/详情抽屉/跟进结案 + complaints 关联订单富 DTO + keyword/contactPhone 筛选；v4.6：P5.6 服务人员列表/新增编辑/详情抽屉/重置密码 + todayOrders 聚合 + complaints workerId 筛选 + CreateWorkerDto 扩展；v4.5：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v4.4：P5.4 废品订单列表/分配/代下单 + CreateRecyclingOrderDto 扩展 + findOne worker 关联；v4.3：P5.3 保洁订单列表/分配/代下单 + CreateCleaningOrderDto 扩展；v4.2：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v4.1：P5.1 Admin 登录+二级折叠菜单+配置管理路由占位；v4.0：P4.7 我的页员工详情+证书预览+修改密码；v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.12 管理后台对接说明（含 P5.8/P5.8b 系统管理、P5.12 首页工作台）
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销
 > **P3.6_repair 修正**：彻底删除居民验收接口及前端按钮，废品与保洁完全对称
@@ -1662,3 +1698,5 @@ PENDING → PROCESSING → COMPLETED（终态）
 > **P5.8 新增**：管理后台系统管理-用户管理 `/system/users`；Admin 扩展字段（username/phone/status/source/isSuperAdmin）+ `AdminJwtAuthGuard` 查库校验状态 + `SuperAdminGuard` 越权修复 + toggle-status/reset-password/change-password；默认密码 `Dyyj123..`；顶栏修改密码；`apps/admin/src/api/admin.ts`
 
 > **P5.8b 新增**：管理后台系统管理-功能授权 `/system/permissions`；`AdminPermission` 表 + `GET`/`PUT /admins/:id/permissions`；11 个 menuKey 权限树分配；侧栏按 `hasMenu` 动态渲染；路由 `meta.menuKey` 守卫拦截；`system.users`/`system.permissions` 始终仅超管；`apps/admin/src/api/admin-permission.ts` + `constants/menu-permissions.ts`
+
+> **P5.12 新增**：管理后台首页 `/dashboard` 改写为「工作台」（欢迎条 + 4 张待办事项卡片：待派单保洁/待派单废品/待跟进家政/待处理投诉）；卡片数字复用 P5.3/P5.4/P5.5/P5.7 列表接口 `pageSize=1` 的 `total` 字段，**无新增后端接口**；按 `hasMenu` 权限过滤卡片显示，超级管理员始终展示全部四张；点击卡片跳转对应列表页并通过 `route.query.status` 预置状态筛选（4 个订单列表页 `onMounted` 相应扩展）

@@ -2558,7 +2558,7 @@ ASSIGNED 状态卡片「立即接单」调用 §28.2 同名接口，成功后刷
 | 路由 | 组件 | 菜单入口 | 阶段 |
 |------|------|---------|------|
 | `/login` | `views/login/index.vue` | — | P5.1 |
-| `/dashboard` | `views/dashboard/index.vue` | — | P1.5 |
+| `/dashboard` | `views/dashboard/index.vue` | —（登录默认落地页，非侧栏菜单） | P5.12 已完成（工作台） |
 | `/orders/cleaning` | `views/orders/cleaning/index.vue` | 订单管理 > 保洁订单 | P5.3 已完成 |
 | `/orders/recycling` | `views/orders/recycling/index.vue` | 订单管理 > 废品订单 | P5.4 已完成 |
 | `/orders/consult` | `views/orders/consult/index.vue` | 订单管理 > 家政订单 | P5.5 已完成 |
@@ -3130,6 +3130,41 @@ Body 同 POST，字段均可选更新。
 
 ---
 
-> **文档版本**：v5.0（P5.8b 功能授权）  
-> **修订日期**：2026-07-19  
-> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.11 管理后台 + P5.8 系统管理-用户管理（含越权修复）+ P5.8b 功能授权
+### 34.27 P5.12 管理后台首页/工作台（2026-07-19 ✅）
+
+**背景**：`/dashboard`（登录后默认落地页，不在侧栏菜单、不受功能授权限制）长期停留在 P1.5 脚手架占位文案；本单元改写为「工作台」，**无新增后端接口**。
+
+**页面**：`/dashboard`（`apps/admin/src/views/dashboard/index.vue` 完整重写）
+
+**内容**：
+- **欢迎条**：当前用户姓名 + 角色标签（超级管理员/普通管理员）+ 按时段问候语
+- **待办事项卡片组**（4 张）：待派单保洁 / 待派单废品 / 待跟进家政 / 待处理投诉；各展示数字徽章，点击跳转对应列表页并带 `status=` Query 预置筛选
+
+**数据源**（复用已有列表接口 `pageSize=1` 取分页 `total`）：
+
+| 卡片 | 接口 | status 筛选 | menuKey |
+|------|------|-------------|---------|
+| 待派单保洁订单 | `GET /cleaning-orders` | `PENDING_ASSIGN` | `orders.cleaning` |
+| 待派单废品订单 | `GET /recycling-orders` | `PENDING_ASSIGN` | `orders.recycling` |
+| 待跟进家政咨询单 | `GET /consult-orders` | `FOLLOW_UP` | `orders.consult` |
+| 待处理投诉 | `GET /complaints` | `PENDING` | `orders.complaint` |
+
+**权限过滤**：按 `useUserStore().hasMenu(menuKey)` 显示/隐藏卡片；超级管理员始终展示全部四张；仅对可见卡片并发请求，单个失败不影响其余。
+
+**列表页预置筛选**：4 个订单列表页（`views/orders/{cleaning,recycling,consult,complaint}/index.vue`）`onMounted` 读取 `route.query.status` 回填 `queryParams.status`，自动高亮对应状态 Tab 并按该状态请求列表。
+
+### 34.28 P5.12 验收清单（2026-07-19）
+
+| 验收项 | 结果 |
+|--------|------|
+| 首页不再显示 P1.5 占位文案 | ✅ |
+| 超级管理员登录：4 张待办卡片全部展示，数字与对应列表页条数一致 | ✅ |
+| 仅授权 `orders.cleaning` 账号登录：首页仅展示「待派单保洁」卡片 | ✅ |
+| 点击任意卡片跳转并预置状态筛选（Tab 高亮 + 列表已过滤） | ✅ |
+| `npm run build`（shared + admin）通过 | ✅ |
+
+---
+
+> **文档版本**：v5.1（P5.12 管理后台首页/工作台）  
+> **修订日期**：2026-07-19（v5.1：P5.12 `/dashboard` 改写为欢迎条 + 4 张按功能授权过滤的待办卡片，复用列表接口 `total`，无新增后端接口；v5.0：P5.8b 功能授权）  
+> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.12 管理后台（含 P5.8/P5.8b 系统管理 + P5.12 首页工作台）

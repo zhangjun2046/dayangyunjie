@@ -9,7 +9,7 @@
 | `apps/server`           | NestJS 后端 API                                                |
 | `apps/miniapp-customer` | 居民端小程序（P1.4 完善；含 shared 验收桩）                    |
 | `apps/miniapp-worker`   | 员工端小程序（P4.7 我的页已完成；含 auth store + order/upload/review/worker API） |
-| `apps/admin`            | 管理后台（P5.8/P5.8b 系统管理已完成；含 auth + dashboard + cleaning/recycling/consult 订单 + workers/complaint/service-catalog/operator/banner + admin/admin-permission API） |
+| `apps/admin`            | 管理后台（P5.1–P5.12 已完成；含首页工作台 + auth + dashboard + cleaning/recycling/consult 订单 + workers/complaint/service-catalog/operator/banner + admin/admin-permission API） |
 | `packages/shared`       | 共享枚举、DTO、`ApiResponse`（`@dayangyunjie/shared`）         |
 | `docs/`                 | CodingPlan、tech、Schema 等技术文档                            |
 | `requirement.md`        | 需求文档（主稿；原型图仍在资料区 `dayangyunjie\requirement\`） |
@@ -91,3 +91,4 @@ npx prisma migrate dev
 - 使用默认 LLM完成P5.10，实现运营人员信息配置（Operator CRUD + 手机号完整展示）
 - 使用默认 LLM完成P5.11，实现轮播图管理（Banner CRUD + 展示端筛选 + 排序数字）
 - 使用Sonnet5 LLM完成P5.8、P5.8b，实现系统管理-用户管理（Admin 扩展字段迁移 + 默认密码Dyyj123.. + 重置密码 + 禁用即时失效 + 顶栏修改密码）;实现系统管理-功能授权（AdminPermission 迁移 + 权限树分配 + 侧栏菜单动态渲染 + 路由守卫拦截）
+- 使用Sonnet5 LLM完成P512，实现管理后台首页/工作台（欢迎条 + 4 张按功能授权过滤的待办事项卡片，复用已有列表接口 total，无需新增后端接口）
