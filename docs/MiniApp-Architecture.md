@@ -1,7 +1,7 @@
 # MiniApp-Architecture.md — 小程序架构交接文档
 
-> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）；P4.1（2026-06-21）补充员工端登录认证；P4.2（2026-06-21）补充员工端首页待接单任务列表；P4.3（2026-06-21）补充员工端任务列表；P4.4（2026-06-21）补充员工端任务详情（已派单/已接单态 + GPS 签到）；P4.5（2026-06-22）补充员工端任务详情（服务中态 + 照片上传含水印 + 完成服务）；P4.6（2026-06-22）补充员工端任务详情（待评价/已完成态 + 用户评价展示）；P4.7（2026-06-22）补充员工端我的页（技能证书 + 修改密码 + 无服务记录入口）；**P5.1（2026-06-22）** 补充管理后台 Admin 登录 + 二级折叠菜单布局框架  
-> **用途**：供 P4（员工端）、P5（管理后台）及后续维护对接，记录居民端已完成的页面结构、Store 设计、组件、API 封装与代下单数据流；并记录员工端 P4.1 登录认证实现及管理后台 P5.1 布局框架  
+> **生成节点**：P3.8 代下单集成验证完成后（2026-06-21）；P4.1–P4.7 员工端；P5.1–P5.11 管理后台业务页；**P5.8/P5.8b（2026-07-19）** 补充系统管理-用户管理 + 功能授权（AdminPermission + 侧栏动态渲染 + 路由守卫）  
+> **用途**：供 P4（员工端）、P5（管理后台）及后续维护对接，记录居民端已完成的页面结构、Store 设计、组件、API 封装与代下单数据流；并记录员工端与管理后台实现  
 > **应用目录**：`apps/miniapp-customer/`（居民端）、`apps/miniapp-worker/`（员工端）、`apps/admin/`（管理后台）
 
 ---
@@ -818,36 +818,37 @@ loadData()
 ```
 登录页 form(email, password)
   → adminLogin()  POST /api/v1/auth/admin-login
-  → useUserStore.login() 存 accessToken + admin.name/email
+  → useUserStore.login() 存 accessToken + admin.name/email/username/isSuperAdmin
+  → fetchMyPermissions()  GET /admins/:id/permissions（存 permissions）
   → router.push(redirect || '/dashboard')
 ```
 
 | 项 | 说明 |
 |---|---|
 | Token 存储 | localStorage `dayangyunjie_admin_token` |
-| 管理员信息 | localStorage `dayangyunjie_admin_name` / `dayangyunjie_admin_email` |
-| 默认开发账号 | `admin@dayunyunjie.com` / `admin123`（seed） |
+| 管理员信息 | localStorage `dayangyunjie_admin_name` / `dayangyunjie_admin_email` / `dayangyunjie_admin_id` / `dayangyunjie_admin_username` / `dayangyunjie_admin_super` / `dayangyunjie_admin_permissions` |
+| 默认开发账号 | `admin@dayunyunjie.com` / `admin123`（seed，超级管理员） |
 | 401 处理 | axios 拦截器清除 token → 跳转 `/login` |
 
 **关键文件**：
 - `src/api/auth.ts` — `adminLogin`
-- `src/store/index.ts` — `login()` / `logout()`
+- `src/store/index.ts` — `login()` / `logout()` / `hasMenu()` / `fetchMyPermissions()`
 - `src/views/login/index.vue` — 登录表单
 - `src/utils/auth.ts` — token 存取
 
 ### 18.2 布局与侧栏菜单
 
-`src/layout/index.vue` 采用 `el-container` + 深色侧栏（`#304156`）：
+`src/layout/index.vue` 采用 `el-container` + 深色侧栏（`#304156`）；**P5.8b 起按 `userStore.hasMenu(menuKey)` 动态渲染**：
 
-| 一级菜单 | 子菜单 | 路由 |
-|---------|--------|------|
-| 订单管理 | 保洁订单 / 废品订单 / 家政订单 / 投诉反馈 | `/orders/*` |
-| 数据管理 | 数据看板 | `/data/dashboard` |
-| 员工管理 | 服务人员管理 | `/workers` |
-| 配置管理 | 服务配置 / 运营人员配置 / 轮播图管理 | `/config/*` |
-| 系统设置 | — | `/settings` |
+| 一级菜单 | 子菜单 | 路由 | menuKey |
+|---------|--------|------|---------|
+| 订单管理 | 保洁订单 / 废品订单 / 家政订单 / 投诉反馈 | `/orders/*` | `orders.*` |
+| 数据管理 | 数据看板 | `/data/dashboard` | `data.dashboard` |
+| 员工管理 | 服务人员管理 | `/workers` | `staff.workers` |
+| 配置管理 | 服务配置 / 运营人员配置 / 轮播图管理 | `/config/*` | `config.*` |
+| 系统管理 | 用户管理 / 功能授权 | `/system/*` | 始终仅超级管理员可见 |
 
-侧栏底部展示当前管理员头像（首字母）、姓名、邮箱；顶栏含折叠按钮、面包屑、退出。
+一级菜单下全部子项无权限则该一级菜单整体隐藏。顶栏含折叠按钮、面包屑、用户下拉（修改密码/退出登录）。
 
 ### 18.3 路由守卫
 
@@ -856,6 +857,8 @@ loadData()
 - `meta.public = true` 的路由（`/login`）无需 token
 - 其余路由无 token → `/login?redirect=...`
 - 已登录访问 `/login` → 重定向 `/dashboard`
+- `meta.requiresSuperAdmin`（`/system/users`、`/system/permissions`）非超管 → `/dashboard` + 警告
+- `meta.menuKey` 存在且 `!hasMenu(menuKey)` → `/dashboard` +「您没有权限访问该功能」（超管始终放行）
 
 ### 18.4 P5.2 数据看板（已完成）
 
@@ -1037,16 +1040,51 @@ loadData()
 | `CreateBannerDto.isEnabled` | 创建时可指定启用状态 |
 | `imageUrl` 校验 | `@IsUrl({ require_tld: false })` 兼容 localhost 开发 URL |
 
-### 18.13 P5.8 系统设置占位页
+### 18.13 P5.8 系统管理-用户管理（已完成）
 
-`views/settings/index.vue` 仍为占位页（「功能开发中」），待 P5.8 或后续版本实现。
+`views/system/users/index.vue` 已实现完整用户管理（替换原 `views/settings` 占位）：
+
+- **列表页**：用户名 / 姓名 / 手机号 / 邮箱 / 状态 / 来源 / 操作（编辑/启用禁用/重置密码/删除）
+- **筛选**：关键词（用户名/姓名/手机号/邮箱 OR 模糊）
+- **新增弹窗**：用户名（创建后不可改）/ 姓名 / 邮箱 / 手机号；默认密码固定 `Dyyj123..`
+- **保护规则**：超级管理员与当前登录账号自身不可禁用/删除（前后端双重拦截）
+- **顶栏修改密码**：`el-dropdown` → 弹窗调 `PUT /admins/:id/change-password`，成功后强制退出登录
+- **API 封装**：`apps/admin/src/api/admin.ts`
+
+**P5.8 后端扩展**：
+
+| 变更 | 说明 |
+|------|------|
+| `Admin` 扩展字段 | `username`/`phone`/`status`/`source`/`isSuperAdmin` |
+| `AdminJwtAuthGuard` | 每次请求查库校验 `status=ENABLED`，禁用即时失效 |
+| `SuperAdminGuard` | 除自助改密外 `/admins` 端点仅超管可调 |
+| 新端点 | `toggle-status` / `reset-password` / `change-password` |
+
+### 18.14 P5.8b 系统管理-功能授权（已完成）
+
+`views/system/permissions/index.vue` 已实现完整功能授权：
+
+- **布局**：左侧用户列表 + 右侧 `el-tree` 权限树（checkbox 三态联动）+ 全选/取消全选/保存
+- **11 个 menuKey**：见 `constants/menu-permissions.ts`（与后端 `menu-keys.constant.ts` 对齐）
+- **超级管理员**：权限树默认全选且勾选禁用，不写入 `AdminPermission` 表
+- **硬性边界**：`system.users` / `system.permissions` 始终仅超管可用（权限树对普通目标禁用勾选）
+- **生效链路**：登录拉取权限 → Pinia `permissions` + localStorage → 侧栏 `hasMenu` 动态渲染 → 路由 `meta.menuKey` 拦截
+- **API 封装**：`apps/admin/src/api/admin-permission.ts`（`GET`/`PUT /admins/:id/permissions`）
+
+**P5.8b 后端扩展**：
+
+| 变更 | 说明 |
+|------|------|
+| `AdminPermission` 表 | `adminId` + `menuKey` 联合唯一索引，级联删除 |
+| `GET /admins/:id/permissions` | 本人可查自己；超管可查任何人；目标超管返回全量 |
+| `PUT /admins/:id/permissions` | 仅超管；目标超管 400；非法 menuKey 400 |
 
 ---
 
-> **文档版本**：v2.8（P5.11 管理后台轮播图管理验收通过）  
+> **文档版本**：v3.0（P5.8/P5.8b 系统管理用户管理+功能授权验收通过）  
 > **生成日期**：2026-06-21  
-> **修订日期**：2026-07-06（v2.8：P5.11 轮播图列表/新增编辑/删除 + title 模糊查询 + isEnabled + localhost 图片 URL 兼容 + 居民端 active 联动；v2.7：P5.10 运营人员列表/新增编辑/删除 + keyword 模糊查询 + 手机号完整展示；v2.6：P5.9 服务配置列表/新增编辑/启用停用 toggle + name 模糊查询 + isEnabled 默认过滤放开；v2.5：P5.7 投诉反馈列表/详情抽屉/跟进结案 + complaints 关联订单富 DTO + keyword/contactPhone 筛选；v2.4：P5.6 服务人员列表/新增编辑/详情抽屉/重置密码 + todayOrders + complaints workerId；v2.3：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v2.2：P5.4 废品订单列表/分配/代下单 + 详情无重量/金额/收款；v2.1：P5.3 保洁订单列表/分配/代下单 + 服务时段与居民端对齐；v2.0：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v1.9：P5.1 Admin 登录+布局+配置管理路由占位；v1.8：P4.7 我的页+设置改密+证书预览；v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
-> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.7 员工端 + P5.1–P5.11 管理后台  
+> **修订日期**：2026-07-19（v3.0：P5.8 Admin 扩展字段+禁用即时失效+重置/改密 + P5.8b AdminPermission 权限树+侧栏动态渲染+路由守卫；v2.8：P5.11 轮播图列表/新增编辑/删除 + title 模糊查询 + isEnabled + localhost 图片 URL 兼容 + 居民端 active 联动；v2.7：P5.10 运营人员列表/新增编辑/删除 + keyword 模糊查询 + 手机号完整展示；v2.6：P5.9 服务配置列表/新增编辑/启用停用 toggle + name 模糊查询 + isEnabled 默认过滤放开；v2.5：P5.7 投诉反馈列表/详情抽屉/跟进结案 + complaints 关联订单富 DTO + keyword/contactPhone 筛选；v2.4：P5.6 服务人员列表/新增编辑/详情抽屉/重置密码 + todayOrders + complaints workerId；v2.3：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v2.2：P5.4 废品订单列表/分配/代下单 + 详情无重量/金额/收款；v2.1：P5.3 保洁订单列表/分配/代下单 + 服务时段与居民端对齐；v2.0：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v1.9：P5.1 Admin 登录+布局+配置管理路由占位；v1.8：P4.7 我的页+设置改密+证书预览；v1.7：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v1.6：P4.5 IN_SERVICE 照片上传+水印+完成服务；v1.5：P4.4 任务详情；v1.4：P4.3 任务列表；v1.3：P4.2 首页；v1.2：P4.1 登录；v1.1：P3.8 代下单）  
+> **覆盖范围**：P3.1–P3.8 居民端小程序 + P4.1–P4.7 员工端 + P5.1–P5.11 管理后台 + P5.8/P5.8b 系统管理  
 > **下一阶段**：P6 集成与部署
 
 ---

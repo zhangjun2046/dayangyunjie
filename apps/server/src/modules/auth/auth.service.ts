@@ -115,7 +115,7 @@ export class AuthService {
 
   async adminLogin(loginDto: AdminLoginDto): Promise<{
     tokens: TokenPair;
-    admin: Pick<Admin, 'id' | 'email' | 'name'>;
+    admin: Pick<Admin, 'id' | 'email' | 'name' | 'username' | 'isSuperAdmin'>;
   }> {
     const admin = await this.prismaService.admin.findUnique({
       where: { email: loginDto.email },
@@ -123,6 +123,10 @@ export class AuthService {
 
     if (!admin) {
       throw new UnauthorizedException('邮箱或密码错误');
+    }
+
+    if (admin.status !== 'ENABLED') {
+      throw new UnauthorizedException('账号已被禁用，请联系管理员');
     }
 
     const isPasswordValid = await bcrypt.compare(loginDto.password, admin.passwordHash);
@@ -134,7 +138,13 @@ export class AuthService {
 
     return {
       tokens,
-      admin: { id: admin.id, email: admin.email, name: admin.name },
+      admin: {
+        id: admin.id,
+        email: admin.email,
+        name: admin.name,
+        username: admin.username,
+        isSuperAdmin: admin.isSuperAdmin,
+      },
     };
   }
 

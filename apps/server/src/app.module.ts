@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { AdminPermissionModule } from './modules/admin-permission/admin-permission.module';
 import { AddressModule } from './modules/address/address.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ServiceCatalogModule } from './modules/service-catalog/service-catalog.module';
@@ -25,6 +26,7 @@ import { OperatorModule } from './modules/operator/operator.module';
     ResidentModule,
     WorkerModule,
     AdminModule,
+    AdminPermissionModule,
     AddressModule,
     ServiceCatalogModule,
     CleaningOrderModule,

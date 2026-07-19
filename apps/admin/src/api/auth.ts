@@ -10,6 +10,8 @@ export interface AdminLoginResult {
     id: number;
     email: string;
     name: string;
+    username: string;
+    isSuperAdmin: boolean;
   };
 }
 

@@ -66,6 +66,12 @@ enum ComplaintStatus {
   COMPLETED
 }
 
+// P5.8: 管理后台用户账号启用/禁用状态
+enum AdminStatus {
+  ENABLED
+  DISABLED
+}
+
 // ─── 用户模型（3）────────────────────────────────────────
 
 model Resident {
@@ -121,15 +127,37 @@ model Worker {
   @@map("workers")
 }
 
+// P5.8: 新增 username/phone/status/source/isSuperAdmin，登录方式仍为邮箱+密码不变
 model Admin {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique @db.VarChar(128)
-  passwordHash String   @map("password_hash") @db.VarChar(128)
-  name         String   @db.VarChar(32)
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id           Int         @id @default(autoincrement())
+  username     String      @unique @db.VarChar(32)
+  email        String      @unique @db.VarChar(128)
+  passwordHash String      @map("password_hash") @db.VarChar(128)
+  name         String      @db.VarChar(32)
+  phone        String?     @db.VarChar(20)
+  status       AdminStatus @default(ENABLED)
+  source       String      @default("SYSTEM") @db.VarChar(16)
+  isSuperAdmin Boolean     @default(false) @map("is_super_admin")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  permissions AdminPermission[]
 
   @@map("admins")
+}
+
+// P5.8b: 功能授权——为普通管理员逐项分配可访问的页面级功能节点（menuKey）；
+// 超级管理员不写入本表，鉴权时直接全量放行
+model AdminPermission {
+  id        Int      @id @default(autoincrement())
+  adminId   Int      @map("admin_id")
+  menuKey   String   @map("menu_key") @db.VarChar(64)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@unique([adminId, menuKey])
+  @@map("admin_permissions")
 }
 
 // ─── 地址（1）────────────────────────────────────────────

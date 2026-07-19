@@ -275,19 +275,63 @@
 
 ---
 
-### 3.3 Admins `/admins`
+### 3.3 Admins `/admins`（P5.8 更新，2026-07-19；越权修复补丁同日）
 
-**???? Body**
+> 全部接口需 `Authorization: Bearer <Admin AccessToken>`（`AdminJwtAuthGuard`），每次请求查库校验 `status === 'ENABLED'`；禁用账号的旧 token 立即返回 401（不仅验签名）。
+> **越权修复**：除 `change-password`（自助改密）外，其余全部端点额外挂载 `SuperAdminGuard`，非超级管理员调用返回 403 —— 避免普通管理员编辑/重置他人（含超级管理员）资料与密码。
 
-| ??? | ???? | ??? |
+| 方法 | 路径 | 说明 |
 |---|---|---|
-| `email` | string | ??? |
-| `password` | string | ??? |
-| `name` | string | ??? |
+| POST | `/admins` | 新建用户，密码固定为默认密码 `Dyyj123..`（不接受前端传入）（仅超级管理员） |
+| GET | `/admins` | 分页列表（仅超级管理员） |
+| GET | `/admins/:id` | 详情（仅超级管理员） |
+| PUT | `/admins/:id` | 更新（仅 `name`/`email`/`phone`）（仅超级管理员） |
+| DELETE | `/admins/:id` | 删除（仅超级管理员；且超级管理员/自身账号 → 403） |
+| PATCH | `/admins/:id/toggle-status` | 启用/禁用切换（仅超级管理员；且超级管理员/自身账号 → 403） |
+| POST | `/admins/:id/reset-password` | 重置为默认密码 `Dyyj123..`（仅超级管理员） |
+| PUT | `/admins/:id/change-password` | 当前登录用户自助改密（任意管理员均可，仅本人，`id !== currentAdminId` → 403） |
 
-**???? Query**??`page`, `pageSize`, `email?`, `name?`
+**创建 Body（`CreateAdminDto`）**
 
-**Response ??? `data`**??`AdminDto`??**??** `passwordHash`??
+| 字段 | 类型 | 必填 |
+|---|---|---|
+| `username` | string | ✅（3–32 位字母/数字/下划线，唯一，创建后不可修改） |
+| `name` | string | ✅ |
+| `email` | string | ✅（唯一，登录账号） |
+| `phone` | string | |
+
+**更新 Body（`UpdateAdminDto`）**：`name?` / `email?` / `phone?`（不含 `username`）
+
+**改密 Body（`ChangePasswordDto`）**：`{ oldPassword: string, newPassword: string }`（旧密码错误 → 400）
+
+**查询 Query（`QueryAdminDto`）**：`page`, `pageSize`, `username?`, `name?`, `email?`, `phone?`, `keyword?`（对 username/name/phone/email 做 OR 模糊匹配）
+
+**Response `data`（`AdminDto`）**：**不含** `passwordHash`；新增字段 `username` / `phone` / `status`（`ENABLED`\|`DISABLED`）/ `source`（固定 `SYSTEM`）/ `isSuperAdmin`
+
+**账号保护规则**：`isSuperAdmin=true` 或 `id === currentAdminId` 时，`toggle-status`/`remove` 均抛 `ForbiddenException`（403）
+
+---
+
+### 3.4 AdminPermissions `/admins/:id/permissions`（P5.8b 新增，2026-07-19）
+
+> 全部接口需 `Authorization: Bearer <Admin AccessToken>`（`AdminJwtAuthGuard`）。
+> 页面级权限节点共 11 个 `menuKey`（前后端各自硬编码维护，见 `menu-keys.constant.ts` / `menu-permissions.ts`）：
+> `orders.cleaning` / `orders.recycling` / `orders.consult` / `orders.complaint` / `data.dashboard` / `staff.workers` / `config.services` / `config.operators` / `config.banners` / `system.users` / `system.permissions`
+> **硬性边界**：`system.users` / `system.permissions` 始终仅超级管理员可用（权限树展示但对普通管理员目标禁用勾选，不写入分配）。
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/admins/:id/permissions` | 查询用户功能授权清单（本人可查自己；超级管理员可查任何人；目标为超管时直接返回全量 11 key，不查表） |
+| PUT | `/admins/:id/permissions` | 覆盖保存用户功能授权清单（仅超级管理员；目标为超管 → 400；非法 menuKey → 400） |
+
+**PUT Body（`SetAdminPermissionsDto`）**：`{ menuKeys: string[] }`（去重后覆盖写入 `AdminPermission` 表；空数组表示清空全部业务权限）
+
+**Response `data`**：`{ adminId: number, isSuperAdmin: boolean, menuKeys: string[] }`
+
+**鉴权规则**：
+- `GET`：非超级管理员跨用户查询 → 403
+- `PUT`：挂载 `SuperAdminGuard`，非超级管理员 → 403；目标 `isSuperAdmin=true` → 400「超级管理员权限默认全量，无需分配」
+- 超级管理员不写入 `AdminPermission` 表，鉴权时直接全量放行
 
 ---
 
@@ -2524,7 +2568,8 @@ ASSIGNED 状态卡片「立即接单」调用 §28.2 同名接口，成功后刷
 | `/config/services` | `views/config/services/index.vue` | 配置管理 > 服务配置 | P5.9 已完成 |
 | `/config/operators` | `views/config/operators/index.vue` | 配置管理 > 运营人员配置 | P5.10 已完成 |
 | `/config/banners` | `views/config/banners/index.vue` | 配置管理 > 轮播图管理 | P5.11 已完成 |
-| `/settings` | `views/settings/index.vue` | 系统设置 | P5.8 占位 |
+| `/system/users` | `views/system/users/index.vue` | 系统管理 > 用户管理 | P5.8 已完成 |
+| `/system/permissions` | `views/system/permissions/index.vue` | 系统管理 > 功能授权 | P5.8b 已完成 |
 
 ### 34.4 前端关键文件
 
@@ -3017,6 +3062,74 @@ Body 同 POST，字段均可选更新。
 
 ---
 
-> **文档版本**：v4.7（P5.11 管理后台轮播图管理验收通过）  
-> **修订日期**：2026-07-06  
-> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.11 管理后台
+### 34.22 P5.8 系统管理-用户管理（2026-07-19 ✅）
+
+**Schema 迁移**：`Admin` 模型新增 `AdminStatus` 枚举（`ENABLED`/`DISABLED`）+ `username`（唯一）/`phone`/`status`/`source`（固定 `SYSTEM`）/`isSuperAdmin`；种子超级管理员标记 `isSuperAdmin=true`。
+
+**鉴权变更**：新增 `AdminJwtStrategy`（`strategies/admin-jwt.strategy.ts`）+ `AdminJwtAuthGuard`；`AdminController` 全部端点加 `@UseGuards(AdminJwtAuthGuard)`；`validate()` 查库校验 `status==='ENABLED'`（不仅验签名），确保禁用账号的旧 token 立即失效。`adminLogin()` 增加 `status` 校验（禁用账号 401），返回的 `admin` 补充 `username`/`isSuperAdmin`。
+
+**`/admins` 契约详见 [3.3 Admins](#33-admins-admins-p58-更新2026-07-19)**：新增 `PATCH /admins/:id/toggle-status`、`POST /admins/:id/reset-password`、`PUT /admins/:id/change-password`；`CreateAdminDto` 去掉 `password`（默认密码 `Dyyj123..`），改为必填 `username`；`UpdateAdminDto` 独立定义（不含 `username`/密码）。
+
+**账号保护规则**：`isSuperAdmin` 或操作对象为当前登录账号自身时，`toggleStatus`/`remove` 均抛 `ForbiddenException`（403）；`changePassword` 仅允许 `id === currentAdminId`（403 拦截跨用户改密），旧密码校验失败 400。
+
+**前端**：`/system/users`（`views/system/users/index.vue`，替换原 `views/settings` 占位）+ `api/admin.ts`；侧栏原扁平「系统设置」改为 `el-sub-menu`「系统管理」（为 P5.8b 「功能授权」预留同级子项）；顶栏用户区域改为 `el-dropdown`（修改密码/退出登录），新增修改密码弹窗，成功后 `userStore.logout()` 并跳转 `/login`。
+
+### 34.23 P5.8 验收清单（2026-07-19）
+
+| 验收项 | 结果 |
+|--------|------|
+| 新建用户 → 默认密码 `Dyyj123..` 可登录 | ✅ |
+| 禁用账号 → 旧 token 下一次请求立即 401 | ✅ |
+| 禁用账号 → 重新登录 401 | ✅ |
+| 超级管理员/自身账号禁用删除均 403 | ✅ |
+| 跨用户改密 403、旧密码错误 400、重复用户名 409 | ✅ |
+| 顶栏改密成功后强制退出登录 | ✅ |
+| `npm run build`（server + admin）通过 | ✅ |
+
+---
+
+### 34.24 P5.8 越权修复补丁（2026-07-19）
+
+**问题**：验收通过后发现"用户管理"功能仅拦截了未登录（`AdminJwtAuthGuard`），未做角色级鉴权。普通管理员登录后可查看全部用户列表、编辑任意用户（含超级管理员 `admin`）资料、并可将任意用户（含超级管理员）密码重置为默认密码 `Dyyj123..`，存在越权提权风险。
+
+**修复**：
+- 后端新增 `SuperAdminGuard`（`modules/auth/guards/super-admin.guard.ts`），挂载到 `create`/`findAll`/`findOne`/`update`/`remove`/`toggle-status`/`reset-password` 七个端点（详见 3.3 节表格），非超级管理员调用返回 403；`change-password` 不受影响（自助改密，任意管理员可用）。
+- 前端 `router/index.ts`：`/system/users` 路由增加 `meta.requiresSuperAdmin`，`beforeEach` 中校验 `useUserStore().isSuperAdmin`，非超级管理员直接访问 URL → 重定向 `/dashboard` + 警告提示。
+- 前端 `layout/index.vue`：侧栏「系统管理」`el-sub-menu` 增加 `v-if="userStore.isSuperAdmin"`，普通管理员登录后不可见该菜单。
+
+**验证**：API 测试普通管理员调用 `/admins` 系列七个端点均 403、自助改密仍成功；浏览器测试普通管理员登录后侧栏无入口、直接访问 URL 被拦截跳转，超级管理员两端均正常；`npm run build`（server）通过。
+
+> ⚠️ **已知局限**：本补丁是最小闭环（"用户管理"整体收敛为超级管理员专属），非通用权限模型；细粒度的按功能点动态授权已由下方 **P5.8b 功能授权** 统一实现（`system.users`/`system.permissions` 硬性边界沿用本补丁不变）。
+
+---
+
+### 34.25 P5.8b 系统管理-功能授权（2026-07-19 ✅）
+
+**Schema 迁移**：新增 `AdminPermission` 模型（`adminId` + `menuKey`，`@@unique([adminId, menuKey])`，级联删除）；超级管理员不写入本表。
+
+**后端**：新建 `AdminPermissionModule`/`Service`/`Controller`；契约详见 [3.4 AdminPermissions](#34-adminpermissions-adminsidpermissions-p58b-新增2026-07-19)。
+
+**前端**：
+- `/system/permissions`（`views/system/permissions/index.vue`：左侧用户列表 + 右侧 `el-tree` 权限树 checkbox 三态联动 + 全选/取消全选/保存）+ `api/admin-permission.ts`
+- `constants/menu-permissions.ts`：11 个叶子 `menuKey` 权限树字典（与后端 `menu-keys.constant.ts` 对齐）
+- `store`：扩展 `permissions: string[]`（登录后 `GET /admins/:id/permissions` 拉取并持久化 localStorage）+ `hasMenu(menuKey)`（超管始终 true）
+- `router`：业务路由 `meta.menuKey` + `beforeEach` 未授权跳转 `/dashboard` + 警告提示；`system.*` 保留 `requiresSuperAdmin`
+- `layout/index.vue`：侧栏按 `hasMenu` 动态渲染；一级菜单下全部子项无权限则整体隐藏；「系统管理」仍仅 `isSuperAdmin` 可见
+
+### 34.26 P5.8b 验收清单（2026-07-19）
+
+| 验收项 | 结果 |
+|--------|------|
+| 超管权限树默认全选且勾选框禁用 | ✅ |
+| 非超管权限树按已授权回填；`system.*` 两节点禁用勾选 | ✅ |
+| 全选/取消全选/保存生效（覆盖写入） | ✅ |
+| 仅授权 `orders.cleaning` 的账号登录后侧栏仅保洁订单+首页 | ✅ |
+| 直接输入未授权业务页 URL / 超管专属 URL 均拦截跳转首页 | ✅ |
+| 跨用户查询 403、非超管分配 403、对超管目标分配 400、非法 menuKey 400 | ✅ |
+| `npm run build`（含 shared/两端小程序/admin/server 全量）通过 | ✅ |
+
+---
+
+> **文档版本**：v5.0（P5.8b 功能授权）  
+> **修订日期**：2026-07-19  
+> **覆盖范围**：P2.1–P2.15 后端 API + P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.11 管理后台 + P5.8 系统管理-用户管理（含越权修复）+ P5.8b 功能授权

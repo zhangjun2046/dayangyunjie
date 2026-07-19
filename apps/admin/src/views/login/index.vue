@@ -55,8 +55,8 @@ const formRef = ref<FormInstance>();
 const loading = ref(false);
 
 const form = reactive({
-  email: 'admin@dayunyunjie.com',
-  password: 'admin123',
+  email: '',
+  password: '',
 });
 
 const rules: FormRules = {

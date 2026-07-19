@@ -34,11 +34,15 @@ request.interceptors.response.use(
   },
   (error) => {
     const status = error.response?.status;
-    if (status === 401) {
+    const requestUrl: string = error.config?.url || '';
+    // 登录接口本身返回 401（密码错误/账号已禁用）不是"会话过期"，应交回登录页展示具体错误，不能强制跳转覆盖表单
+    const isLoginRequest = requestUrl.includes('/auth/') && requestUrl.includes('-login');
+
+    if (status === 401 && !isLoginRequest) {
       removeToken();
       ElMessage.warning('登录已过期，请重新登录');
       window.location.href = '/login';
-    } else {
+    } else if (!isLoginRequest) {
       const msg = error.response?.data?.message || error.message || '网络异常';
       ElMessage.error(msg);
     }

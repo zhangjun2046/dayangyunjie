@@ -1,11 +1,11 @@
 # Backend API Summary（P2 全接口交接文档）
 
-> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；P4.2（2026-06-21）更新至 v3.5；P4.3（2026-06-21）更新至 v3.6；P4.4（2026-06-21）更新至 v3.7；P4.5（2026-06-22）更新至 v3.8；P4.6（2026-06-22）更新至 v3.9；P4.7（2026-06-22）更新至 v4.0；P5.1（2026-06-22）更新至 v4.1（管理后台 Admin 登录 + 布局框架对接完成）；**P5.2（2026-06-22）** 更新至 v4.2（Dashboard `getSummary` 重构为时间范围统计 + 管理后台数据看板 ECharts 对接完成）；**P5.5（2026-06-23）** 更新至 v4.5（管理后台家政咨询单管理对接完成）；**P5.6（2026-06-23）** 更新至 v4.6（管理后台服务人员管理对接完成）；**P5.7（2026-06-23）** 更新至 v4.7（管理后台投诉反馈管理对接完成）；**P5.9（2026-06-23）** 更新至 v4.8（管理后台服务配置管理对接完成）；**P5.10（2026-07-06）** 更新至 v4.9（管理后台运营人员配置对接完成）；**P5.11（2026-07-06）** 更新至 v5.0（管理后台轮播图管理对接完成）  
+> **生成节点**：P2.11 完成后首版；P2.14（2026-06-15）更新至 v2.2；P3.6（2026-06-20）更新至 v3.0；P3.7（2026-06-21）更新至 v3.1；P3.6_repair（2026-06-21）更新至 v3.2；P3.8（2026-06-21）更新至 v3.3；P4.1（2026-06-21）更新至 v3.4；P4.2（2026-06-21）更新至 v3.5；P4.3（2026-06-21）更新至 v3.6；P4.4（2026-06-21）更新至 v3.7；P4.5（2026-06-22）更新至 v3.8；P4.6（2026-06-22）更新至 v3.9；P4.7（2026-06-22）更新至 v4.0；P5.1（2026-06-22）更新至 v4.1（管理后台 Admin 登录 + 布局框架对接完成）；**P5.2（2026-06-22）** 更新至 v4.2（Dashboard `getSummary` 重构为时间范围统计 + 管理后台数据看板 ECharts 对接完成）；**P5.5（2026-06-23）** 更新至 v4.5（管理后台家政咨询单管理对接完成）；**P5.6（2026-06-23）** 更新至 v4.6（管理后台服务人员管理对接完成）；**P5.7（2026-06-23）** 更新至 v4.7（管理后台投诉反馈管理对接完成）；**P5.9（2026-06-23）** 更新至 v4.8（管理后台服务配置管理对接完成）；**P5.10（2026-07-06）** 更新至 v4.9（管理后台运营人员配置对接完成）；**P5.11（2026-07-06）** 更新至 v5.0（管理后台轮播图管理对接完成）；**P5.8（2026-07-19）** 更新至 v5.1（系统管理-用户管理：Admin 扩展字段 + `AdminJwtAuthGuard` + toggle-status/reset-password/change-password）；**P5.8b（2026-07-19）** 更新至 v5.2（系统管理-功能授权：`AdminPermission` + 权限树分配 + 侧栏动态渲染 + 路由守卫）  
 > **用途**：供居民端（P3）、员工端（P4）、管理后台（P5）对接后端 API，避免上下文丢失  
 > **Base URL**：`http://localhost:3000/api/v1`  
 > **统一响应格式**：`{ code: number, message: string, data: T | null }`  
 > **Swagger**：`http://localhost:3000/api/docs`  
-> **鉴权**：居民端/员工端/管理端 JWT 已分别对接（`/auth/wechat-login`、`/auth/worker-login`、`/auth/admin-login`）；其余业务接口当前仍为公开，RBAC 留后续阶段
+> **鉴权**：居民端/员工端/管理端 JWT 已分别对接（`/auth/wechat-login`、`/auth/worker-login`、`/auth/admin-login`）；**`/admins/*` 已加 `AdminJwtAuthGuard`（P5.8）**；**`/admins/:id/permissions` 已对接（P5.8b）**；其余业务接口当前仍为公开，后端接口级 RBAC 留后续阶段（本期仅做页面级功能授权）
 
 ---
 
@@ -136,11 +136,40 @@ CRUD 标准五接口，另有 P2.13 新增的密码管理接口。
 
 ## 4. Admin 管理员模块
 
-**路径前缀**：`/admins`  
-CRUD 标准五接口
+**路径前缀**：`/admins`（**P5.8 起：全部接口需 `Authorization: Bearer <Admin AccessToken>`，`AdminJwtAuthGuard` 每次请求查库校验 `status=ENABLED`，禁用账号的旧 token 立即 401**；**越权修复补丁（2026-07-19）：除 `change-password` 外全部端点额外挂载 `SuperAdminGuard`，非超级管理员调用 403**）
 
-**创建必填**：`email`, `password`, `name`  
-**Response**：`AdminDto`（**不含** `passwordHash`）
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/admins` | 新建用户（默认密码 `Dyyj123..`，同 Worker 模式）（仅超级管理员） |
+| GET | `/admins` | 分页列表（Query：`page?`, `pageSize?`, `username?`, `name?`, `email?`, `phone?`, `keyword?` 对 username/name/phone/email 做 OR 模糊匹配）（仅超级管理员） |
+| GET | `/admins/:id` | 用户详情（仅超级管理员） |
+| PUT | `/admins/:id` | 更新用户（仅 `name`/`email`/`phone`，`username` 创建后不可修改）（仅超级管理员） |
+| DELETE | `/admins/:id` | 删除用户（仅超级管理员；超级管理员/自身账号禁止，403） |
+| PATCH | `/admins/:id/toggle-status` | 切换启用/禁用（仅超级管理员；超级管理员/自身账号禁止，403） |
+| POST | `/admins/:id/reset-password` | 重置为默认密码 `Dyyj123..`（仅超级管理员） |
+| PUT | `/admins/:id/change-password` | 当前登录用户自助改密（任意管理员均可，仅本人，`{ oldPassword, newPassword }`，旧密码错误 400；供顶栏「修改密码」使用） |
+
+**创建必填**：`username`（3–32 位字母数字下划线，唯一）, `email`, `name`；`phone` 选填；密码由后端自动生成，不接受前端传入  
+**Response**：`AdminDto`（**不含** `passwordHash`），新增字段 `username`/`phone`/`status`（`ENABLED`/`DISABLED`）/`source`（固定 `SYSTEM`）/`isSuperAdmin`
+
+`POST /auth/admin-login` 返回的 `admin` 对象同步补充 `username`、`isSuperAdmin` 字段；账号 `status=DISABLED` 时登录直接 401。
+
+### 4.1 AdminPermission 功能授权（P5.8b）
+
+**路径前缀**：`/admins/:id/permissions`（需 `AdminJwtAuthGuard`）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/admins/:id/permissions` | 查询用户功能授权清单（本人可查自己；超级管理员可查任何人；目标为超管时直接返回全量 11 `menuKey`，不查表） |
+| PUT | `/admins/:id/permissions` | 覆盖保存（仅超级管理员，挂载 `SuperAdminGuard`；目标为超管 → 400；非法 menuKey → 400） |
+
+**PUT Body**：`{ menuKeys: string[] }`（去重后覆盖写入；空数组清空全部业务权限）
+
+**Response**：`{ adminId: number, isSuperAdmin: boolean, menuKeys: string[] }`
+
+**11 个 menuKey**（前后端硬编码）：`orders.cleaning` / `orders.recycling` / `orders.consult` / `orders.complaint` / `data.dashboard` / `staff.workers` / `config.services` / `config.operators` / `config.banners` / `system.users` / `system.permissions`
+
+**硬性边界**：`system.users` / `system.permissions` 始终仅超级管理员可用（权限树展示但对普通管理员目标禁用勾选，不写入分配）。超级管理员不写入 `AdminPermission` 表，鉴权时直接全量放行。本期不做后端业务接口级权限点校验。
 
 ---
 
@@ -1054,15 +1083,16 @@ PENDING → PROCESSING → COMPLETED（终态）
 | `/config/services` | 服务配置（P5.9 已完成） |
 | `/config/operators` | 运营人员配置（P5.10 已完成） |
 | `/config/banners` | 轮播图管理（P5.11 已完成） |
-| `/settings` | 系统设置（P5.8 占位） |
+| `/system/users` | 系统管理-用户管理（P5.8 已完成） |
+| `/system/permissions` | 系统管理-功能授权（P5.8b 已完成） |
 
-**P5.1 侧栏菜单结构**（二级折叠 `el-sub-menu`）：
+**P5.1 侧栏菜单结构**（二级折叠 `el-sub-menu`；P5.8b 起按功能授权动态渲染）：
 
 - 订单管理 → 保洁/废品/家政/投诉
 - 数据管理 → 数据看板
 - 员工管理 → 服务人员管理
 - 配置管理 → 服务配置 / 运营人员配置 / 轮播图管理
-- 系统设置（一级菜单项）
+- 系统管理 → 用户管理 / 功能授权（始终仅超级管理员可见）
 
 **P5.1 关键新增/扩展文件**：
 
@@ -1386,6 +1416,92 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
+## P5.8 完成说明（2026-07-19）
+
+管理后台系统管理-用户管理（P5.8）已完成，以下接口与前端已对接：
+
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `GET /admins` | 用户列表分页 + 用户名/姓名/手机号/邮箱关键词筛选 | ✅ P5.8 已对接 |
+| `POST /admins` | 新增用户（默认密码 `Dyyj123..`） | ✅ P5.8 已对接 |
+| `PUT /admins/:id` | 编辑用户（name/email/phone，username 不可改） | ✅ P5.8 已对接 |
+| `DELETE /admins/:id` | 删除用户（超级管理员/自身账号禁止） | ✅ P5.8 已对接 |
+| `PATCH /admins/:id/toggle-status` | 启用/禁用切换（超级管理员/自身账号禁止） | ✅ P5.8 已对接 |
+| `POST /admins/:id/reset-password` | 重置为默认密码 `Dyyj123..` | ✅ P5.8 已对接 |
+| `PUT /admins/:id/change-password` | 顶栏「修改密码」自助改密（仅本人） | ✅ P5.8 已对接 |
+
+**P5.8 页面**：`/system/users`（系统管理 > 用户管理），侧栏原扁平「系统设置」改为 `el-sub-menu`「系统管理」（为 P5.8b「功能授权」预留同级子项位置）；顶栏用户区域改为下拉菜单（修改密码/退出登录）
+
+**P5.8 核心规则**：
+
+- 新建用户默认密码固定为 `Dyyj123..`，不接受前端传入密码
+- `AdminJwtAuthGuard`（`strategies/admin-jwt.strategy.ts`）每次请求查库校验 `status === 'ENABLED'`，禁用账号的旧 token 立即 401（不仅验签名）
+- 超级管理员账号（`isSuperAdmin=true`）与当前登录账号自身，均不可被禁用或删除（前端隐藏对应操作按钮，后端 `ForbiddenException` 双重拦截）
+- 顶栏改密仅允许操作自己账号（`id !== currentAdminId` 时 403），旧密码校验失败 400；成功后前端强制 `logout()` 并跳转登录页
+
+**P5.8 关键新增/扩展文件**：
+
+- `apps/server/prisma/schema.prisma`（`AdminStatus` 枚举 + `Admin` 扩展字段）
+- `apps/server/src/modules/auth/strategies/admin-jwt.strategy.ts` / `guards/admin-jwt-auth.guard.ts` / `decorators/current-admin.decorator.ts`
+- `apps/server/src/modules/admin/admin.service.ts`（`resetPassword` / `toggleStatus` / `changePassword` / `remove` 保护规则）
+- `apps/admin/src/api/admin.ts`（新建）+ `apps/admin/src/views/system/users/index.vue`（新建，替换 `views/settings` 占位）
+- `apps/admin/src/layout/index.vue`（侧栏子菜单 + 顶栏修改密码弹窗）
+
+**P5.8 验收清单**：
+
+| 验收项 | 结果 |
+|--------|------|
+| 新建用户 → 默认密码 `Dyyj123..` 登录成功 | ✅ |
+| 禁用账号 → 旧 token 下一次请求立即 401 | ✅ |
+| 禁用账号 → 重新登录返回 401 | ✅ |
+| 超级管理员/自身账号禁用删除均 403 | ✅ |
+| 跨用户改密 403、旧密码错误 400 | ✅ |
+| 重复用户名创建返回 409 | ✅ |
+| `npm run build`（server + admin）通过 | ✅ |
+
+---
+
+## P5.8b 完成说明（2026-07-19）
+
+管理后台系统管理-功能授权（P5.8b）已完成，以下接口与前端已对接：
+
+| 接口 | 前端用途 | 对接状态 |
+|------|---------|---------|
+| `GET /admins/:id/permissions` | 登录后拉取当前用户权限；功能授权页回填权限树 | ✅ P5.8b 已对接 |
+| `PUT /admins/:id/permissions` | 功能授权页「保存」覆盖写入 | ✅ P5.8b 已对接 |
+
+**P5.8b 页面**：`/system/permissions`（系统管理 > 功能授权：左侧用户列表 + 右侧 `el-tree` 权限树 + 全选/取消全选/保存）
+
+**P5.8b 核心规则**：
+
+- 页面级 11 个 `menuKey`，前后端各自硬编码维护（`menu-keys.constant.ts` / `menu-permissions.ts`）
+- 超级管理员权限树默认全选且禁止编辑，不写入 `AdminPermission` 表，鉴权时直接全量放行
+- `system.users` / `system.permissions` 始终仅超级管理员可用（沿用 P5.8 越权修复硬性边界）
+- 登录后拉取权限存入 Pinia + localStorage；侧栏按 `hasMenu` 动态渲染；路由 `meta.menuKey` + `beforeEach` 拦截未授权 URL
+- 本期不做后端业务接口级权限点校验、不做操作日志
+
+**P5.8b 关键新增/扩展文件**：
+
+- `apps/server/prisma/schema.prisma`（`AdminPermission` 模型）
+- `apps/server/src/modules/admin-permission/`（Module/Service/Controller/DTO/constants）
+- `apps/admin/src/api/admin-permission.ts` + `constants/menu-permissions.ts`
+- `apps/admin/src/views/system/permissions/index.vue`
+- `apps/admin/src/store/index.ts`（`permissions` / `hasMenu` / `fetchMyPermissions`）
+- `apps/admin/src/router/index.ts`（`menuKey` meta + 权限拦截）+ `layout/index.vue`（侧栏动态渲染）
+
+**P5.8b 验收清单**：
+
+| 验收项 | 结果 |
+|--------|------|
+| 超管权限树全选禁用；非超管按已授权回填 | ✅ |
+| 全选/取消全选/保存生效 | ✅ |
+| 仅授权 `orders.cleaning` 账号登录后侧栏仅保洁+首页 | ✅ |
+| 直接输入未授权/超管专属 URL 均拦截跳转首页 | ✅ |
+| 跨用户查询 403、非超管分配 403、对超管分配 400、非法 menuKey 400 | ✅ |
+| `npm run build`（含 shared/两端小程序/admin/server 全量）通过 | ✅ |
+
+---
+
 ## P5.9 完成说明（2026-06-23）
 
 管理后台服务配置管理（P5.9）已完成，以下接口与前端已对接：
@@ -1512,10 +1628,10 @@ PENDING → PROCESSING → COMPLETED（终态）
 
 ---
 
-> **文档版本**：v5.0（P5.11 管理后台轮播图管理对接完成）
+> **文档版本**：v5.2（P5.8b 系统管理-功能授权对接完成）
 > **生成日期**：2026-06-21
-> **修订日期**：2026-07-06（v5.0：P5.11 轮播图列表/新增编辑/删除 + QueryBannerDto title 模糊查询 + CreateBannerDto isEnabled + imageUrl localhost 兼容 + 居民端 active 联动；v4.9：P5.10 运营人员列表/新增编辑/删除 + QueryOperatorDto keyword 模糊查询 + 手机号完整展示；v4.8：P5.9 服务配置列表/新增编辑/启用停用 toggle + QueryServiceCatalogDto name 模糊查询 + isEnabled 默认过滤放开；v4.7：P5.7 投诉反馈列表/详情抽屉/跟进结案 + complaints 关联订单富 DTO + keyword/contactPhone 筛选；v4.6：P5.6 服务人员列表/新增编辑/详情抽屉/重置密码 + todayOrders 聚合 + complaints workerId 筛选 + CreateWorkerDto 扩展；v4.5：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v4.4：P5.4 废品订单列表/分配/代下单 + CreateRecyclingOrderDto 扩展 + findOne worker 关联；v4.3：P5.3 保洁订单列表/分配/代下单 + CreateCleaningOrderDto 扩展；v4.2：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v4.1：P5.1 Admin 登录+二级折叠菜单+配置管理路由占位；v4.0：P4.7 我的页员工详情+证书预览+修改密码；v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
-> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.11 管理后台对接说明
+> **修订日期**：2026-07-19（v5.2：P5.8b AdminPermission 表 + GET/PUT /admins/:id/permissions + 11 menuKey 权限树 + 侧栏动态渲染 + 路由守卫；v5.1：P5.8 Admin 扩展字段（username/phone/status/source/isSuperAdmin）+ AdminJwtAuthGuard 查库校验状态 + toggle-status/reset-password/change-password 新端点 + 默认密码 Dyyj123.. + 超级管理员/自身账号保护规则；v5.0：P5.11 轮播图列表/新增编辑/删除 + QueryBannerDto title 模糊查询 + CreateBannerDto isEnabled + imageUrl localhost 兼容 + 居民端 active 联动；v4.9：P5.10 运营人员列表/新增编辑/删除 + QueryOperatorDto keyword 模糊查询 + 手机号完整展示；v4.8：P5.9 服务配置列表/新增编辑/启用停用 toggle + QueryServiceCatalogDto name 模糊查询 + isEnabled 默认过滤放开；v4.7：P5.7 投诉反馈列表/详情抽屉/跟进结案 + complaints 关联订单富 DTO + keyword/contactPhone 筛选；v4.6：P5.6 服务人员列表/新增编辑/详情抽屉/重置密码 + todayOrders 聚合 + complaints workerId 筛选 + CreateWorkerDto 扩展；v4.5：P5.5 家政咨询单列表/新增/详情抽屉/ConsultFollowUp 跟进时间轴 + operatorId 修复；v4.4：P5.4 废品订单列表/分配/代下单 + CreateRecyclingOrderDto 扩展 + findOne worker 关联；v4.3：P5.3 保洁订单列表/分配/代下单 + CreateCleaningOrderDto 扩展；v4.2：P5.2 数据看板 ECharts 对接 + summary 时间范围统计；v4.1：P5.1 Admin 登录+二级折叠菜单+配置管理路由占位；v4.0：P4.7 我的页员工详情+证书预览+修改密码；v3.9：P4.6 PENDING_REVIEW/REVIEWED 只读模板+用户评价展示；v3.8：P4.5 IN_SERVICE 照片上传+水印+完成服务）
+> **覆盖范围**：P2.1 ~ P2.15 全部后端接口（共 15 个模块，60+ 个端点）+ P3.1–P3.8 居民端 + P4.1–P4.7 员工端 + P5.1–P5.11 管理后台对接说明 + P5.8/P5.8b 系统管理
 > **P2.15 新增**：`POST/GET /consult-orders/:id/follow-ups`（家政跟进记录）、ConsultOrder v2.0 字段适配  
 > **P2.15 修正**：废品 IN_SERVICE→PENDING_REVIEW 由员工 `/complete` 触发（与保洁对称），`/resident-accept` 已撤销
 > **P3.6_repair 修正**：彻底删除居民验收接口及前端按钮，废品与保洁完全对称
@@ -1542,3 +1658,7 @@ PENDING → PROCESSING → COMPLETED（终态）
 > **P5.10 新增**：管理后台运营人员配置 `/config/operators`；列表（姓名/手机号完整展示/用途/创建时间 + 无启用停用列）+ 新增/编辑弹窗 + 删除确认；后端 `QueryOperatorDto` 扩展 `name`/`phone`/`keyword` 模糊查询；`apps/admin/src/api/operator.ts` 新建 CRUD
 
 > **P5.11 新增**：管理后台轮播图管理 `/config/banners`；列表（标题/展示端/跳转类型/排序值/状态/生效时间/创建与修改时间）+ 状态/展示端/标题筛选 + 新增/编辑弹窗（三块表单 + 图片上传）+ 删除确认 + 状态 Tag 切换；后端 `QueryBannerDto.title` 模糊查询 + `CreateBannerDto.isEnabled` + `imageUrl` localhost 兼容；`apps/admin/src/api/banner.ts` 新建 CRUD；居民端 `GET /banners/active` 联动
+
+> **P5.8 新增**：管理后台系统管理-用户管理 `/system/users`；Admin 扩展字段（username/phone/status/source/isSuperAdmin）+ `AdminJwtAuthGuard` 查库校验状态 + `SuperAdminGuard` 越权修复 + toggle-status/reset-password/change-password；默认密码 `Dyyj123..`；顶栏修改密码；`apps/admin/src/api/admin.ts`
+
+> **P5.8b 新增**：管理后台系统管理-功能授权 `/system/permissions`；`AdminPermission` 表 + `GET`/`PUT /admins/:id/permissions`；11 个 menuKey 权限树分配；侧栏按 `hasMenu` 动态渲染；路由 `meta.menuKey` 守卫拦截；`system.users`/`system.permissions` 始终仅超管；`apps/admin/src/api/admin-permission.ts` + `constants/menu-permissions.ts`

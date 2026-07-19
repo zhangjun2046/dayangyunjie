@@ -18,6 +18,11 @@ export class QueryAdminDto {
   @Max(100)
   pageSize = 10;
 
+  @ApiPropertyOptional({ description: '按用户名模糊查询', example: 'zhang' })
+  @IsOptional()
+  @IsString()
+  username?: string;
+
   @ApiPropertyOptional({ description: '按姓名模糊查询', example: '系统' })
   @IsOptional()
   @IsString()
@@ -27,4 +32,14 @@ export class QueryAdminDto {
   @IsOptional()
   @IsString()
   email?: string;
+
+  @ApiPropertyOptional({ description: '按手机号模糊查询', example: '138' })
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @ApiPropertyOptional({ description: '用户名/姓名/手机号/邮箱模糊搜索', example: '张' })
+  @IsOptional()
+  @IsString()
+  keyword?: string;
 }

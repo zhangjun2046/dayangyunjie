@@ -59,8 +59,10 @@
 | P5.9 服务配置管理                           | ✅ 已通过 | 2026-06-23 | 管理端 `/config/services` 完整实现：列表（所属业务/服务名称/副标题/图标/排序/状态/创建时间）+ 新增/编辑弹窗 + 启用停用 toggle + 删除确认；无价格字段；后端 `QueryServiceCatalogDto` 放开 `isEnabled` 默认过滤 + 新增 `name` 模糊查询；`apps/admin/src/api/service-catalog.ts` 扩展 CRUD + toggle；修复：服务名称搜索无响应；使用 Sonnet 4.6 LLM 完成 |
 | P5.10 运营人员信息配置                      | ✅ 已通过 | 2026-07-06 | 管理端 `/config/operators` 完整实现：列表（姓名/手机号完整展示/用途/创建时间）+ 姓名手机号 keyword 搜索 + 新增/编辑弹窗 + 删除确认；后端 `QueryOperatorDto` 扩展 `name`/`phone`/`keyword` 模糊查询；`apps/admin/src/api/operator.ts` 新建 CRUD；使用默认 LLM 完成 |
 | P5.11 轮播图管理                            | ✅ 已通过 | 2026-07-06 | 管理端 `/config/banners` 完整实现：列表（标题/展示端/跳转类型/排序值/状态/生效时间/创建与修改时间）+ 状态/展示端/标题筛选 + 新增/编辑弹窗（基础信息/展示配置/跳转配置 + 图片上传≤2M）+ 删除确认 + 状态 Tag 切换；后端 `QueryBannerDto` 扩展 `title` 模糊查询 + `CreateBannerDto.isEnabled`；`imageUrl` 校验兼容 localhost 开发 URL；`apps/admin/src/api/banner.ts` 新建 CRUD；`npm run build` 通过；使用默认 LLM 完成 |
+| P5.8 系统管理-用户管理                      | ✅ 已通过 | 2026-07-19 | `Admin` 表扩展 `username`/`phone`/`status`/`source`/`isSuperAdmin`（`db push` + `seed.ts` 标记种子账号超级管理员）；新增 `AdminJwtStrategy`/`AdminJwtAuthGuard`（查库校验 `status=ENABLED`，非仅验签名）；`AdminController` 全量加 Guard，新增 `toggle-status`/`reset-password`/`change-password`；账号保护规则（超级管理员/自身不可禁用删除，前后端双重拦截）；管理后台新增 `系统管理 > 用户管理`（`views/system/users/index.vue` + `api/admin.ts`）+ 顶栏下拉「修改密码」弹窗（成功后强制退出登录）；`npm run build`（server + admin）通过；使用 Sonnet 5 LLM 完成 |
+| P5.8b 功能授权                              | ✅ 已通过 | 2026-07-19 | `AdminPermission` 表新增（`adminId`+`menuKey` 联合唯一索引，`db push` + `generate`）；新建 `AdminPermissionModule`：`GET /admins/:id/permissions`（本人可查自己，超级管理员可查任何人，目标为超管返回全量 11 key）+ `PUT /admins/:id/permissions`（仅超级管理员，覆盖保存，目标为超管拒绝 400，非法 menuKey 拒绝 400）；`system.users`/`system.permissions` 两节点始终仅超级管理员可用（沿用 P5.8 补丁硬性边界，权限树中展示但对普通管理员目标禁用勾选，不写入分配）；管理后台新增 `系统管理 > 功能授权`（`views/system/permissions/index.vue`：左侧用户列表 + 右侧 `el-tree` 权限树 + 全选/取消全选/保存）+ `api/admin-permission.ts`；`store` 扩展 `permissions` 状态（登录后拉取+持久化）+ `hasMenu` 方法；`router` 新增 `menuKey` meta + `/system/permissions` 路由 + `beforeEach` 权限拦截（未授权跳转 `/dashboard` + 警告提示）；`layout/index.vue` 侧栏按权限动态渲染（一级菜单下全部子项无权限则整体隐藏）；通过 API + 浏览器双重验证：超管权限树全选禁用、非超管权限树按已授权回填且系统两节点禁用、全选/保存生效、`orders.cleaning`-only 账号登录后侧栏仅显示保洁订单+首页、直接输入未授权/超管专属 URL 均被拦截跳转首页、跨用户查询/非超管分配/目标为超管分配/非法 menuKey 均正确拒绝；`npm run build`（server + admin，含 shared/miniapp 全量）通过；使用 Sonnet 5 LLM 完成 |
 
-> **P2.1–P2.15 后端核心 API 全部完成（含 v2.0 补充）。P3.1–P3.8 居民端全部完成。P4.1–P4.7 员工端小程序全部完成。** **P5.1 管理后台登录与布局框架已完成。P5.2 数据看板已完成。P5.3 保洁订单管理已完成。P5.4 废品订单管理已完成。P5.5 家政咨询单管理已完成。P5.6 服务人员管理已完成。P5.7 投诉反馈管理已完成。P5.9 服务配置管理已完成。P5.10 运营人员信息配置已完成。P5.11 轮播图管理已完成。** 下一阶段：**P6** — 集成与部署。
+> **P2.1–P2.15 后端核心 API 全部完成（含 v2.0 补充）。P3.1–P3.8 居民端全部完成。P4.1–P4.7 员工端小程序全部完成。** **P5.1 管理后台登录与布局框架已完成。P5.2 数据看板已完成。P5.3 保洁订单管理已完成。P5.4 废品订单管理已完成。P5.5 家政咨询单管理已完成。P5.6 服务人员管理已完成。P5.7 投诉反馈管理已完成。P5.8 系统管理-用户管理已完成。P5.8b 功能授权已完成。P5.9 服务配置管理已完成。P5.10 运营人员信息配置已完成。P5.11 轮播图管理已完成。** P5 管理后台全部单元已完成。
 
 ---
 
@@ -79,7 +81,7 @@
   - [P2 后端核心 API（40h，含 v2.0 补充）](#p2-后端核心-api40h)
   - [P3 居民端小程序（28h）](#p3-居民端小程序28h)
   - [P4 员工端小程序（22h）](#p4-员工端小程序22h)
-  - [P5 管理后台（37h）](#p5-管理后台37h)
+  - [P5 管理后台（40h）](#p5-管理后台40h)
   - [P6 集成与部署（12h）](#p6-集成与部署12h)
 - [八、工时汇总与排期建议](#八工时汇总与排期建议)
 - [九、风险与应急处理](#九风险与应急处理)
@@ -1977,9 +1979,9 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 ---
 
-### P5 管理后台（37h）
+### P5 管理后台（40h）
 
-**目标**: 实现运营管理人员使用的 Web 管理系统（基于需求文档 v2.0）。导航采用二级折叠菜单，新增配置管理模块（P5.9–P5.11）。
+**目标**: 实现运营管理人员使用的 Web 管理系统（基于需求文档 v2.0）。导航采用二级折叠菜单，新增配置管理模块（P5.9–P5.11），系统管理模块拆分为用户管理（P5.8）+ 功能授权（P5.8b）。
 
 > **此阶段可切换回默认/Fast 模型**（CRUD 模板化程度高），数据看板和复杂表单建议保持强模型。
 
@@ -2011,17 +2013,19 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
   ├── 服务配置
   ├── 运营人员信息配置
   └── 轮播图管理
-系统设置          ← 占位
+系统管理          ← ✏️ 二期正式实现（原「系统设置」占位），见 P5.8/P5.8b
+  ├── 用户管理    ← P5.8
+  └── 功能授权    ← P5.8b
 ```
 
-- 路由配置、权限守卫
+- 路由配置、权限守卫（本单元仅做未登录跳转；P5.8b 补充按功能授权动态渲染菜单+路由拦截）
 
 **Cursor Agent 干什么**
 
 - 登录页面（Element Plus 表单）
 - 侧栏二级折叠菜单组件（el-sub-menu）
 - 布局容器（顶栏+侧栏+内容区）
-- 全部路由配置（含 P5.9–P5.11 配置管理路由）
+- 全部路由配置（含 P5.9–P5.11 配置管理路由 + 系统管理占位路由，为 P5.8/P5.8b 预留）
 - 路由守卫（未登录跳转登录页）
 
 **人工干什么**
@@ -2318,33 +2322,104 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 
 ---
 
-#### P5.8 系统设置占位页（2h）
+#### P5.8 用户管理（4h）
 
-> **需求来源**：`requirement_v2.0.md` §5.5
+> **需求来源**：`requirement_v2.0.md` §5.5.1、§6.10、§10.2 #98–#99 #102–#104  
+> **下一单元**：[P5.8b](#p58b-功能授权3h)
 
 **干什么**
 
-系统设置菜单占位（功能建设中，不交付具体子功能）：
+管理后台用户账号管理（入口：**系统管理 > 用户管理**），替代原「系统设置」占位页，登录方式**保持不变**（仍为邮箱+密码，用户名仅展示/搜索）：
 
-- 点击侧栏「系统设置」→ 进入占位页（显示「功能建设中」）
-- 菜单保留，为后续版本预留入口
+- **Schema 迁移**：`Admin` 表扩展字段 `username`（唯一，创建后不可改）/ `phone` / `status`（ENABLED/DISABLED）/ `source`（固定 SYSTEM）/ `isSuperAdmin`；`prisma migrate` 或 `db push` + 更新 `seed.ts` 将现有种子管理员标记为 `isSuperAdmin=true`
+- **列表页**：用户名/姓名/邮箱/手机号/状态（内联开关）/用户来源（固定「系统用户」）/创建时间/操作（编辑、重置密码、删除）；搜索框（用户名/姓名/手机号/邮箱）
+- **新建用户弹窗**：用户名（必填唯一）/姓名（必填）/邮箱（必填唯一）/手机号（选填）；密码字段只读展示「默认密码：`Dyyj123..`」，无需手填
+- **编辑用户**：同新建表单（用户名不可编辑，无密码字段）
+- **重置密码**：二次确认后密码重置为 `Dyyj123..`（bcrypt 加密）
+- **启用/禁用**：状态开关；禁用后账号**立即无法登录**，且已登录的旧 token 下一次请求即返回 401（需在 admin JWT 校验环节查库判断 `status`，不能只验签名）
+- **账号保护规则**：超级管理员（`isSuperAdmin=true`）操作列不展示「禁用」「删除」；任何用户（含超级管理员）不可对**当前登录账号自身**执行「禁用」「删除」（前后端双重拦截）
+- **删除用户**：二次确认后删除，不级联处理历史 `operator_id` 记录（对齐 §6.1 现状，只留 ID 快照）
+- **顶栏个人「修改密码」**：任何已登录用户可用，需校验原密码，成功后强制重新登录
 
 **Cursor Agent 干什么**
 
-- 设置页面骨架（占位提示）
-- 路由配置
+- `apps/server/prisma/schema.prisma`：`Admin` 模型新增 `username`/`phone`/`status`/`source`/`isSuperAdmin` 字段 + 迁移；`seed.ts` 标记种子账号为超级管理员
+- 扩展 `AdminService`/`AdminController`（`apps/server/src/modules/admin`）：新建时写入默认密码 `Dyyj123..`、`resetPassword`、`toggleStatus`、`remove` 增加自身/超级管理员保护校验
+- `apps/server/src/modules/auth`：admin 分支 JWT 校验改为查库判断 `status=ENABLED`（否则 401）；新增 `PUT /admins/:id/change-password`（原密码校验）
+- 管理后台新增 `views/system/users/index.vue`（列表+搜索+新建/编辑弹窗+重置密码/删除确认）+ `api/admin.ts`
+- `layout/index.vue` 顶栏用户下拉新增「修改密码」菜单项 + 弹窗组件
 
 **人工干什么**
 
-- ✅ 点击设置菜单 → 页面打开不报错 → 显示占位信息
+- ✅ 新建用户 → 提示默认密码为 `Dyyj123..`，用该邮箱+密码可登录
+- ✅ 禁用某非超级管理员用户 → 其已登录会话下一次操作被拒绝，需重新登录
+- ✅ 「重置密码」后密码变为 `Dyyj123..`
+- ✅ 超级管理员无「禁用」「删除」按钮；任何用户对自己都无法点「禁用」「删除」
+- ✅ 顶栏「修改密码」输入错误原密码时报错，正确时修改成功并强制退出登录
 
-**使用模型**: 默认/Fast
+**使用模型**: **强模型**（涉及 schema 迁移 + 鉴权改造）
+
+**需要权限**: 文件读写、Node.js、数据库、浏览器
+
+**测试标准 — 通过后方可进入 P5.8b**:
+
+1. 用户新建/编辑/删除/重置密码/启用禁用全部可用，默认密码为 `Dyyj123..`
+2. 账号禁用后旧登录态立即失效（下一次请求 401）
+3. 超级管理员与"不可操作自身账号"两条保护规则均生效
+4. 顶栏个人修改密码功能可用
+
+**P5.8 验收结果（2026-07-19）**：✅ 已通过。Schema 迁移（`username`/`phone`/`status`/`source`/`isSuperAdmin`）+ 种子超级管理员；`AdminJwtAuthGuard` 查库校验状态（不仅验签名）；`/admins` 全量接口鉴权 + `toggle-status`/`reset-password`/`change-password` 新端点；超级管理员/自身账号保护规则前后端双重拦截；管理后台用户管理页 + 顶栏修改密码弹窗；通过 API 全流程回归验证：新建→默认密码登录→禁用→旧 token 401→重新登录失败→重置密码→自助改密（错误旧密码 400 / 正确成功）→自身及超级管理员禁用删除均 403→跨用户改密 403→重复用户名 409；`npm run build`（server + admin）均通过；使用 Sonnet 5 LLM 完成。
+
+**P5.8 补丁（2026-07-19，越权修复）**：验收后发现"用户管理"整体功能仅做了未登录跳转，未做角色级鉴权 —— 普通管理员登录后可查看用户列表、编辑任意用户（含超级管理员）资料、并可重置任意用户（含超级管理员）密码，存在越权提权风险（自助改密除外，该接口本身已限定只能改自己）。修复方案（在 P5.8b「功能授权」通用方案落地前的最小闭环，非等价替代）：
+- 后端新增 `SuperAdminGuard`，挂载到 `/admins` 的 `create`/`findAll`/`findOne`/`update`/`remove`/`toggle-status`/`reset-password` 七个端点，非超级管理员调用返回 403；`change-password`（自助改密）不受影响，任意管理员仍可修改自己的密码。
+- 前端路由 `/system/users` 增加 `meta.requiresSuperAdmin`，`router.beforeEach` 中校验 `useUserStore().isSuperAdmin`，非超级管理员直接访问该 URL 会被重定向到 `/dashboard` 并提示"仅超级管理员可访问该功能"；侧栏「系统管理」菜单项同样按 `isSuperAdmin` 条件渲染，普通管理员登录后不可见。
+- 已通过 API + 浏览器双重验证：普通管理员调用 `/admins` 系列接口均 403，自助改密仍成功；普通管理员登录后侧栏无「系统管理」入口，直接访问 URL 被拦截跳转；超级管理员两端均正常。
+
+---
+
+#### P5.8b 功能授权（3h）
+
+> **需求来源**：`requirement_v2.0.md` §5.5.2、§6.11、§10.2 #100–#101  
+> **下一单元**：[P5.9](#p59-服务配置管理3h)
+
+**干什么**
+
+为管理后台用户逐级分配可访问的功能节点（入口：**系统管理 > 功能授权**），页面级颗粒度（对应 §5.0 导航二级菜单末级节点，共 11 个 `menu_key`），依赖 P5.8 的用户数据，不做角色、不做数据权限：
+
+- **Schema 迁移**：新增 `AdminPermission` 表（`adminId` + `menuKey`，唯一约束联合索引）
+- **权限节点字典**：前端硬编码维护 11 个节点（`orders.cleaning`/`orders.recycling`/`orders.consult`/`orders.complaint`/`data.dashboard`/`staff.workers`/`config.services`/`config.operators`/`config.banners`/`system.users`/`system.permissions`），无需额外数据库表
+- **交互**：左侧用户列表 + 右侧 `el-tree` 权限树（checkbox，一级/二级三态联动）；「全选」「取消全选」快捷按钮；「保存」写入该用户的权限清单
+- **超级管理员**：权限树默认全选且禁止编辑，不写入 `AdminPermission` 表，鉴权时直接放行
+- **前端生效**：登录后拉取当前用户权限清单存入 Pinia；侧栏菜单按权限动态渲染（未授权二级菜单不显示，一级菜单下全部子项无权限则一级菜单也隐藏）；路由守卫拦截「直接输入 URL 访问未授权页面」（跳转 403 提示页或首页）
+- **本期已知限制（对齐需求 §5.5.2）**：不做后端接口级权限点校验（仅做登录态+账号启用校验，见 P5.8）；不做操作日志
+
+**Cursor Agent 干什么**
+
+- `apps/server/prisma/schema.prisma`：新增 `AdminPermission` 模型 + 迁移
+- 新建 `AdminPermissionModule`/`Service`/`Controller`：`GET /admins/:id/permissions`（查询）、`PUT /admins/:id/permissions`（覆盖保存），超级管理员返回全量节点
+- 管理后台新增 `views/system/permissions/index.vue`（用户列表 + `el-tree` 权限树 + 全选/保存）+ `api/admin-permission.ts`
+- `store`：`useUserStore` 扩展 `permissions: string[]`，登录成功后拉取并持久化
+- `layout/index.vue`：侧栏 `el-menu-item`/`el-sub-menu` 改为按 `userStore.permissions` 动态 `v-if` 渲染（超级管理员跳过校验）
+- `router/index.ts`：为业务路由 `meta` 增加 `menuKey`；`router.beforeEach` 增加权限校验，未授权跳转 403/首页
+
+**人工干什么**
+
+- ✅ 给某非超级管理员用户仅勾选「保洁订单」并保存 → 该用户重新登录后侧栏只看到「保洁订单」及首页
+- ✅ 该用户直接在地址栏输入未授权页面 URL（如废品订单）→ 被拦截，跳转 403 或首页
+- ✅ 超级管理员的权限树默认全选且勾选框禁用（不可修改）
+- ✅ 「全选」「取消全选」按钮按预期批量勾选/取消
+
+**使用模型**: **强模型**（权限树交互 + 动态路由守卫）
 
 **需要权限**: 同上
 
 **测试标准 — 通过后方可进入 P5.9**:
 
-1. 系统设置菜单可见，点击进入占位页
+1. 权限树保存后，对应用户下次登录/刷新即按新权限渲染菜单
+2. 未授权页面直接输入 URL 访问被拦截
+3. 超级管理员权限树不可编辑且始终全量放行
+
+**P5.8b 验收结果（2026-07-19）**：✅ 已通过。`AdminPermission` 表（`adminId`+`menuKey` 联合唯一索引）+ `AdminPermissionModule`（`GET`/`PUT /admins/:id/permissions`，本人可查自己/超管可查任何人，仅超管可分配，目标为超管拒绝分配，非法 menuKey 400）；`system.users`/`system.permissions` 始终仅超级管理员可用（权限树展示但对普通管理员目标禁用勾选，沿用 P5.8 补丁硬性边界不变）；管理后台新增「系统管理 > 功能授权」（用户列表 + `el-tree` 权限树 + 全选/取消全选/保存）；`store`/`router`/`layout` 均已接入权限动态渲染与拦截。通过 API + 浏览器双重验证：超管权限树全选禁用、非超管权限树按已授权回填、全选/保存生效、仅授权 `orders.cleaning` 的账号重新登录后侧栏仅显示保洁订单+首页、直接输入未授权业务页 URL 与超管专属 URL（`/system/users`）均被拦截跳转首页+提示、跨用户查询 403、非超管调用分配接口 403、对超管目标分配 400、非法 menuKey 400 全部符合预期；`npm run build`（含 shared/两端小程序/admin/server 全量）通过；使用 Sonnet 5 LLM 完成。
 
 ---
 
@@ -2669,9 +2744,9 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 | P2 后端补充单元（v2.0）    | 4 个      | 13h      | 强模型             | 7.5%     |
 | P3 居民端小程序            | 8 个      | 28h      | 强模型             | 16.1%    |
 | P4 员工端小程序            | 7 个      | 22h      | 强模型             | 12.6%    |
-| P5 管理后台（含配置管理）  | 11 个     | 37h      | 默认/Fast + 强模型 | 21.3%    |
-| P6 集成与部署              | 5 个      | 12h      | 默认/Fast          | 6.9%     |
-| **v2.0 合计**              | **51 个** | **155h** | —                  | **100%** |
+| P5 管理后台（含配置管理+系统管理） | 12 个     | 40h      | 默认/Fast + 强模型 | 25.3%    |
+| P6 集成与部署              | 5 个      | 12h      | 默认/Fast          | 7.6%     |
+| **v2.0 合计**              | **52 个** | **158h** | —                  | **100%** |
 
 > **P2 详细分解**：P2.1–P2.11（v1.x 已完成 27h）+ P2.12–P2.15（v2.0 新增 13h）= 40h 合计
 
@@ -2693,7 +2768,7 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 | **第 2 周** | 完成 P2.5-P2.11（订单状态机 + 高级接口），后端 v1.x 收尾                   |
 | **第 3 周** | 完成 P2.12-P2.15（v2.0 补充：Schema迁移/Worker登录/配置CRUD/验收记录）      |
 | **第 4 周** | 完成 P3（居民端小程序）                                                     |
-| **第 5 周** | 完成 P4 + P5.1-P5.8（员工端 + 管理后台核心功能）                           |
+| **第 5 周** | 完成 P4 + P5.1-P5.8b（员工端 + 管理后台核心功能，含系统管理用户/权限）      |
 | **第 6 周** | 完成 P5.9-P5.11 + P6（配置管理 + 集成部署），MVP v2.0 上线                 |
 
 ---
@@ -2806,7 +2881,8 @@ PENDING_ASSIGN → ASSIGNED → ACCEPTED → IN_SERVICE → PENDING_REVIEW → R
 | P5.5  | "开始 P5.5，实现家政咨询单管理（被服务人列 + ConsultFollowUp 跟进时间轴 + 提交/完成按钮 + FOLLOW_UP/FOLLOWING/COMPLETED 状态名）"                |
 | P5.6  | "开始 P5.6，实现服务人员管理（今日订单列 + 重置密码 + 技能单选 + 证书区 + 投诉记录列表 + 移除创收金额）"                                        |
 | P5.7  | "开始 P5.7，实现投诉反馈管理（关联订单列 + 投诉内容列 + 移除旧列 + 完成按钮）"                                                                 |
-| P5.8  | "开始 P5.8，实现系统设置占位页"                                                                                                                 |
+| P5.8  | "开始 P5.8，实现系统管理-用户管理（Admin 扩展字段迁移 + 默认密码Dyyj123.. + 重置密码 + 禁用即时失效 + 顶栏修改密码）"                              |
+| P5.8b | "开始 P5.8b，实现系统管理-功能授权（AdminPermission 迁移 + 权限树分配 + 侧栏菜单动态渲染 + 路由守卫拦截）"                                       |
 | P5.9  | "开始 P5.9（v2.0），实现服务配置管理（ServiceCatalog CRUD + 启用停用 toggle + 无价格字段）"                                                      |
 | P5.10 | "开始 P5.10（v2.0），实现运营人员信息配置（Operator CRUD + 手机号完整展示）"                                                                    |
 | P5.11 | "开始 P5.11（v2.0），实现轮播图管理（Banner CRUD + 展示端筛选 + 排序数字）"                                                                     |

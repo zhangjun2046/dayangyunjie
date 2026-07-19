@@ -89,14 +89,16 @@ async function main() {
   const passwordHash = await bcrypt.hash(ADMIN_DEFAULT_PASSWORD, 10);
   await prisma.admin.upsert({
     where: { email: 'admin@dayunyunjie.com' },
-    update: { passwordHash, name: '管理员' },
+    update: { passwordHash, name: '管理员', username: 'admin', isSuperAdmin: true },
     create: {
+      username: 'admin',
       email: 'admin@dayunyunjie.com',
       passwordHash,
       name: '管理员',
+      isSuperAdmin: true,
     },
   });
-  console.info('[seed] Admin upserted: admin@dayunyunjie.com');
+  console.info('[seed] Admin upserted: admin@dayunyunjie.com (isSuperAdmin=true)');
 
   // ─── ServiceCatalog ───────────────────────────────────────────────────────
   const existingCatalogCount = await prisma.serviceCatalog.count();
