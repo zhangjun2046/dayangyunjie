@@ -17,7 +17,6 @@
     "format": "prettier --write \"**/*.{ts,json,md}\""
   },
   "devDependencies": {
-    "@rollup/rollup-win32-x64-msvc": "^4.34.9",
     "prettier": "^3.5.0",
     "typescript": "^5.7.0"
   }
