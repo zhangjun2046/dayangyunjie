@@ -16,12 +16,18 @@ async function bootstrap() {
   fs.mkdirSync(uploadsDir, { recursive: true });
   app.useStaticAssets(uploadsDir, { prefix: '/uploads' });
 
-  // CORS - 开发阶段允许所有 localhost/127.0.0.1 端口；生产环境收紧
+  // CORS - 本地开发放行 localhost；测试/生产通过 CORS_ORIGIN 追加公网地址（逗号分隔）
+  const extraOrigins = (process.env.CORS_ORIGIN ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
   app.enableCors({
     origin: (origin, callback) => {
       if (
         !origin ||
-        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ||
+        extraOrigins.includes(origin)
       ) {
         callback(null, true);
       } else {
