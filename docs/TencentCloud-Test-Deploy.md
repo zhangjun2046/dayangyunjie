@@ -414,6 +414,10 @@ STORAGE_PROVIDER=local
 
 # 浏览器从公网 IP 访问时，NestJS CORS 须放行（否则登录报 Internal server error）
 CORS_ORIGIN=http://118.195.149.50
+
+# 本地存储落盘图片对外可访问的地址；不配置会回退为 http://localhost:3000，
+# 导致上传的服务前/后照片仅服务器本机能看到，其它客户端一律加载失败
+SERVER_BASE_URL=http://118.195.149.50
 EOF
 ```
 
@@ -425,6 +429,7 @@ EOF
 | `WECHAT_MOCK_OPENID_PREFIX` | `mock_openid_` | 继续 mock 微信登录 |
 | `STORAGE_PROVIDER` | `local` | 上传文件落盘 `apps/server/uploads/` |
 | `CORS_ORIGIN` | `http://118.195.149.50` | ✅ 已配置，修复登录 500 |
+| `SERVER_BASE_URL` | `http://118.195.149.50` | ⚠️ 必配，否则上传图片 URL 回退为 `localhost`，居民端/员工端小程序及跨机访问一律无法加载图片（见第八.5节排查记录） |
 
 验证：
 
@@ -438,6 +443,7 @@ cat .env   # 确认内容完整，勿将输出贴到公开渠道
 - [x] JWT 两个 secret 均已替换占位符
 - [x] `STORAGE_PROVIDER=local`（测试环境不接 COS）
 - [x] `CORS_ORIGIN=http://118.195.149.50`（修复登录 500，见第八节）
+- [ ] `SERVER_BASE_URL=http://118.195.149.50`（未配置会导致上传图片 URL 落为 `localhost`，居民端/员工端看不到服务前后照片）
 
 ### 5.2 管理后台 `apps/admin/.env.production`
 
@@ -699,6 +705,43 @@ curl -X POST http://118.195.149.50/api/v1/auth/admin-login \
 |------|-----|
 | 邮箱 | `admin@dayunyunjie.com`（注意是 **yunjie**，不是 yunyunjie） |
 | 密码 | `admin123` |
+
+---
+
+## 八.5、上传照片无法显示（`SERVER_BASE_URL` 说明）
+
+**现象**：员工端小程序上传"服务前/服务后"照片并确认完成后，订单状态正常流转，但照片在管理后台/居民端小程序均无法加载（图片位显示裂图）。本机 dev 环境（浏览器与 server 同机）看起来正常，部署到测试机后才暴露问题。
+
+**根因**：`apps/server/src/common/storage/local-storage.strategy.ts` 落盘图片时用 `SERVER_BASE_URL` 拼接返回给前端的 URL，未配置时回退为 `http://localhost:3000`：
+
+```ts
+this.baseUrl = process.env.SERVER_BASE_URL ?? 'http://localhost:3000';
+// ...
+const url = `${this.baseUrl}/uploads/${filename}`;
+```
+
+这个 URL 会原样存入数据库（`work_photos.url`）。本机开发时浏览器和 server 同机，`localhost:3000` 能访问通，看不出问题；部署到测试机后，若未设置 `SERVER_BASE_URL`，同样回退成 `localhost`，写入数据库的 URL 在任何其它客户端（居民端/员工端真机、其它机器上的管理后台浏览器）里都无法访问。
+
+**修复步骤**：
+
+1. 在 `apps/server/.env` 追加（与 5.1 节一致）：
+
+```env
+SERVER_BASE_URL=http://118.195.149.50
+```
+
+2. 重新构建并重启后端：`npm run build --workspace=@dayangyunjie/server && pm2 restart dayangyunjie-api`。
+3. **历史脏数据**：修复前已上传的照片，其 `work_photos.url` 仍是 `http://localhost:3000/...`，需要一次性批量替换前缀（不会丢文件，`apps/server/uploads/` 目录下文件本身是完整的）：
+
+```sql
+UPDATE work_photos
+SET url = REPLACE(url, 'http://localhost:3000', 'http://118.195.149.50')
+WHERE url LIKE 'http://localhost:3000%';
+```
+
+4. 若后续切换为 HTTPS 域名，`SERVER_BASE_URL` 需与小程序 `VITE_API_BASE` 协议保持一致（同为 HTTPS），否则小程序在 HTTPS 页面下会因混合内容拦截 HTTP 图片。
+
+**关于自签名证书的说明（2026-07-28 评估结论：测试阶段不需要）**：曾在 `/etc/nginx/ssl/` 下手动生成过自签名证书并给 Nginx 加过 `listen 443 ssl`，直接连接服务器抓取证书验证后确认 `Subject`/`Issuer` 均为 `CN=118.195.149.50`——即自签名证书，绑定的还是裸 IP。公网可信 CA（含 Let's Encrypt）均不为裸 IP 签发证书，必须先有备案域名。自签名证书只能靠客户端"跳过校验"（`curl -k`、开发者工具"不校验 HTTPS 证书"）才能访问，真机与正式发布一律会拒绝，对"给同事在开发者工具里测试"这个目标没有实际收益，反而增加协议不一致的风险。**结论：测试阶段统一使用 `http://118.195.149.50`，不使用该自签名证书**；Nginx 的 `listen 443` 配置块可保留但不使用，待后续申请到真实域名 + 可信证书（见第十一节）后再启用并把本节、第五节、9.1 节的地址一并切换为 HTTPS 域名。
 
 ---
 

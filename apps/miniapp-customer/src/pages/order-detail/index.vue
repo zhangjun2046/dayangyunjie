@@ -142,6 +142,39 @@
         </view>
       </view>
 
+      <!-- 服务记录照片（服务前/服务后，员工端完成服务后上传） -->
+      <view v-if="orderType !== 'consult' && (beforeWorkPhotos.length || afterWorkPhotos.length)" class="info-card">
+        <view class="card-title-row">
+          <text class="card-title">服务记录</text>
+        </view>
+        <view v-if="beforeWorkPhotos.length" class="photo-group">
+          <text class="photo-group-label">服务前照片</text>
+          <view class="photo-grid">
+            <image
+              v-for="(photo, idx) in beforeWorkPhotos"
+              :key="photo.id"
+              class="work-photo-img"
+              :src="photo.url"
+              mode="aspectFill"
+              @tap="onPreviewWorkPhoto(beforeWorkPhotos, idx)"
+            />
+          </view>
+        </view>
+        <view v-if="afterWorkPhotos.length" class="photo-group">
+          <text class="photo-group-label">服务后照片</text>
+          <view class="photo-grid">
+            <image
+              v-for="(photo, idx) in afterWorkPhotos"
+              :key="photo.id"
+              class="work-photo-img"
+              :src="photo.url"
+              mode="aspectFill"
+              @tap="onPreviewWorkPhoto(afterWorkPhotos, idx)"
+            />
+          </view>
+        </view>
+      </view>
+
       <!-- 我的评价（订单已完成时展示） -->
       <view v-if="review && orderType !== 'consult'" class="info-card review-card">
         <view class="card-title-row review-card-header">
@@ -248,6 +281,7 @@ import {
   fetchCleaningOrderDetail,
   cancelCleaningOrder,
   type CleaningOrderDto,
+  type WorkPhotoDto,
 } from '@/api/cleaning-order';
 import {
   fetchRecyclingOrderDetail,
@@ -281,6 +315,7 @@ type AnyOrder = (CleaningOrderDto | RecyclingOrderDto | ConsultOrderDto) & {
   remark?: string | null;
   createdAt: string;
   worker?: { id: number; name: string; phone: string } | null;
+  workPhotos?: WorkPhotoDto[];
 };
 
 const authStore = useAuthStore();
@@ -367,6 +402,26 @@ function onPreviewReviewImage(startIdx: number) {
     current: startIdx,
     urls: review.value.images as string[],
   });
+}
+
+/** 服务前照片（员工端完成服务时上传） */
+const beforeWorkPhotos = computed(() =>
+  (order.value?.workPhotos ?? []).filter((p) => p.photoType === 'BEFORE'),
+);
+
+/** 服务后照片（员工端完成服务时上传） */
+const afterWorkPhotos = computed(() =>
+  (order.value?.workPhotos ?? []).filter((p) => p.photoType === 'AFTER'),
+);
+
+/** 预览服务记录照片 */
+function onPreviewWorkPhoto(photos: WorkPhotoDto[], startIdx: number) {
+  if (!photos.length) return;
+  uni.previewImage({
+    current: startIdx,
+    urls: photos.map((p) => p.url),
+  });
+  console.info('[order-detail] preview work photo, count=', photos.length);
 }
 
 /** 跳转投诉进度详情页 */
@@ -881,5 +936,35 @@ function getComplaintStatusClass(status: string): string {
   width: 160rpx;
   height: 160rpx;
   border-radius: 12rpx;
+}
+
+/* 服务记录照片（服务前/服务后） */
+.photo-group {
+  margin-bottom: 20rpx;
+}
+
+.photo-group:last-child {
+  margin-bottom: 0;
+}
+
+.photo-group-label {
+  display: block;
+  font-size: 26rpx;
+  color: #999;
+  margin-bottom: 12rpx;
+}
+
+.photo-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.work-photo-img {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 12rpx;
+  background: #f5f5f5;
 }
 </style>

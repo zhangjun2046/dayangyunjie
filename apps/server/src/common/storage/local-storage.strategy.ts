@@ -21,6 +21,15 @@ export class LocalStorageStrategy implements IStorageService {
     this.baseUrl = process.env.SERVER_BASE_URL ?? 'http://localhost:3000';
     fs.mkdirSync(this.uploadsDir, { recursive: true });
     this.logger.log(`LocalStorage initialized. Dir: ${this.uploadsDir}`);
+    if (!process.env.SERVER_BASE_URL) {
+      // 生产/测试环境务必配置 SERVER_BASE_URL，否则落盘图片的 URL 会写死成
+      // http://localhost:3000/uploads/xxx.jpg —— 仅在服务器本机可访问，
+      // 其它客户端（含小程序真机、其它主机的管理后台）一律加载失败。
+      this.logger.warn(
+        'SERVER_BASE_URL 未配置，图片 URL 将回退为 http://localhost:3000，' +
+          '非本机客户端将无法访问已上传的图片，请在 .env 中配置为公网可访问的地址',
+      );
+    }
   }
 
   async save(filename: string, buffer: Buffer): Promise<string> {

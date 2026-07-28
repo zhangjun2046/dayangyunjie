@@ -20,6 +20,14 @@ export interface CreateCleaningOrderParams {
   remark?: string;
 }
 
+/** 服务作业照片（服务前/服务后） */
+export interface WorkPhotoDto {
+  id: number;
+  photoType: 'BEFORE' | 'AFTER';
+  url: string;
+  createdAt: string;
+}
+
 export interface CleaningOrderDto {
   id: number;
   orderNo: string;
@@ -39,6 +47,8 @@ export interface CleaningOrderDto {
   /** 已派单时携带服务人员基本信息 */
   worker?: { id: number; name: string; phone: string } | null;
   remark?: string | null;
+  /** 服务前/服务后照片（完成服务后由员工端上传） */
+  workPhotos?: WorkPhotoDto[];
   createdAt: string;
   updatedAt: string;
 }
