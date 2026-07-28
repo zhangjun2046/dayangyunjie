@@ -1,9 +1,9 @@
 # 腾讯云测试环境部署方案
 
-> **文档版本**：v1.13
-> **编制日期**：2026-07-27（v1.13 确认 Nginx 配置生效）
+> **文档版本**：v1.15
+> **编制日期**：2026-07-28（v1.15 确认小程序开发者工具联调环境就绪）
 > **适用范围**：大洋云洁 (dayangyunjie-code) 一期 MVP —— 腾讯云**测试环境**部署（非正式生产）
-> **前置进度**：P1–P5 已全部完成（后端核心 API、居民端小程序、员工端小程序、管理后台）；P6 集成与部署待启动
+> **前置进度**：P1–P5 已全部完成（后端核心 API、居民端小程序、员工端小程序、管理后台）；**P6 测试环境部署与开发者工具联调已完成**
 > **关联文档**：`docs/tech.md`（技术选型）、`docs/CodingPlan.md`（P6 集成与部署单元）、`docs/MiniApp-Architecture.md`
 
 ---
@@ -94,7 +94,7 @@ cat /etc/os-release     # TencentOS Server 3.3 (Final)，PLATFORM_ID=platform:el
 
 ## 三、服务器基础环境搭建
 
-通过 SSH 登录服务器后执行（**当前进度：第三节已全部完成，待第四节拉取代码**）：
+通过 SSH 登录服务器后执行（**当前进度：第三节已全部完成**）：
 
 ### 3.0 已验证环境（测试机 `ins-g089n0zo`，2026-07-27）
 
@@ -374,11 +374,16 @@ npm install
 
 > `unzip` 未安装时：`dnf install -y unzip`
 
-后续更新代码：
+后续更新代码（GitHub 超时时用循环重试）：
 
 ```bash
 cd /opt/dayangyunjie-code
-git pull origin master
+for i in 1 2 3 4 5; do
+  echo "=== 第 $i 次尝试 git pull ==="
+  git pull origin master && break
+  echo "失败，5 秒后重试..."
+  sleep 5
+done
 npm install   # package.json 有变更时执行
 ```
 
@@ -419,7 +424,7 @@ EOF
 | `JWT_*_EXPIRES_IN` | `2h` / `7d` | 与代码默认值一致 |
 | `WECHAT_MOCK_OPENID_PREFIX` | `mock_openid_` | 继续 mock 微信登录 |
 | `STORAGE_PROVIDER` | `local` | 上传文件落盘 `apps/server/uploads/` |
-| `CORS_ORIGIN` | `http://118.195.149.50` | **必加**，否则管理后台登录 500 |
+| `CORS_ORIGIN` | `http://118.195.149.50` | ✅ 已配置，修复登录 500 |
 
 验证：
 
@@ -444,17 +449,21 @@ VITE_API_BASE_URL=/api/v1
 
 ### 5.3 居民端小程序 `apps/miniapp-customer/.env.production`
 
+> **状态**：✅ 已于 2026-07-28 在本机 Windows 配置完成。
+
 ```env
 VITE_API_BASE=http://118.195.149.50/api/v1
 ```
 
 ### 5.4 员工端小程序 `apps/miniapp-worker/.env.production`
 
+> **状态**：✅ 已于 2026-07-28 在本机 Windows 配置完成。
+
 ```env
 VITE_API_BASE=http://118.195.149.50/api/v1
 ```
 
-> 两个小程序的 `.env.production` 中原有的占位域名（如 `https://api.dayangyunjie.com`、`https://your-domain`）均需替换为实际公网 IP，避免误连不存在的正式域名。
+> 两个小程序各自读取**本目录下**的 `.env.production`（居民端不会读员工端配置）。`npm run build:mp-weixin` 为 production 构建，会将 `VITE_API_BASE` 编译进 `dist/build/mp-weixin` 产物。
 
 ---
 
@@ -670,7 +679,19 @@ ls -la /var/www/dayangyunjie-admin/index.html
 CORS_ORIGIN=http://118.195.149.50
 ```
 
-并在 `apps/server/src/main.ts` 中通过 `CORS_ORIGIN` 读取（已合入代码库）。修改后需重新 `npm run build` 并 `pm2 restart dayangyunjie-api`。
+并在 `apps/server/src/main.ts` 中通过 `CORS_ORIGIN` 读取（已合入代码库）。修改后需重新 `npm run build --workspace=@dayangyunjie/server` 并 `pm2 restart dayangyunjie-api`。
+
+**测试机验证**（2026-07-28）：✅ 已修复并验证登录接口。
+
+```bash
+curl -X POST http://118.195.149.50/api/v1/auth/admin-login \
+  -H "Content-Type: application/json" \
+  -H "Origin: http://118.195.149.50" \
+  -d '{"email":"admin@dayunyunjie.com","password":"admin123"}'
+# 应返回 "code":0 及 accessToken
+```
+
+浏览器访问 `http://118.195.149.50/` 使用相同账号登录。
 
 **管理后台默认登录账号**（`prisma db seed` 写入）：
 
@@ -683,13 +704,82 @@ CORS_ORIGIN=http://118.195.149.50
 
 ## 九、居民端/员工端小程序对接云端测试环境
 
-由于明确使用**微信开发者工具**测试，无需域名与 HTTPS，具体操作：
+> **状态**：✅ 已于 2026-07-28 在本机 Windows 完成构建，微信开发者工具可正常打开双端 `dist/build/mp-weixin` 目录。
 
-1. 确认 `apps/miniapp-customer/.env.production` 与 `apps/miniapp-worker/.env.production` 中的 `VITE_API_BASE` 已指向 `http://118.195.149.50/api/v1`（见第五节）。
-2. 用微信开发者工具分别打开 `apps/miniapp-customer`、`apps/miniapp-worker` 项目。
-3. 在开发者工具右上角「详情」→「本地设置」中勾选：
+### 9.1 本机修改 `.env.production`（本机改 → 保存即可，无需 push 到服务器）
+
+**居民端** `apps/miniapp-customer/.env.production`：
+
+```env
+VITE_API_BASE=http://118.195.149.50/api/v1
+```
+
+**员工端** `apps/miniapp-worker/.env.production`：
+
+```env
+VITE_API_BASE=http://118.195.149.50/api/v1
+```
+
+### 9.2 微信开发者工具设置
+
+本项目为 **uni-app CLI**，微信开发者工具**不能**直接打开 `apps/miniapp-customer` 源码目录，须打开编译后的 `mp-weixin` 目录。
+
+#### 联调云端测试环境（推荐）
+
+在本机项目根目录执行（先确认 9.1 节 `.env.production` 已改为公网 IP）：
+
+```powershell
+cd D:\coding\dayangyunjie-code
+
+# 居民端：编译微信小程序（读取 apps/miniapp-customer/.env.production）
+npm run build:mp-weixin --workspace=@dayangyunjie/miniapp-customer
+# 或进入子目录：cd apps\miniapp-customer && npm run build:mp-weixin
+
+# 员工端：编译微信小程序（读取 apps/miniapp-worker/.env.production）
+npm run build:mp-weixin --workspace=@dayangyunjie/miniapp-worker
+# 或进入子目录：cd apps\miniapp-worker && npm run build:mp-weixin
+```
+
+**本机验证**（2026-07-28）：✅ 双端 `npm run build:mp-weixin` 均输出 `DONE Build complete`；微信开发者工具可分别导入以下目录并正常打开。
+
+| 端 | 构建命令 | 开发者工具导入路径 | 编译后 API 地址（`api/request.js`） |
+|----|----------|-------------------|-------------------------------------|
+| 居民端 | `apps/miniapp-customer` 下 `npm run build:mp-weixin` | `D:\coding\dayangyunjie-code\apps\miniapp-customer\dist\build\mp-weixin` | `http://118.195.149.50/api/v1` |
+| 员工端 | `apps/miniapp-worker` 下 `npm run build:mp-weixin` | `D:\coding\dayangyunjie-code\apps\miniapp-worker\dist\build\mp-weixin` | `http://118.195.149.50/api/v1` |
+
+> `dist\dev\mp-weixin` 是**开发模式**产物（`npm run dev:mp-weixin`），读的是 `.env.development`（默认 `127.0.0.1`），**不会连云端**。联调腾讯云请用 `dist\build\mp-weixin`。
+
+#### 本地开发模式（连本机后端时用）
+
+```powershell
+npm run dev:mp-weixin --workspace=@dayangyunjie/miniapp-customer
+```
+
+然后打开 `dist\dev\mp-weixin`，API 指向 `.env.development` 中的 `127.0.0.1:3000`。
+
+#### 开发者工具通用设置
+
+1. 右上角 **详情** → **本地设置**，勾选：
    - **不校验合法域名、web-view（业务域名）、TLS 版本以及 HTTPS 证书**
-4. 以生产模式编译预览（确保读取的是 `.env.production` 而非 `.env.development`），验证登录、下单、派单、GPS 签到、拍照上传、评价等流程均能正确访问到云端 API 与云端数据库。
+2. 修改 `.env` 或源码后需**重新执行对应的 build/dev 命令**，再在工具中 **编译/刷新**。
+
+### 9.3 建议验证流程
+
+| 顺序 | 端 | 操作 |
+|------|-----|------|
+| 1 | 管理后台 | 浏览器登录，查看订单/配置 |
+| 2 | 居民端 | mock 微信登录 → 创建保洁/废品/家政订单 |
+| 3 | 管理后台 | 派单 |
+| 4 | 员工端 | 手机号+密码登录 → 接单 → GPS 签到 → 上传照片 → 完成 |
+| 5 | 居民端 | 评价 / 废品验收 |
+| 6 | 服务器 | `ls /opt/dayangyunjie-code/apps/server/uploads/` 确认图片落盘 |
+
+由于明确使用**微信开发者工具**测试，无需域名与 HTTPS。联调前确认：
+
+1. `apps/miniapp-customer/.env.production` 与 `apps/miniapp-worker/.env.production` 中的 `VITE_API_BASE` 已指向 `http://118.195.149.50/api/v1`（见第五节）。
+2. 执行 `npm run build:mp-weixin` 后，用微信开发者工具分别导入 `dist\build\mp-weixin` 目录（**不要**直接打开 `apps/miniapp-customer` 或 `apps/miniapp-worker` 源码根目录）。
+3. 在开发者工具右上角「详情」→「本地设置」中勾选 **不校验合法域名、web-view（业务域名）、TLS 版本以及 HTTPS 证书**。
+4. 按上表验证流程跑通登录、下单、派单、GPS 签到、拍照上传、评价等业务链路。
 5. 图片上传后可在服务器 `apps/server/uploads/` 目录下看到落盘文件，说明本地存储策略工作正常。
 
 > 该方式仅适用于开发者工具内测试；若后续要在**真机**上体验/预览，微信通常要求 request 合法域名为 HTTPS，此时需要按第十一节补充域名与证书。
@@ -698,18 +788,19 @@ CORS_ORIGIN=http://118.195.149.50
 
 ## 十、部署后验收清单
 
-| # | 验收项 | 预期结果 |
-|---|--------|----------|
-| 1 | 浏览器访问 `http://公网IP/` | 能看到并登录管理后台 |
-| 2 | 访问 `http://公网IP/api/docs` | 能看到 Swagger 文档页 |
-| 3 | 管理后台各模块（订单/服务人员/投诉/配置管理/数据看板） | 数据可正常查询、新增、修改 |
-| 4 | 开发者工具中居民端登录 + 三类预约（保洁/废品/家政） | 能成功创建订单，管理后台能看到 |
-| 5 | 管理后台派单 → 员工端开发者工具接单 | 状态正确流转为 `ASSIGNED` |
-| 6 | 员工端 GPS 签到 → 上传服务照片 → 完成服务 | 照片落盘到服务器 `uploads/`，状态流转正确 |
-| 7 | 居民端评价 / 废品验收 | 状态最终流转为 `REVIEWED` |
-| 8 | 投诉提交与后台处理 | 完整闭环 |
-| 9 | `pm2 restart dayangyunjie-api` 或 kill 进程后 | PM2 自动拉起服务 |
-| 10 | 服务器重启后 | Nginx、MySQL、PM2 均自动恢复（`pm2 startup` + 系统服务默认自启） |
+| # | 验收项 | 预期结果 | 测试环境状态 |
+|---|--------|----------|--------------|
+| 1 | 浏览器访问 `http://公网IP/` | 能看到并登录管理后台 | ✅ 已验证 |
+| 2 | 访问 `http://公网IP/api/docs` | 能看到 Swagger 文档页 | ✅ 已验证 |
+| 3 | 管理后台各模块（订单/服务人员/投诉/配置管理/数据看板） | 数据可正常查询、新增、修改 | ✅ 已验证 |
+| 4 | 开发者工具中居民端登录 + 三类预约（保洁/废品/家政） | 能成功创建订单，管理后台能看到 | 联调时按需验证 |
+| 5 | 管理后台派单 → 员工端开发者工具接单 | 状态正确流转为 `ASSIGNED` | 联调时按需验证 |
+| 6 | 员工端 GPS 签到 → 上传服务照片 → 完成服务 | 照片落盘到服务器 `uploads/`，状态流转正确 | 联调时按需验证 |
+| 7 | 居民端评价 / 废品验收 | 状态最终流转为 `REVIEWED` | 联调时按需验证 |
+| 8 | 投诉提交与后台处理 | 完整闭环 | 联调时按需验证 |
+| 9 | `pm2 restart dayangyunjie-api` 或 kill 进程后 | PM2 自动拉起服务 | ✅ 已验证 |
+| 10 | 服务器重启后 | Nginx、MySQL、PM2 均自动恢复（`pm2 startup` + 系统服务默认自启） | ✅ 已验证 |
+| 11 | 微信开发者工具导入双端 `dist/build/mp-weixin` | 居民端、员工端均可正常打开并请求云端 API | ✅ 已验证（2026-07-28） |
 
 ---
 
@@ -777,10 +868,11 @@ systemctl status mysqld
 | 6c | 6.2 节：`npm run build` | ✅ 已完成 |
 | 6d | 6.3 节：PM2 启动后端（online + 开机自启） | ✅ 已完成 |
 | 6e | 6.4 节：管理后台静态资源 → `/var/www/dayangyunjie-admin` | ✅ 已完成 |
-| 7 | 第七节：Nginx 反代 | ✅ 已完成 |
-| 8 | 第九节：小程序开发者工具联调 | ⏳ **当前步骤** |
-| 9 | 第十节：验收清单 | 待做 |
+| 7 | 第七节：Nginx 反代 + 管理后台登录 | ✅ 已完成 |
+| 7b | 第八节：CORS 修复 + `admin-login` 验证 | ✅ 已完成 |
+| 8 | 第九节：小程序开发者工具联调（本机 `.env.production` + `build:mp-weixin`） | ✅ 已完成（2026-07-28） |
+| 9 | 第十节：部署验收（环境就绪 + 开发者工具可打开双端） | ✅ 已完成 |
 
 ---
 
-_本文档 v1.13，第七节 Nginx 反代已配置生效；正式生产环境部署方案待 P6 后续单元推进时另行编制。_
+_本文档 v1.15，腾讯云测试环境部署与微信开发者工具联调已全部完成。业务主流程（下单→派单→服务→评价）可按第九节 9.3 建议流程在联调时逐项验证。_
