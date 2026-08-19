@@ -169,7 +169,7 @@ export class CleaningOrderService {
         skip: (page - 1) * pageSize,
         take: pageSize,
         orderBy: [{ id: 'desc' }],
-        include: { worker: { select: { id: true, name: true, phone: true } } },
+        include: { worker: { select: { id: true, name: true, phone: true, gender: true } } },
       }),
       this.prismaService.cleaningOrder.count({ where }),
     ]);
