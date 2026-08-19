@@ -41,13 +41,13 @@ export class OperatorService {
     };
   }
 
-  /** 返回用途为「接单」的第一条记录，供居民端首页客服电话动态获取 */
+  /** 返回用途为「接单」的全部记录，供小程序客服/管理员电话动态获取 */
   async findContact() {
-    const row = await this.prismaService.operator.findFirst({
+    const rows = await this.prismaService.operator.findMany({
       where: { purpose: '接单' },
       orderBy: { id: 'asc' },
     });
-    return row ? this.toDto(row) : null;
+    return rows.map((row) => this.toDto(row));
   }
 
   async findOne(id: number) {

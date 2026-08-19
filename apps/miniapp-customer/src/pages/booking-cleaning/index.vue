@@ -8,7 +8,7 @@
         class="step-item"
       >
         <view class="step-circle" :class="{ active: store.step > idx, current: store.step === idx + 1 }">
-          <text class="step-num">{{ idx + 1 }}</text>
+          <text class="step-num" :class="{ active: store.step > idx, current: store.step === idx + 1 }">{{ idx + 1 }}</text>
         </view>
         <text class="step-label" :class="{ active: store.step >= idx + 1 }">{{ label }}</text>
         <view v-if="idx < STEP_LABELS.length - 1" class="step-line" :class="{ active: store.step > idx + 1 }" />
@@ -17,7 +17,7 @@
 
     <!-- ===================== STEP 1: 选择服务 ===================== -->
     <scroll-view v-if="store.step === 1" scroll-y class="scroll-area">
-      <view class="section-wrap">
+      <view class="section-wrap-1">
         <!-- 加载中 -->
         <view v-if="catalogLoading" class="loading-tip">
           <text>加载中...</text>
@@ -33,7 +33,7 @@
           <view class="card-left">
             <view class="card-icon-wrap">
               <image v-if="itemIconSrc(item)" class="card-icon-img" :src="itemIconSrc(item)!" mode="aspectFit" />
-              <text v-else class="card-icon">{{ item.icon || '🧹' }}</text>
+              <text v-else class="card-icon">{{ item.icon || '��' }}</text>
             </view>
             <view class="card-text">
               <text class="card-name">{{ item.name }}</text>
@@ -55,8 +55,8 @@
       <view class="duration-row">
         <text class="duration-label">选择服务时长</text>
         <view class="stepper-ctrl">
-          <view class="ctrl-btn" :class="{ disabled: store.duration <= 1 }" @tap="changeDuration(-1)">
-            <text class="ctrl-text">-</text>
+          <view class="ctrl-btn-1" :class="{ disabled: store.duration <= 1 }" @tap="changeDuration(-1)">
+            <text>-</text>
           </view>
           <view class="ctrl-val">
             <text class="val-num">{{ store.duration }}</text>
@@ -126,7 +126,7 @@
           <view class="addr-main">
             <view class="addr-top">
               <view v-if="store.selectedAddress.isDefault" class="addr-badge">默认</view>
-              <text class="addr-district">{{ store.selectedAddress.district }}</text>
+              <text class="addr-district">{{ store.selectedAddress.province }} {{ store.selectedAddress.city }} {{ store.selectedAddress.district }}</text>
             </view>
             <text class="addr-detail">{{ store.selectedAddress.detail }}</text>
             <text class="addr-contact">{{ store.selectedAddress.contactName }} {{ maskPhone(store.selectedAddress.contactPhone) }}</text>
@@ -162,6 +162,7 @@
             <input
               class="input-field"
               placeholder="请输入服务对象姓名"
+							placeholder-style="color:#999;font-size:30rpx;"
               :value="store.serviceContactName"
               @input="store.serviceContactName = $event.detail.value"
             />
@@ -173,6 +174,7 @@
               type="number"
               maxlength="11"
               placeholder="请输入服务对象手机号"
+							placeholder-style="color:#999;font-size:30rpx;"
               :value="store.serviceContactPhone"
               @input="store.serviceContactPhone = $event.detail.value"
             />
@@ -327,6 +329,8 @@ function selectCatalog(item: ServiceCatalogDto) {
 function itemIconSrc(item: ServiceCatalogDto): string | null {
   if (item.name?.includes('日常')) return '/static/icons/daily-cleaning.png';
   if (item.name?.includes('深度')) return '/static/icons/deep-cleaning.png';
+  if (item.name?.includes('专项')) return '/static/icons/special-cleaning.png';
+	
   return null;
 }
 
@@ -538,7 +542,7 @@ onShow(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #f5f6fa;
+  background: #F8FAFF;
 }
 
 /* ── 步骤条 ── */
@@ -546,7 +550,7 @@ onShow(() => {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 24rpx 32rpx 16rpx;
+  padding: 30rpx 32rpx;
   background: #fff;
   position: relative;
 }
@@ -563,7 +567,7 @@ onShow(() => {
   width: 56rpx;
   height: 56rpx;
   border-radius: 50%;
-  background: #d9dde6;
+  background: #E9F0F4;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -571,17 +575,21 @@ onShow(() => {
 }
 
 .step-circle.current {
-  background: #1677ff;
+  background: #236EFF;
 }
 
 .step-circle.active {
-  background: #1677ff;
+  background: #236EFF;
 }
 
 .step-num {
   font-size: 26rpx;
-  color: #fff;
-  font-weight: 600;
+  color: #9CABBA;
+  font-weight: bold;
+}
+.step-num.active {
+	color: #FFF;
+  font-size: 26rpx;
 }
 
 .step-label {
@@ -592,7 +600,7 @@ onShow(() => {
 }
 
 .step-label.active {
-  color: #1677ff;
+  color: #236EFF;
 }
 
 .step-line {
@@ -606,31 +614,39 @@ onShow(() => {
 }
 
 .step-line.active {
-  background: #1677ff;
+  background: #236EFF;
 }
 
 /* ── 滚动区 ── */
 .scroll-area {
   flex: 1;
   height: 0;
-  padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
+  padding-bottom: calc(150rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
 /* ── 通用 section ── */
+
+.section-wrap-1 {
+	border-radius: 30rpx;
+	margin: 20rpx 26rpx;
+	padding: 24rpx 0;
+}
 .section-wrap {
-  background: #fff;
-  border-radius: 16rpx;
-  margin: 20rpx 24rpx 0;
+  border-radius: 30rpx;
+  margin: 20rpx 26rpx;
   padding: 24rpx;
+	background-color: #FFF;
 }
 
 .sub-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 20rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333333;
+	margin-top: 20rpx;
+	padding-bottom: 20rpx;
   display: block;
+	border-bottom: 1rpx solid #F7F9FA;
 }
 
 /* ── Step 1 卡片 ── */
@@ -638,16 +654,16 @@ onShow(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 28rpx 24rpx;
-  border-radius: 16rpx;
-  border: 2rpx solid #e8e8e8;
+  padding: 52rpx 28rpx;
+  border-radius: 30rpx;
+  border: 2rpx solid #fff;
   margin-bottom: 20rpx;
   background: #fff;
 }
 
 .service-card.selected {
-  border-color: #1677ff;
-  background: #f0f6ff;
+  border-color: #236EFF;
+  background: #fff;
 }
 
 .card-left {
@@ -657,8 +673,8 @@ onShow(() => {
 }
 
 .card-icon-wrap {
-  width: 80rpx;
-  height: 80rpx;
+  width: 100rpx;
+  height: 100rpx;
   background: #f0f6ff;
   border-radius: 50%;
   display: flex;
@@ -672,20 +688,20 @@ onShow(() => {
 
 .card-icon-img {
   /* 图标 PNG 自带底色徽标，需与容器尺寸接近，避免外圈大、图标小 */
-  width: 72rpx;
-  height: 72rpx;
+  width: 100rpx;
+  height: 100rpx;
 }
 
 .card-name {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #1a1a1a;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #303030;
   display: block;
 }
 
 .card-subtitle {
-  font-size: 24rpx;
-  color: #999;
+  font-size: 28rpx;
+  color: #303030;
   margin-top: 6rpx;
   display: block;
 }
@@ -694,7 +710,7 @@ onShow(() => {
   width: 44rpx;
   height: 44rpx;
   border-radius: 50%;
-  background: #1677ff;
+  background: #236EFF;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -708,18 +724,23 @@ onShow(() => {
 
 /* ── 时长步进器 ── */
 .duration-row {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: #fff;
   border-radius: 16rpx;
-  margin: 20rpx 24rpx;
+  margin: 0rpx 24rpx;
   padding: 28rpx 24rpx;
 }
 
 .duration-label {
-  font-size: 28rpx;
-  color: #333;
+  font-size: 32rpx;
+  color: #303030;
+	font-weight: bold;
 }
 
 .stepper-ctrl {
@@ -728,28 +749,53 @@ onShow(() => {
   gap: 0;
   background: #f5f6fa;
   border-radius: 40rpx;
-  padding: 4rpx;
+  padding: 6rpx 16rpx;
 }
 
 .ctrl-btn {
   width: 60rpx;
   height: 60rpx;
   border-radius: 50%;
-  background: #1677ff;
+  background: #236EFF;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+.ctrl-btn-1 {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  background: #FFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+	color: #236EFF;
+	line-height: 60rpx;
+	font-size: 36rpx;
+	font-weight: bold;
+}
+
+/* .ctrl-text-1 {
+  color: #236EFF;
+	line-height: 60rpx;
+  font-size: 36rpx;
+  font-weight: bold;
+ */
+
+.ctrl-btn-1.disabled {
+  background: #d9d9d9;
+	color: #FFF;
+}
 .ctrl-btn.disabled {
   background: #d9d9d9;
 }
 
 .ctrl-text {
   color: #fff;
+	line-height: 60rpx;
   font-size: 36rpx;
-  line-height: 1;
-  font-weight: 300;
+  font-weight: bold;
 }
 
 .ctrl-val {
@@ -773,7 +819,7 @@ onShow(() => {
 /* ── Step 2 日历 ── */
 .calendar-wrap {
   background: #fff;
-  border-radius: 16rpx;
+  border-radius: 30rpx;
   margin: 20rpx 24rpx 0;
   padding: 24rpx;
 }
@@ -793,7 +839,7 @@ onShow(() => {
 
 .nav-arrow {
   font-size: 26rpx;
-  color: #1677ff;
+  color: #236EFF;
 }
 
 .cal-weekdays {
@@ -837,12 +883,12 @@ onShow(() => {
 }
 
 .cal-cell.today .cell-day {
-  color: #1677ff;
+  color: #236EFF;
   font-weight: 600;
 }
 
 .cal-cell.selected {
-  background: #1677ff;
+  background: #236EFF;
   border-radius: 50%;
 }
 
@@ -868,21 +914,23 @@ onShow(() => {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16rpx;
+	padding-top: 20rpx;
 }
 
 .time-btn {
   padding: 18rpx 0;
   border-radius: 12rpx;
-  border: 2rpx solid #e8e8e8;
+  border: 1rpx solid #FFF;
   text-align: center;
   font-size: 26rpx;
   color: #333;
-  background: #fafafa;
+	font-weight: bold;
+  background: #F2F3FC;
 }
 
 .time-btn.selected {
-  border-color: #1677ff;
-  color: #1677ff;
+  border-color: #236EFF;
+  color: #236EFF;
   background: #f0f6ff;
 }
 
@@ -895,6 +943,7 @@ onShow(() => {
 
 .addr-main {
   flex: 1;
+	padding-top: 20rpx;
 }
 
 .addr-top {
@@ -906,28 +955,29 @@ onShow(() => {
 
 .addr-badge {
   font-size: 20rpx;
-  color: #1677ff;
-  border: 2rpx solid #1677ff;
+	background-color: #236EFF;
+  color: #fff;
   border-radius: 6rpx;
   padding: 2rpx 10rpx;
 }
 
 .addr-district {
-  font-size: 24rpx;
-  color: #999;
+  font-size: 28rpx;
+  color: #373737;
 }
 
 .addr-detail {
-  font-size: 30rpx;
-  color: #1a1a1a;
-  font-weight: 600;
+  font-size: 36rpx;
+  color: #373737;
+	padding: 10rpx 0;
+  font-weight: bold;
   display: block;
   margin-bottom: 8rpx;
 }
 
 .addr-contact {
-  font-size: 24rpx;
-  color: #999;
+  font-size: 28rpx;
+  color: #373737;
 }
 
 .addr-arrow {
@@ -942,7 +992,7 @@ onShow(() => {
 
 .addr-empty-text {
   font-size: 28rpx;
-  color: #1677ff;
+  color: #236EFF;
 }
 
 /* ── 代下单单选 ── */
@@ -967,7 +1017,7 @@ onShow(() => {
 }
 
 .radio-label {
-  font-size: 28rpx;
+  font-size: 32rpx;
   color: #333;
 }
 
@@ -989,14 +1039,13 @@ onShow(() => {
 }
 
 .order-key {
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #666;
 }
 
 .order-val {
-  font-size: 28rpx;
-  color: #1a1a1a;
-  font-weight: 500;
+  font-size: 30rpx;
+  color: #333333;
 }
 
 /* ── 代下单输入 ── */
@@ -1017,8 +1066,8 @@ onShow(() => {
 
 .input-label {
   width: 120rpx;
-  font-size: 28rpx;
-  color: #666;
+  font-size: 30rpx;
+  color: #333;
   flex-shrink: 0;
 }
 
@@ -1031,9 +1080,9 @@ onShow(() => {
 
 /* ── 备注 ── */
 .remark-wrap {
-  background: #f5f6fa;
-  border-radius: 12rpx;
-  padding: 16rpx;
+  background: #F7F9FA;
+  border-radius: 20rpx;
+  padding: 26rpx;
 }
 
 .remark-area {
@@ -1047,19 +1096,20 @@ onShow(() => {
 /* ── 服务须知 ── */
 .notice-wrap {
   margin: 20rpx 24rpx 120rpx;
-  padding: 0 8rpx;
+  padding: 30rpx 8rpx;
 }
 
 .notice-title-text {
-  font-size: 24rpx;
-  color: #bbb;
+  font-size: 30rpx;
+  color: #A3B1CD;
+	font-weight: bold;
   display: block;
   margin-bottom: 12rpx;
 }
 
 .notice-item-text {
-  font-size: 22rpx;
-  color: #ccc;
+  font-size: 30rpx;
+  color: #A3B1CD;
   display: block;
   line-height: 1.8;
 }
@@ -1081,8 +1131,8 @@ onShow(() => {
 .back-btn {
   flex: 0 0 180rpx;
   height: 88rpx;
-  border-radius: 44rpx;
-  border: 2rpx solid #1677ff;
+  border-radius: 20rpx;
+  border: 2rpx solid #236EFF;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1090,14 +1140,14 @@ onShow(() => {
 
 .back-text {
   font-size: 30rpx;
-  color: #1677ff;
+  color: #236EFF;
 }
 
 .next-btn {
   flex: 1;
   height: 88rpx;
-  border-radius: 44rpx;
-  background: #1677ff;
+  border-radius: 20rpx;
+	background: linear-gradient( 135deg, #236EFF 0%, #1AA1FF 100%);
   display: flex;
   align-items: center;
   justify-content: center;

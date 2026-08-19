@@ -75,17 +75,17 @@ const serviceType = ref<'cleaning' | 'recycling' | 'consult'>('cleaning');
 /** §1.6 边界声明 — 保洁服务 */
 const CLEANING_BOUNDARY_NOTICES = [
   {
-    icon: '🪟',
+    icon: '��',
     title: '高空外窗清洁',
     desc: '本服务不含高空悬挂式外窗擦洗，如需外窗清洁请提前告知，由专项团队单独报价安排。',
   },
   {
-    icon: '🧼',
+    icon: '��',
     title: '顽固污渍处理',
     desc: '水渍、霉斑、油烟等顽固污渍的清洁效果因实际情况而异，服务员将尽力处理，但无法保证完全去除。',
   },
   {
-    icon: '💎',
+    icon: '��',
     title: '贵重物品保管',
     desc: '请在服务员上门前，提前收纳保管好现金、首饰、证件等贵重物品，以防遗失。',
   },
@@ -99,7 +99,7 @@ const CLEANING_BOUNDARY_NOTICES = [
 /** §1.6 边界声明 — 废品回收 */
 const RECYCLING_BOUNDARY_NOTICES = [
   {
-    icon: '📦',
+    icon: '��',
     title: '大件搬运准备',
     desc: '大件类废品需搬运工上门，请确保电梯或楼梯通道畅通可用，便于安全搬运。',
   },
@@ -109,7 +109,7 @@ const RECYCLING_BOUNDARY_NOTICES = [
     desc: '预约时填写的预估重量仅供安排搬运工具及人员，实际回收量以上门现场核定为准。',
   },
   {
-    icon: '🚫',
+    icon: '��',
     title: '回收品类范围',
     desc: '本服务不含危险废品、医疗废物、易燃易爆等特殊品类，如有疑问请提前预约时说明。',
   },
@@ -123,17 +123,17 @@ const RECYCLING_BOUNDARY_NOTICES = [
 /** §1.6 边界声明 — 家政咨询 */
 const CONSULT_BOUNDARY_NOTICES = [
   {
-    icon: '📞',
+    icon: '��',
     title: '电话回访',
     desc: '提交需求后，运营人员将在 15 分钟内电话回访，了解您的具体家政需求。',
   },
   {
-    icon: '💡',
+    icon: '��',
     title: '方案定制',
     desc: '家政服务需根据实际需求匹配专员，最终服务方案以电话沟通确认结果为准。',
   },
   {
-    icon: '🔒',
+    icon: '��',
     title: '隐私保护',
     desc: '您填写的联系信息仅用于需求跟进与服务安排，不会用于其他用途。',
   },
@@ -253,7 +253,7 @@ function onBook() {
 }
 
 .service-hero.hero-blue {
-  background: linear-gradient(135deg, #1677ff 0%, #36cfc9 100%);
+  background: linear-gradient(135deg, #236EFF 0%, #36cfc9 100%);
 }
 
 .service-hero.hero-green {
@@ -315,7 +315,7 @@ function onBook() {
   width: 8rpx;
   height: 36rpx;
   border-radius: 4rpx;
-  background-color: #1677ff;
+  background-color: #236EFF;
   flex-shrink: 0;
 }
 
@@ -352,7 +352,7 @@ function onBook() {
   width: 12rpx;
   height: 12rpx;
   border-radius: 50%;
-  background-color: #1677ff;
+  background-color: #236EFF;
   margin-top: 10rpx;
   flex-shrink: 0;
 }
@@ -450,7 +450,7 @@ function onBook() {
 }
 
 .book-btn.btn-blue {
-  background: linear-gradient(90deg, #1677ff 0%, #36cfc9 100%);
+  background: linear-gradient(90deg, #236EFF 0%, #36cfc9 100%);
 }
 
 .book-btn.btn-green {

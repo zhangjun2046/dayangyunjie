@@ -12,6 +12,7 @@ import { WechatLoginDto } from './dto/wechat-login.dto';
 import { WorkerLoginDto } from './dto/worker-login.dto';
 import { CurrentUser } from './interfaces/current-user.interface';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { WechatCustomerService } from './wechat-customer.service';
 
 interface TokenPair {
   accessToken: string;
@@ -19,23 +20,26 @@ interface TokenPair {
   expiresIn: number;
 }
 
+type ResidentProfile = Pick<Resident, 'id' | 'openid' | 'nickname' | 'avatar' | 'phone'>;
+
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly jwtService: JwtService,
     private readonly envConfigService: EnvConfigService,
+    private readonly wechatCustomerService: WechatCustomerService,
   ) {}
 
   async wechatLogin(loginDto: WechatLoginDto): Promise<{
     tokens: TokenPair;
-    resident: Pick<Resident, 'id' | 'openid' | 'nickname' | 'avatar'>;
+    resident: ResidentProfile;
   }> {
-    const openid = this.getMockOpenidByCode(loginDto.code);
+    const openid = await this.resolveOpenid(loginDto.code);
 
     let resident = await this.prismaService.resident.findUnique({
       where: { openid },
-      select: { id: true, openid: true, nickname: true, avatar: true },
+      select: { id: true, openid: true, nickname: true, avatar: true, phone: true },
     });
 
     if (!resident) {
@@ -45,7 +49,7 @@ export class AuthService {
           nickname: loginDto.nickname,
           avatar: loginDto.avatar,
         },
-        select: { id: true, openid: true, nickname: true, avatar: true },
+        select: { id: true, openid: true, nickname: true, avatar: true, phone: true },
       });
     }
 
@@ -68,6 +72,31 @@ export class AuthService {
 
     if (payload.tokenType !== 'refresh') {
       throw new UnauthorizedException('Invalid token type');
+    }
+
+    // 按 role 分流刷新，避免员工 refresh 被当成居民查库失败
+    if (payload.role === AUTH_ROLE_WORKER) {
+      const worker = await this.prismaService.worker.findUnique({
+        where: { id: payload.sub },
+        select: { id: true, phone: true },
+      });
+      if (!worker) {
+        throw new UnauthorizedException('Worker does not exist');
+      }
+      const tokens = await this.issueWorkerTokens(worker.id, worker.phone);
+      return { tokens };
+    }
+
+    if (payload.role === AUTH_ROLE_ADMIN) {
+      const admin = await this.prismaService.admin.findUnique({
+        where: { id: payload.sub },
+        select: { id: true, email: true, status: true },
+      });
+      if (!admin || admin.status !== 'ENABLED') {
+        throw new UnauthorizedException('Admin does not exist or disabled');
+      }
+      const tokens = await this.issueAdminTokens(admin.id, admin.email);
+      return { tokens };
     }
 
     const resident = await this.prismaService.resident.findUnique({
@@ -149,11 +178,11 @@ export class AuthService {
   }
 
   async getProfile(user: CurrentUser): Promise<{
-    resident: Pick<Resident, 'id' | 'openid' | 'nickname' | 'avatar'>;
+    resident: ResidentProfile;
   }> {
     const resident = await this.prismaService.resident.findUnique({
       where: { id: user.residentId },
-      select: { id: true, openid: true, nickname: true, avatar: true },
+      select: { id: true, openid: true, nickname: true, avatar: true, phone: true },
     });
 
     if (!resident) {
@@ -161,6 +190,37 @@ export class AuthService {
     }
 
     return { resident };
+  }
+
+  /**
+   * 解密 getPhoneNumber code 得到手机号，并写回当前居民
+   * 已配置微信凭证时调用微信 getuserphonenumber；否则使用确定性 mock 号
+   */
+  async decryptPhone(code: string, user: CurrentUser): Promise<{ phone: string }> {
+    const phone = this.wechatCustomerService.isConfigured
+      ? (await this.wechatCustomerService.getPhoneNumber(code)).phone
+      : this.getMockPhoneByCode(code);
+
+    await this.prismaService.resident.update({
+      where: { id: user.residentId },
+      data: { phone },
+    });
+
+    return { phone };
+  }
+
+  private async resolveOpenid(code: string): Promise<string> {
+    if (this.wechatCustomerService.isConfigured) {
+      const { openid } = await this.wechatCustomerService.code2Session(code);
+      return openid;
+    }
+    return this.getMockOpenidByCode(code);
+  }
+
+  private getMockPhoneByCode(code: string): string {
+    const hash = createHash('sha256').update(code).digest('hex');
+    const suffix = parseInt(hash.slice(0, 7), 16) % 100000000;
+    return `138${String(suffix).padStart(8, '0')}`;
   }
 
   private async issueWorkerTokens(workerId: number, phone: string): Promise<TokenPair> {
@@ -221,18 +281,6 @@ export class AuthService {
       refreshToken,
       expiresIn: this.parseExpiresInToSeconds(this.envConfigService.jwtAccessExpiresIn),
     };
-  }
-
-  /**
-   * Mock 手机号解密
-   * 生产环境应调用微信 phonenumber.getPhoneNumber 接口解密 code
-   * 此处根据 code hash 生成一个确定性的 mock 手机号，供开发阶段使用
-   */
-  async decryptPhone(code: string): Promise<{ phone: string }> {
-    const hash = createHash('sha256').update(code).digest('hex');
-    const suffix = parseInt(hash.slice(0, 7), 16) % 100000000;
-    const phone = `138${String(suffix).padStart(8, '0')}`;
-    return { phone };
   }
 
   private getMockOpenidByCode(code: string): string {

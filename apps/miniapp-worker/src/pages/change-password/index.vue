@@ -1,62 +1,67 @@
 <template>
   <view class="page">
-    <!-- 修改密码菜单项 -->
-    <view class="menu-group">
-      <view class="menu-item" @tap="onToggleChangePassword">
-        <view class="menu-left">
-          <text class="menu-icon">🔑</text>
-          <text class="menu-label">修改密码</text>
-        </view>
-        <text class="menu-arrow">{{ showForm ? '∨' : '›' }}</text>
-      </view>
+    <view class="tip-card">
+      <text class="tip-text">为保障账号安全，请设置 6–20 位新密码，修改成功后需重新登录。</text>
+    </view>
 
-      <!-- 内联修改密码表单 -->
-      <view v-if="showForm" class="form-wrap">
-        <view class="form-item">
-          <text class="form-label">旧密码</text>
+    <view class="form-card">
+      <view class="form-item">
+        <text class="form-label">旧密码</text>
+        <view class="input-card">
           <input
             class="form-input"
             type="text"
             password
             placeholder="请输入当前密码"
+            placeholder-class="input-placeholder"
             :value="oldPassword"
             @input="oldPassword = $event.detail.value"
             maxlength="32"
           />
         </view>
-        <view class="form-item">
-          <text class="form-label">新密码</text>
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">新密码</text>
+        <view class="input-card">
           <input
             class="form-input"
             type="text"
             password
             placeholder="请输入新密码（6–20位）"
+            placeholder-class="input-placeholder"
             :value="newPassword"
             @input="newPassword = $event.detail.value"
             maxlength="20"
           />
         </view>
-        <view class="form-item">
-          <text class="form-label">确认密码</text>
+      </view>
+
+      <view class="form-item form-item--last">
+        <text class="form-label">确认密码</text>
+        <view class="input-card">
           <input
             class="form-input"
             type="text"
             password
             placeholder="再次输入新密码"
+            placeholder-class="input-placeholder"
             :value="confirmPassword"
             @input="confirmPassword = $event.detail.value"
             maxlength="20"
           />
         </view>
-        <button
-          class="btn-submit"
-          :disabled="submitting"
-          @tap="onSubmitChangePassword"
-        >
-          {{ submitting ? '提交中…' : '确认修改' }}
-        </button>
       </view>
     </view>
+
+    <button
+      class="btn-submit"
+      :class="{ 'btn-submit--loading': submitting }"
+      :disabled="submitting"
+      @tap="onSubmit"
+    >
+      {{ submitting ? '提交中…' : '确认修改' }}
+    </button>
   </view>
 </template>
 
@@ -67,24 +72,12 @@ import { changePassword } from '@/api/worker';
 
 const authStore = useAuthStore();
 
-/** 是否展开修改密码表单 */
-const showForm = ref(false);
 const oldPassword = ref('');
 const newPassword = ref('');
 const confirmPassword = ref('');
 const submitting = ref(false);
 
-function onToggleChangePassword() {
-  showForm.value = !showForm.value;
-  if (!showForm.value) {
-    oldPassword.value = '';
-    newPassword.value = '';
-    confirmPassword.value = '';
-  }
-  console.info('[settings] toggle change-password form, show=', showForm.value);
-}
-
-async function onSubmitChangePassword() {
+async function onSubmit() {
   const workerId = authStore.worker?.id;
   if (!workerId) return;
 
@@ -108,7 +101,7 @@ async function onSubmitChangePassword() {
   submitting.value = true;
   try {
     await changePassword(workerId, oldPassword.value.trim(), newPassword.value);
-    console.info('[settings] changePassword success, workerId=', workerId);
+    console.info('[change-password] success, workerId=', workerId);
     uni.showModal({
       title: '修改成功',
       content: '密码已更新，请重新登录',
@@ -121,7 +114,7 @@ async function onSubmitChangePassword() {
   } catch (err) {
     const msg = err instanceof Error ? err.message : '修改失败，请重试';
     uni.showToast({ title: msg, icon: 'none' });
-    console.info('[settings] changePassword error', msg);
+    console.info('[change-password] error', msg);
   } finally {
     submitting.value = false;
   }
@@ -131,92 +124,118 @@ async function onSubmitChangePassword() {
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #f0f5ff;
+  background: #F8FAFF;
   padding: 24rpx;
+  box-sizing: border-box;
 }
 
-/* ── 菜单组 ── */
-.menu-group {
-  background: #ffffff;
+.tip-card {
+  background: #F0F6FF;
   border-radius: 20rpx;
-  overflow: hidden;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.04);
+  padding: 24rpx 28rpx;
+  margin-bottom: 24rpx;
 }
 
-.menu-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 36rpx 32rpx;
+.tip-text {
+  font-size: 24rpx;
+  color: #4C5760;
+  line-height: 1.6;
 }
 
-.menu-left {
-  display: flex;
-  align-items: center;
-  gap: 18rpx;
-}
-
-.menu-icon {
-  font-size: 32rpx;
-  width: 40rpx;
-  text-align: center;
-}
-
-.menu-label {
-  font-size: 28rpx;
-  color: #333;
-}
-
-.menu-arrow {
-  font-size: 30rpx;
-  color: #ccc;
-  line-height: 1;
-}
-
-/* ── 内联表单 ── */
-.form-wrap {
-  padding: 0 32rpx 32rpx;
-  border-top: 1rpx solid #f5f5f5;
+.form-card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(22, 119, 255, 0.06);
 }
 
 .form-item {
-  margin-bottom: 24rpx;
+  margin-bottom: 28rpx;
+}
+
+.form-item--last {
+  margin-bottom: 0;
 }
 
 .form-label {
   display: block;
-  font-size: 24rpx;
-  color: #888;
-  margin-bottom: 10rpx;
+  font-size: 28rpx;
+  color: #4C5760;
+  margin-bottom: 12rpx;
+}
+
+.input-card {
+  background: #F7F9FC;
+  border-radius: 16rpx;
+  padding: 0 28rpx;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
 }
 
 .form-input {
-  width: 100%;
-  height: 80rpx;
-  background: #f7f9fc;
-  border: 1rpx solid #e0e8f4;
-  border-radius: 12rpx;
-  padding: 0 24rpx;
+  flex: 1;
+  height: 88rpx;
   font-size: 28rpx;
   color: #333;
-  box-sizing: border-box;
+  background: transparent;
+}
+
+.input-placeholder {
+  color: #b0b8c4;
+  font-size: 28rpx;
 }
 
 .btn-submit {
+  margin-top: 68rpx;
   width: 100%;
   height: 88rpx;
-  background: #1677ff;
+  border-radius:20rpx;
+	background: linear-gradient(135deg, #246BFF 0%, #1AA1FF 100%);	
   color: #ffffff;
-  font-size: 30rpx;
-  font-weight: 600;
-  border-radius: 44rpx;
+  font-size: 28rpx;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 8rpx;
+  box-shadow: 0 8rpx 24rpx rgba(22, 119, 255, 0.28);
 }
 
+
+/* .btn {
+  flex: 1;
+  height: 68rpx;
+  line-height: 68rpx;
+  border-radius: 20rpx;
+  font-size: 28rpx;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+} */
+/* 
+.btn::after {
+  display: none;
+}
+
+.btn-outline {
+  background: #ffffff;
+  color: #236EFF;
+  border: 1rpx solid #236EFF;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #246BFF 0%, #1AA1FF 100%);
+  color: #ffffff;
+} */
+
+
+
+
+.btn-submit::after {
+  border: none;
+}
+
+.btn-submit--loading,
 .btn-submit[disabled] {
   opacity: 0.6;
 }

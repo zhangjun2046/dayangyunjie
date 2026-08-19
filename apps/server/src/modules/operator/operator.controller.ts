@@ -45,8 +45,8 @@ export class OperatorController {
    * 必须在 GET :id 之前声明，防止 Express 将 'contact' 匹配为 :id
    */
   @Get('contact')
-  @ApiOperation({ summary: '获取接单运营人员联系方式（供居民端首页使用）' })
-  @ApiOkResponse({ description: '查询成功' })
+  @ApiOperation({ summary: '获取接单运营人员联系方式列表（供小程序客服/管理员拨号）' })
+  @ApiOkResponse({ description: '查询成功，返回用途=接单的全部运营人员；无数据时为空数组' })
   async findContact(): Promise<ApiResponseDto<Awaited<ReturnType<OperatorService['findContact']>>>> {
     const data = await this.operatorService.findContact();
     return { code: 0, message: 'ok', data };

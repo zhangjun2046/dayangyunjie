@@ -5,18 +5,22 @@ import { useAuthStore } from '@/store/auth';
 
 const { install: installRouteGuard } = useRouteGuard();
 
-onLaunch(() => {
+onLaunch(async () => {
   console.info('[miniapp-worker] App Launch');
 
   // 路由守卫必须在所有页面跳转前生效
   installRouteGuard();
 
-  // 检查登录态：未登录时跳转至登录页
   const authStore = useAuthStore();
-  if (!authStore.isLoggedIn) {
-    console.info('[miniapp-worker] not logged in, redirecting to login');
-    uni.redirectTo({ url: '/pages/login/index' });
+  const ok = await authStore.ensureSession();
+  if (ok) {
+    console.info('[miniapp-worker] session valid, enter tabs');
+    uni.switchTab({ url: '/pages/index/index' });
+    return;
   }
+
+  // 未登录：pages.json 首页即登录页，无需再 redirect
+  console.info('[miniapp-worker] session invalid, stay on login');
 });
 
 onShow(() => {

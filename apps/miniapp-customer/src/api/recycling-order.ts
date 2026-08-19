@@ -44,6 +44,8 @@ export interface RecyclingOrderDto {
   serviceContactName?: string | null;
   serviceContactPhone?: string | null;
   workerId?: number | null;
+  /** 已派单时携带服务人员基本信息；详情含 gender */
+  worker?: { id: number; name: string; phone: string; gender?: string | null } | null;
   remark?: string | null;
   /** 服务前/服务后照片（完成服务后由员工端上传） */
   workPhotos?: WorkPhotoDto[];

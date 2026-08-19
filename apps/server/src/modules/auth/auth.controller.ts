@@ -23,7 +23,11 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('wechat-login')
-  @ApiOperation({ summary: '微信登录（mock）并签发 JWT' })
+  @ApiOperation({
+    summary: '微信登录并签发 JWT',
+    description:
+      '已配置 WECHAT_CUSTOMER_APPID/SECRET 时调用 code2session；未配置时使用 mock openid（本地开发）',
+  })
   @ApiOkResponse({
     description: '登录成功',
     schema: {
@@ -38,9 +42,10 @@ export class AuthController {
           },
           resident: {
             id: 1,
-            openid: 'mock_openid_xxx',
+            openid: 'oXXXX',
             nickname: '张三',
             avatar: 'https://example.com/avatar.jpg',
+            phone: '13800138000',
           },
         },
       },
@@ -58,15 +63,23 @@ export class AuthController {
   }
 
   @Post('decrypt-phone')
-  @ApiOperation({ summary: '用 getPhoneNumber code 解密获取手机号（mock）' })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '用 getPhoneNumber code 解密获取手机号并绑定当前居民',
+    description:
+      '已配置微信凭证时调用 getuserphonenumber；未配置时返回确定性 mock 手机号。需登录。',
+  })
   @ApiOkResponse({
     description: '解密成功',
     schema: { example: { code: 0, message: 'ok', data: { phone: '13812345678' } } },
   })
+  @ApiUnauthorizedResponse({ description: '未携带 token 或 token 无效' })
   async decryptPhone(
     @Body() body: DecryptPhoneDto,
+    @CurrentUserDecorator() user: CurrentUser,
   ): Promise<ApiResponseDto<{ phone: string }>> {
-    const data = await this.authService.decryptPhone(body.code);
+    const data = await this.authService.decryptPhone(body.code, user);
     return { code: 0, message: 'ok', data };
   }
 
@@ -180,9 +193,10 @@ export class AuthController {
         data: {
           resident: {
             id: 1,
-            openid: 'mock_openid_xxx',
+            openid: 'oXXXX',
             nickname: '张三',
             avatar: 'https://example.com/avatar.jpg',
+            phone: '13800138000',
           },
         },
       },

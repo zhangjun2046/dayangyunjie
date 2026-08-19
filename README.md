@@ -24,7 +24,11 @@ npm install          # 安装依赖（仅根目录执行一次）
 npm run build        # 编译 shared + 双端 miniapp(H5) + admin + 后端
 npm run dev          # 启动后端开发模式
 npm run dev:miniapp-customer  # 启动居民端 uni-app H5
+npm run dev:mp-weixin --workspace=@dayangyunjie/miniapp-customer  # 编译居民端 uni-app dev
+npm run build:mp-weixin --workspace=@dayangyunjie/miniapp-customer # 编译居民端 uni-app build
 npm run dev:miniapp-worker    # 启动员工端 uni-app H5
+npm run dev:mp-weixin --workspace=@dayangyunjie/miniapp-worker # 编译员工端 uni-app dev
+npm run build:mp-weixin --workspace=@dayangyunjie/miniapp-worker # 编译员工端 uni-app build
 npm run dev:admin             # 启动管理后台（Vue 3，端口 5173）
 ```
 
@@ -93,3 +97,9 @@ npx prisma migrate dev
 - 使用Sonnet5 LLM完成P5.8、P5.8b，实现系统管理-用户管理（Admin 扩展字段迁移 + 默认密码Dyyj123.. + 重置密码 + 禁用即时失效 + 顶栏修改密码）;实现系统管理-功能授权（AdminPermission 迁移 + 权限树分配 + 侧栏菜单动态渲染 + 路由守卫拦截）
 - 使用Sonnet5 LLM完成P512，实现管理后台首页/工作台（欢迎条 + 4 张按功能授权过滤的待办事项卡片，复用已有列表接口 total，无需新增后端接口）
 - 使用Sonnet5 LLM完成P居民端小程序和员工端小程序Icon替换
+
+## 问题修复
+
+- 2026-08-07 居民端微信登录/手机号授权：后端接入真实 `code2session` + `getuserphonenumber`（配置 `WECHAT_CUSTOMER_APPID`/`SECRET` 时生效，未配置仍走 mock）；授权后不再显示假手机号；同微信号重登可按稳定 openid 找回历史订单；首页改为先登录再授权手机号，避免 `/auth/decrypt-phone` 401
+- 2026-08-07 同事协作完成：居民端真实微信登录（code2session + getuserphonenumber），未配置密钥时回落 mock
+- 2026-08-19 接手同事代码：员工端独立改密页 + 协议页、三端客服电话能力、居民端独立地址编辑页、订单完成流程与 shared 契约调整、双端图标素材全量替换、新增 HBuilderX 依赖软链脚本

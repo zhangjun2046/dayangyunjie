@@ -9,7 +9,9 @@
     "build": "uni build",
     "build:h5": "uni build",
     "build:mp-weixin": "uni build -p mp-weixin",
-    "type-check": "vue-tsc --noEmit"
+    "type-check": "vue-tsc --noEmit",
+    "link:hbuilderx": "node ../../scripts/link-uni-local-deps.mjs miniapp-customer",
+    "postinstall": "node ../../scripts/link-uni-local-deps.mjs miniapp-customer"
   },
   "dependencies": {
     "@dayangyunjie/shared": "*",
@@ -17,7 +19,6 @@
     "@dcloudio/uni-components": "3.0.0-5000720260410001",
     "@dcloudio/uni-h5": "3.0.0-5000720260410001",
     "@dcloudio/uni-mp-weixin": "3.0.0-5000720260410001",
-    "@dcloudio/uni-ui": "1.5.6",
     "pinia": "^2.2.6",
     "vue": "^3.4.21"
   },

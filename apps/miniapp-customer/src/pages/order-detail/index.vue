@@ -1,42 +1,118 @@
 <template>
   <view class="page">
-    <!-- 加载中 -->
-    <view v-if="loading" class="loading-wrap">
-      <text class="loading-text">加载中…</text>
-    </view>
-
-    <!-- 加载失败 / 无数据 -->
-    <view v-else-if="!order" class="loading-wrap">
-      <text class="loading-text">订单加载失败，请返回重试</text>
-    </view>
+    <!-- 加载中 / 失败：保留可返回的导航 -->
+    <template v-if="loading || !order">
+      <uni-nav-bar
+        status-bar
+        title="订单详情"
+        left-icon="left"
+        :border="false"
+        @clickLeft="onBack"
+      />
+      <view class="loading-wrap">
+        <text class="loading-text">{{ loading ? '加载中…' : '订单加载失败，请返回重试' }}</text>
+      </view>
+    </template>
 
     <!-- 详情内容 -->
-    <scroll-view v-else class="detail-scroll" scroll-y>
-      <!-- 状态卡片 -->
-      <view class="status-card">
-        <view class="status-header">
-          <view class="status-badge" :class="getStatusClass(order.status)">
+    <scroll-view v-else class="detail-scroll" scroll-y @scroll="onDetailScroll">
+      <!-- 沉浸式头部：头图顶到屏幕最上，导航透明浮在上面 -->
+      <view class="hero">
+        <image class="hero-bg" src="/static/images/icon_bj_n.png" mode="aspectFill" />
+        <view class="nav-layer" :class="{ 'is-dark': navDark }">
+          <uni-nav-bar
+            :fixed="true"
+            status-bar
+            title="订单详情"
+            :background-color="navBgColor"
+            :color="navColor"
+            left-icon="left"
+            :border="false"
+            @clickLeft="onBack"
+          />
+        </view>
+        <view class="hero-body">
+          <view class="status-header">
+            <view class="status-item-name">{{ order.serviceItem }}</view>
+            <view class="order-no">订单编号：{{ order.orderNo }}</view>
+            <view v-if="orderType !== 'consult'" class="order-no">服务时间：{{ appointTimeText }}</view>
+          </view>
+          <view class="status-badge">
             <text class="badge-text">{{ getStatusLabel(order.status) }}</text>
           </view>
-          <text class="order-no">{{ order.orderNo }}</text>
         </view>
-        <text class="status-tip">{{ getStatusTip(order.status) }}</text>
       </view>
-
+			
+			<!-- 服务人员（仅保洁/废品，且有 workerId 时展示） -->
+			<view v-if="orderType !== 'consult'" class="info-card">
+			  <!-- <view class="card-title-row">
+			    <text class="card-title">服务人员</text>
+			  </view> -->
+			  <!-- 已分配服务人员 -->
+			  <template v-if="order.worker">
+					<view class="service-row">
+						<view class="info-row" style="flex-direction: row;align-items: center;">
+							<image style="width: 90rpx;height: 90rpx;margin-right: 20rpx;" src="/static/icons/icon_photo_n.png" mode="aspectFit"></image>
+						  <!-- <text class="info-label">姓名</text> -->
+						  <text class="info-value">{{ order.worker.name }}</text>
+						</view>
+						<image style="width: 60rpx;height: 60rpx;margin-right: 20rpx;" src="/static/icons/icon_dianhua_n.png" mode="aspectFit" @click="onPhoneService(order.worker.phone)"></image>
+					</view>
+			    <!-- <view class="info-row">
+			      <text class="info-label">联系电话</text>
+			      <text class="info-value">{{ order.worker.phone }}</text>
+			    </view> -->
+			  </template>
+			  <!-- 待分配占位 -->
+			  <view v-else class="worker-placeholder">
+			    <text class="placeholder-text">等待平台为您分配服务人员</text>
+			  </view>
+			</view>
+			
       <!-- 服务信息卡片 -->
       <view class="info-card">
         <view class="card-title-row">
-          <text class="card-title">服务信息</text>
+          <text class="card-title">订单信息</text>
         </view>
-
         <!-- 保洁/废品订单信息 -->
         <template v-if="orderType !== 'consult'">
           <view class="info-row">
             <text class="info-label">服务类型</text>
             <text class="info-value">{{ getServiceName() }}</text>
           </view>
+					<view class="info-row">
+					  <text class="info-label">联系人姓名</text>
+					  <text class="info-value">{{ (order as CleaningOrderDto).contactName }}</text>
+					</view>
+					<view class="info-row">
+					  <text class="info-label">联系人电话</text>
+					  <text class="info-value">{{ (order as CleaningOrderDto).contactPhone }}</text>
+					</view>
+					
+					<view class="info-row">
+					  <text class="info-label">是否代客下单</text>
+						<view class="proxy-label" v-if="order.isProxyOrder">
+						  <text class="proxy-tag-text">代下单</text>
+						</view>
+					  <text v-else class="info-value">否</text>
+					</view>
+					<template v-if="order.isProxyOrder">
+					  <!-- <view class="divider" /> -->
+					  <!-- <view class="proxy-label">
+					    <text class="proxy-tag-text">代下单</text>
+					  </view> -->
+					  <view class="info-row">
+					    <text class="info-label">被服务人姓名</text>
+					    <text class="info-value">{{ order.serviceContactName || '未填写' }}</text>
+					  </view>
+					  <view class="info-row">
+					    <text class="info-label">被服务人电话</text>
+					    <text class="info-value">{{ order.serviceContactPhone || '未填写' }}</text>
+					  </view>
+					</template>
+					
           <view v-if="orderType === 'cleaning'" class="info-row">
-            <text class="info-label">服务时长</text>
+            <text class="info-label">预计服务时长</text>
             <text class="info-value">{{ (order as CleaningOrderDto).serviceDuration }}小时</text>
           </view>
           <view v-if="orderType === 'recycling'" class="info-row">
@@ -49,8 +125,12 @@
           </view>
           <view class="info-row">
             <text class="info-label">服务地址</text>
-            <text class="info-value">{{ getAddressText() }}</text>
+            <text class="info-value address-value">{{ getAddressText() }}</text>
           </view>
+					<view class="info-row" v-if="order.remark">
+					  <text class="info-label">备注</text>
+					  <text class="info-value">{{ (order as RecyclingOrderDto).remark }}</text>
+					</view>
         </template>
 
         <!-- 家政咨询订单信息 -->
@@ -67,11 +147,46 @@
             <text class="info-label">提交时间</text>
             <text class="info-value">{{ formatDate(order.createdAt) }}</text>
           </view>
+					<view class="info-row">
+					  <text class="info-label">服务类型</text>
+					  <text class="info-value">{{ getServiceName() }}</text>
+					</view>
+					<view class="info-row">
+					  <text class="info-label">联系人姓名</text>
+					  <text class="info-value">{{ (order as CleaningOrderDto).contactName }}</text>
+					</view>
+					<view class="info-row">
+					  <text class="info-label">联系人电话</text>
+					  <text class="info-value">{{ (order as CleaningOrderDto).contactPhone }}</text>
+					</view>
+					
+					<view class="info-row">
+					  <text class="info-label">是否代客下单</text>
+						<view class="proxy-label" v-if="order.isProxyOrder">
+						  <text class="proxy-tag-text">代下单</text>
+						</view>
+					  <text v-else class="info-value">否</text>
+					</view>
+					<template v-if="order.isProxyOrder">
+					  <!-- <view class="divider" /> -->
+					  <!-- <view class="proxy-label">
+					    <text class="proxy-tag-text">代下单</text>
+					  </view> -->
+					  <view class="info-row">
+					    <text class="info-label">被服务人姓名</text>
+					    <text class="info-value">{{ order.serviceContactName || '未填写' }}</text>
+					  </view>
+					  <view class="info-row">
+					    <text class="info-label">被服务人电话</text>
+					    <text class="info-value">{{ order.serviceContactPhone || '未填写' }}</text>
+					  </view>
+					</template>
+					
         </template>
       </view>
 
       <!-- 联系人信息 -->
-      <view class="info-card">
+      <!-- <view class="info-card">
         <view class="card-title-row">
           <text class="card-title">联系人</text>
         </view>
@@ -82,24 +197,10 @@
         <view class="info-row">
           <text class="info-label">手机号</text>
           <text class="info-value">{{ order.contactPhone }}</text>
-        </view>
+        </view> -->
 
         <!-- 代下单：被服务人 -->
-        <template v-if="order.isProxyOrder">
-          <view class="divider" />
-          <view class="proxy-label">
-            <text class="proxy-tag-text">代下单</text>
-          </view>
-          <view class="info-row">
-            <text class="info-label">被服务人</text>
-            <text class="info-value">{{ order.serviceContactName || '未填写' }}</text>
-          </view>
-          <view class="info-row">
-            <text class="info-label">联系方式</text>
-            <text class="info-value">{{ order.serviceContactPhone || '未填写' }}</text>
-          </view>
-        </template>
-      </view>
+      <!-- </view> -->
 
       <!-- 服务进度时间轴（保洁/废品） -->
       <view v-if="orderType !== 'consult'" class="info-card">
@@ -118,28 +219,6 @@
           <text class="card-title">服务进度</text>
         </view>
         <OrderStatusTimeline :status="order.status" order-type="CONSULT" />
-      </view>
-
-      <!-- 服务人员（仅保洁/废品，且有 workerId 时展示） -->
-      <view v-if="orderType !== 'consult'" class="info-card">
-        <view class="card-title-row">
-          <text class="card-title">服务人员</text>
-        </view>
-        <!-- 已分配服务人员 -->
-        <template v-if="order.worker">
-          <view class="info-row">
-            <text class="info-label">姓名</text>
-            <text class="info-value">{{ order.worker.name }}</text>
-          </view>
-          <view class="info-row">
-            <text class="info-label">联系电话</text>
-            <text class="info-value">{{ order.worker.phone }}</text>
-          </view>
-        </template>
-        <!-- 待分配占位 -->
-        <view v-else class="worker-placeholder">
-          <text class="placeholder-text">等待平台为您分配服务人员</text>
-        </view>
       </view>
 
       <!-- 服务记录照片（服务前/服务后，员工端完成服务后上传） -->
@@ -179,16 +258,30 @@
       <view v-if="review && orderType !== 'consult'" class="info-card review-card">
         <view class="card-title-row review-card-header">
           <text class="card-title">我的评价</text>
-          <text class="review-date-text">{{ formatDate(review.createdAt) }}</text>
+          <!-- <text class="review-date-text">{{ formatDate(review.createdAt) }}</text> -->
         </view>
-        <!-- 星级 -->
+        <!-- 星级：点亮用 PNG，未点亮用 uni-icons -->
         <view class="review-stars-row">
-          <text
-            v-for="n in 5"
-            :key="n"
-            class="review-star"
-            :class="n <= review.rating ? 'star-lit' : 'star-dim'"
-          >★</text>
+          <view v-for="n in 5" :key="n" class="review-star">
+            <image
+              v-if="n <= review.rating"
+              class="review-star-img"
+              src="/static/icons/star-lit.png"
+              mode="aspectFit"
+            />
+						<image
+						  v-else
+						  class="review-star-img"
+						  src="/static/icons/star-lit_n.png"
+						  mode="aspectFit"
+						/>
+            <!-- <uni-icons
+              v-else
+              type="star-filled"
+              :size="22"
+              color="#e0e0e0"
+            /> -->
+          </view>
           <text class="review-rating-label">{{ review.rating }}分</text>
         </view>
         <!-- 快捷标签 -->
@@ -232,12 +325,12 @@
       </view>
 
       <!-- 备注 -->
-      <view v-if="order.remark" class="info-card">
+      <!-- <view v-if="order.remark" class="info-card">
         <view class="card-title-row">
           <text class="card-title">备注</text>
         </view>
         <text class="remark-text">{{ order.remark }}</text>
-      </view>
+      </view> -->
 
       <!-- 底部操作区占位（真实按钮在底部固定区） -->
       <view class="bottom-placeholder" />
@@ -257,25 +350,27 @@
 
       <!-- ACCEPTED 及以后（保洁/废品）：投诉反馈 + 联系客服 + 可选评价 -->
       <template v-if="canComplaint">
-        <button class="btn-outline" @tap="onGoComplaint">投诉反馈</button>
-        <button class="btn-outline" @tap="onCallService">联系客服</button>
+        <button v-if="!complaint" class="btn-outline" @tap="onGoComplaint">投诉反馈</button>
+        <button class="btn-primary" @tap="onCallService">联系客服</button>
       </template>
 
       <!-- 待评价（7天内）：评价服务 -->
       <button
         v-if="canReview"
-        class="btn-primary"
+        class="btn-outline"
         @tap="onGoReview"
       >
         评价服务
       </button>
     </view>
+
+    <ContactOperatorPicker ref="contactPickerRef" />
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { onLoad, onShow } from '@dcloudio/uni-app';
+import { ref, computed, nextTick } from 'vue';
+import { onLoad, onShow, onPageScroll } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/store/auth';
 import {
   fetchCleaningOrderDetail,
@@ -301,6 +396,8 @@ import {
 } from '@/api/complaint';
 import { fetchReviewByOrder, type ReviewDto } from '@/api/review';
 import OrderStatusTimeline from '@/components/OrderStatusTimeline.vue';
+import ContactOperatorPicker from '@/components/ContactOperatorPicker.vue';
+import { callContactOperator } from '@/utils/call-contact-operator';
 
 type OrderType = 'cleaning' | 'recycling' | 'consult';
 type AnyOrder = (CleaningOrderDto | RecyclingOrderDto | ConsultOrderDto) & {
@@ -321,11 +418,17 @@ type AnyOrder = (CleaningOrderDto | RecyclingOrderDto | ConsultOrderDto) & {
 const authStore = useAuthStore();
 const loading = ref(true);
 const actionLoading = ref(false);
+const contactPickerRef = ref<InstanceType<typeof ContactOperatorPicker> | null>(null);
 const order = ref<AnyOrder | null>(null);
 const orderType = ref<OrderType>('cleaning');
 const orderId = ref<number>(0);
 const complaint = ref<ComplaintDto | null>(null);
 const review = ref<ReviewDto | null>(null);
+
+const navDark = ref(false);
+const heroThreshold = ref(80);
+const navColor = computed(() => (navDark.value ? '#000000' : '#ffffff'));
+const navBgColor = computed(() => (navDark.value ? '#ffffff' : 'transparent'));
 
 // uni-app 页面参数必须通过 onLoad 获取，onMounted 在 mp-weixin 无法读到路由参数
 onLoad((options) => {
@@ -339,11 +442,12 @@ onLoad((options) => {
   }
 });
 
-// 从评价页/投诉页返回时刷新订单状态与评价数据
+// 从评价页/投诉页返回时刷新订单、投诉与评价数据
 onShow(() => {
   if (!orderId.value) return;
   console.info(`[order-detail] onShow → reload orderId=${orderId.value}`);
   loadDetail();
+  loadComplaint();
   if (orderType.value !== 'consult') {
     loadReview();
   }
@@ -351,6 +455,7 @@ onShow(() => {
 
 async function loadDetail() {
   loading.value = true;
+  navDark.value = false;
   try {
     if (orderType.value === 'cleaning') {
       order.value = (await fetchCleaningOrderDetail(orderId.value)) as unknown as AnyOrder;
@@ -365,8 +470,37 @@ async function loadDetail() {
     console.info('[order-detail] loadDetail error', e);
   } finally {
     loading.value = false;
+    if (order.value) {
+      await nextTick();
+      measureHero();
+    }
   }
 }
+
+function measureHero() {
+  uni.createSelectorQuery()
+    .select('.hero')
+    .boundingClientRect((rect) => {
+      if (!rect) return;
+      const sys = uni.getSystemInfoSync();
+      const navH = (sys.statusBarHeight || 0) + 44;
+      heroThreshold.value = Math.max(rect.height - navH, 40);
+      console.info('[order-detail] hero threshold=', heroThreshold.value);
+    })
+    .exec();
+}
+
+function updateNavByScroll(scrollTop: number) {
+  navDark.value = scrollTop >= heroThreshold.value;
+}
+
+function onDetailScroll(e: { detail: { scrollTop: number } }) {
+  updateNavByScroll(e.detail.scrollTop);
+}
+
+onPageScroll((e) => {
+  updateNavByScroll(e.scrollTop);
+});
 
 /** 加载当前订单的投诉记录（仅保洁/废品） */
 async function loadComplaint() {
@@ -414,6 +548,16 @@ const afterWorkPhotos = computed(() =>
   (order.value?.workPhotos ?? []).filter((p) => p.photoType === 'AFTER'),
 );
 
+const appointTimeText = computed<string>(() => {
+  if (!order.value) return '';
+  const date = (order.value.appointDate ?? '').slice(0, 10);
+  const slot = order.value.appointTimeSlot ?? '';
+	return `${date} ${slot}`
+  // 取 timeSlot 中的结束时间（如 "14:00-17:00" → "17:00"）
+  // const endTime = slot.includes('-') ? slot.split('-')[1]?.trim() : slot;
+  // return endTime ? `${endTime}` : date;
+});
+
 /** 预览服务记录照片 */
 function onPreviewWorkPhoto(photos: WorkPhotoDto[], startIdx: number) {
   if (!photos.length) return;
@@ -431,8 +575,14 @@ function onViewComplaintDetail() {
   console.info(`[order-detail] view complaint detail id=${complaint.value.id}`);
 }
 
-/** 客服电话常量 */
-const CUSTOMER_SERVICE_PHONE = '400-888-0000';
+function onPhoneService(phone: string) {
+  uni.makePhoneCall({
+    phoneNumber: phone,
+    complete(e) {
+      console.info('[order-detail] makePhoneCall complete', e);
+    },
+  });
+}
 
 /** 是否有底部操作按钮 */
 const hasActionButton = computed(() => {
@@ -513,10 +663,15 @@ function onGoComplaint() {
   console.info(`[order-detail] go complaint orderId=${orderId.value}`);
 }
 
-/** 联系客服 */
+/** 联系客服：与首页 / 我的一致，取运营人员「接单」电话 */
 function onCallService() {
-  uni.makePhoneCall({ phoneNumber: CUSTOMER_SERVICE_PHONE });
-  console.info('[order-detail] call service phone');
+  void callContactOperator(contactPickerRef.value);
+  console.info('[order-detail] call contact operator');
+}
+
+/** 返回上一页 */
+function onBack() {
+  uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/orders/index' }) });
 }
 
 function getServiceName(): string {
@@ -528,7 +683,10 @@ function getServiceName(): string {
 function getAddressText(): string {
   const snapshot = (order.value as CleaningOrderDto).addressSnapshot as Record<string, unknown> | null | undefined;
   if (!snapshot) return '未设置';
-  return (snapshot.detail as string) || (snapshot.address as string) || '未设置';
+  const text = [snapshot.province, snapshot.city, snapshot.district, snapshot.detail, snapshot.buildingInfo]
+    .filter(Boolean)
+    .join('');
+  return text || '未设置';
 }
 
 function formatDate(dateStr: string | undefined): string {
@@ -597,7 +755,7 @@ function getComplaintStatusClass(status: string): string {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #f5f5f5;
+  background: #F8FAFF;
 }
 
 .loading-wrap {
@@ -614,37 +772,90 @@ function getComplaintStatusClass(status: string): string {
 
 .detail-scroll {
   flex: 1;
+  height: 0;
 }
 
-/* 状态卡片 */
-.status-card {
-  background: #1677ff;
-  padding: 40rpx 32rpx 32rpx;
-  margin-bottom: 20rpx;
+.nav-layer.is-dark :deep(.uni-nav-bar-text),
+.nav-layer.is-dark :deep(.uni-icons) {
+  color: #000000 !important;
+}
+
+/* 沉浸式头部 */
+.hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 360rpx;
+}
+
+.hero-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.hero :deep(.uni-navbar) {
+  z-index: 999;
+}
+
+.hero-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 16rpx 32rpx 48rpx;
+}
+
+.status-item-name {
+  color: #fff;
+  font-size: 36rpx;
+  font-weight: bold;
 }
 
 .status-header {
   display: flex;
-  flex-direction: row;
-  align-items: center;
+  flex-direction: column;
   justify-content: space-between;
-  margin-bottom: 16rpx;
+  flex: 1;
+  margin-right: 16rpx;
 }
 
-.status-badge {
+/* .status-badge {
   padding: 8rpx 20rpx;
+  height: 50rpx;
+  min-width: 80rpx;
   border-radius: 20rpx;
   background: rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+} */
+
+.status-badge {
+	margin-top: 30rpx;
+  padding: 0rpx 20rpx;
+  height: 50rpx;
+  min-width: 80rpx;
+	border: 1rpx solid #FFF;
+  border-radius: 25rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .badge-text {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #ffffff;
-  font-weight: 600;
 }
 
 .order-no {
-  font-size: 24rpx;
+  font-size: 28rpx;
+	margin-top: 10rpx;
   color: rgba(255, 255, 255, 0.7);
 }
 
@@ -656,40 +867,64 @@ function getComplaintStatusClass(status: string): string {
 /* 信息卡片 */
 .info-card {
   background: #ffffff;
-  margin: 0 0 16rpx;
+  margin: 20rpx 24rpx;
   padding: 28rpx 32rpx;
+	border-radius: 32rpx;
+	overflow: hidden;
+	box-shadow: 0rpx 4rpx 20rpx 0rpx rgba(0,0,0,0.05);
+}
+
+/* 第一张卡片圆角；不再抬 z-index，避免滚动时盖住导航栏 */
+.hero + .info-card {
+  border-radius: 32rpx;
 }
 
 .card-title-row {
   margin-bottom: 20rpx;
+	padding-bottom: 20rpx;
+	border-bottom: 1rpx solid #EFEFEF;
 }
 
 .card-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #222;
+  font-size:32rpx;
+  font-weight: bold;
+  color: #333333;
+}
+
+.service-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
 }
 
 .info-row {
   display: flex;
-  flex-direction: row;
-  align-items: flex-start;
+  flex-direction: column;
+  /* align-items: center; */
   margin-bottom: 16rpx;
 }
 
 .info-label {
-  font-size: 26rpx;
-  color: #999;
-  width: 160rpx;
+  font-size: 30rpx;
+  color: #4C5760;
   flex-shrink: 0;
   line-height: 1.6;
 }
 
 .info-value {
   flex: 1;
-  font-size: 26rpx;
-  color: #333;
+  font-size: 30rpx;
+  color: #333333;
   line-height: 1.6;
+}
+
+.address-value {
+  display: block;
+  width: 100%;
+  white-space: normal;
+  word-break: break-all;
+  word-wrap: break-word;
+  overflow: visible;
 }
 
 .divider {
@@ -730,7 +965,7 @@ function getComplaintStatusClass(status: string): string {
 }
 
 .bottom-placeholder {
-  height: 140rpx;
+  height: 240rpx;
 }
 
 /* 底部操作栏 */
@@ -748,7 +983,6 @@ function getComplaintStatusClass(status: string): string {
   gap: 20rpx;
 }
 
-.btn-cancel,
 .btn-primary {
   flex: 1;
   height: 88rpx;
@@ -757,17 +991,30 @@ function getComplaintStatusClass(status: string): string {
   font-weight: 500;
   border: none;
   line-height: 88rpx;
+	background: #1677ff;
+	color: #ffffff;
 }
 
 .btn-cancel {
-  background: #f5f5f5;
-  color: #666;
-}
-
-.btn-primary {
-  background: #1677ff;
+  flex: 1;
+  height: 88rpx;
+  border-radius: 44rpx;
+  font-size: 30rpx;
+  font-weight: 500;
+  border: none;
+  line-height: 88rpx;
+  background: #f56c6c;
   color: #ffffff;
 }
+
+.btn-cancel::after {
+  border: none;
+}
+
+/* .btn-primary {
+  background: #1677ff;
+  color: #ffffff;
+} */
 
 .btn-outline {
   flex: 1;
@@ -786,17 +1033,17 @@ function getComplaintStatusClass(status: string): string {
   opacity: 0.6;
 }
 
-/* 覆盖状态卡片中 badge 颜色（detail 卡片用 fixed 背景） */
-.status-card .badge-blue,
-.status-card .badge-orange,
-.status-card .badge-green,
-.status-card .badge-grey {
+/* 头部 badge 统一半透明白底 */
+.hero-body .badge-blue,
+.hero-body .badge-orange,
+.hero-body .badge-green,
+.hero-body .badge-grey {
   background: rgba(255, 255, 255, 0.25);
 }
 
 /* 投诉进度卡片 */
 .complaint-card {
-  border-left: 6rpx solid #fa8c16;
+  /* border-left: 6rpx solid #fa8c16; */
 }
 
 .complaint-card-header {
@@ -853,7 +1100,7 @@ function getComplaintStatusClass(status: string): string {
 
 /* 我的评价卡片 */
 .review-card {
-  border-left: 6rpx solid #52c41a;
+  /* border-left: 6rpx solid #52c41a; */
 }
 
 .review-card-header {
@@ -873,25 +1120,27 @@ function getComplaintStatusClass(status: string): string {
   flex-direction: row;
   align-items: center;
   gap: 4rpx;
-  margin-bottom: 16rpx;
+  margin-bottom: 20rpx;
 }
 
 .review-star {
-  font-size: 44rpx;
-  line-height: 1;
+  width: 44rpx;
+  height: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.star-lit {
-  color: #faad14;
-}
-
-.star-dim {
-  color: #e0e0e0;
+.review-star-img {
+  width: 34rpx;
+  height: 34rpx;
+	margin-right: 4rpx;
 }
 
 .review-rating-label {
   font-size: 26rpx;
-  color: #faad14;
+  color: #FF7804;
   font-weight: 600;
   margin-left: 8rpx;
 }
@@ -907,13 +1156,13 @@ function getComplaintStatusClass(status: string): string {
 .review-tag {
   padding: 6rpx 20rpx;
   border-radius: 24rpx;
-  background: #f6ffed;
-  border: 1rpx solid #b7eb8f;
+  background: #F0F6FF;
+  /* border: 1rpx solid #b7eb8f; */
 }
 
 .review-tag-text {
   font-size: 24rpx;
-  color: #52c41a;
+  color: #0B7CC8;
 }
 
 .review-content-text {
@@ -940,7 +1189,8 @@ function getComplaintStatusClass(status: string): string {
 
 /* 服务记录照片（服务前/服务后） */
 .photo-group {
-  margin-bottom: 20rpx;
+  margin-bottom: 40rpx;
+	
 }
 
 .photo-group:last-child {
@@ -959,6 +1209,7 @@ function getComplaintStatusClass(status: string): string {
   flex-direction: row;
   flex-wrap: wrap;
   gap: 12rpx;
+	padding-top: 5rpx;
 }
 
 .work-photo-img {

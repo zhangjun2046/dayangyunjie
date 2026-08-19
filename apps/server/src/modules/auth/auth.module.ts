@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import { AdminJwtStrategy } from './strategies/admin-jwt.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { WorkerJwtStrategy } from './strategies/worker-jwt.strategy';
+import { WechatCustomerService } from './wechat-customer.service';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { WorkerJwtStrategy } from './strategies/worker-jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, WorkerJwtStrategy, AdminJwtStrategy],
+  providers: [AuthService, WechatCustomerService, JwtStrategy, WorkerJwtStrategy, AdminJwtStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}

@@ -3,7 +3,7 @@
  *
  * 测试矩阵：
  *  1. findAll     — 分页返回列表；可按 purpose 过滤
- *  2. findContact — 返回 purpose='接单' 的第一条记录；无记录时返回 null
+ *  2. findContact — 返回 purpose='接单' 的全部记录；无记录时返回 []
  *  3. findOne     — 存在返回 DTO；不存在 → 404
  *  4. create      — 成功创建并返回 DTO
  *  5. remove      — 存在时删除；不存在 → 404
@@ -79,27 +79,30 @@ describe('OperatorService', () => {
   // ── findContact ────────────────────────────────────────────────────────────
 
   describe('findContact', () => {
-    it('返回用途为「接单」的第一条运营人员', async () => {
-      const row = makeRow({ purpose: '接单' });
-      prisma.operator.findFirst.mockResolvedValue(row);
+    it('返回用途为「接单」的全部运营人员', async () => {
+      const rows = [
+        makeRow({ id: 1, purpose: '接单', phone: '13800138001' }),
+        makeRow({ id: 2, purpose: '接单', name: '运营二', phone: '13800138002' }),
+      ];
+      prisma.operator.findMany.mockResolvedValue(rows);
 
       const result = await service.findContact();
 
-      expect(prisma.operator.findFirst).toHaveBeenCalledWith({
+      expect(prisma.operator.findMany).toHaveBeenCalledWith({
         where: { purpose: '接单' },
         orderBy: { id: 'asc' },
       });
-      expect(result).not.toBeNull();
-      expect(result!.purpose).toBe('接单');
-      expect(result!.phone).toBe('13800138000');
+      expect(result).toHaveLength(2);
+      expect(result[0].phone).toBe('13800138001');
+      expect(result[1].name).toBe('运营二');
     });
 
-    it('无接单运营人员时返回 null', async () => {
-      prisma.operator.findFirst.mockResolvedValue(null);
+    it('无接单运营人员时返回空数组', async () => {
+      prisma.operator.findMany.mockResolvedValue([]);
 
       const result = await service.findContact();
 
-      expect(result).toBeNull();
+      expect(result).toEqual([]);
     });
   });
 

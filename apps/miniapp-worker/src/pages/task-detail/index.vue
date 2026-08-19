@@ -1,329 +1,372 @@
 <template>
   <view class="page">
-    <!-- 加载中 -->
-    <view v-if="loading" class="loading-wrap">
-      <view class="loading-spinner" />
-      <text class="loading-text">加载中…</text>
-    </view>
-
-    <!-- 加载失败 -->
-    <view v-else-if="!order" class="loading-wrap">
-      <text class="loading-text">订单加载失败，请返回重试</text>
-    </view>
+    <!-- 加载中 / 失败：保留可返回的导航 -->
+    <template v-if="loading || !order">
+      <uni-nav-bar
+        status-bar
+        title="任务详情"
+        left-icon="left"
+        :border="false"
+        @clickLeft="onBack"
+      />
+      <view class="loading-wrap">
+        <view v-if="loading" class="loading-spinner" />
+        <text class="loading-text">{{ loading ? '加载中…' : '订单加载失败，请返回重试' }}</text>
+      </view>
+    </template>
 
     <!-- 详情内容 -->
-    <block v-else>
-      <scroll-view class="detail-scroll" scroll-y>
-        <!-- ===== 头部蓝色区域 ===== -->
-        <view class="header-card">
-          <view class="header-top">
-            <view class="header-title-row">
-              <text class="service-title">{{ serviceName }}</text>
-              <view :class="['status-tag', statusTagClass]">
-                <text class="status-tag-text">{{ statusTagLabel }}</text>
-              </view>
-            </view>
+    <scroll-view v-else class="detail-scroll" scroll-y @scroll="onDetailScroll">
+      <!-- 沉浸式头部：头图顶到屏幕最上，导航透明浮在上面 -->
+      <view class="hero">
+        <image class="hero-bg" src="/static/images/icon_bj_n.png" mode="aspectFill" />
+        <view class="nav-layer" :class="{ 'is-dark': navDark }">
+          <uni-nav-bar
+            :fixed="true"
+            status-bar
+            title="任务详情"
+            :background-color="navBgColor"
+            :color="navColor"
+            left-icon="left"
+            :border="false"
+            @clickLeft="onBack"
+          />
+        </view>
+        <view class="hero-body">
+          <view class="status-header">
+            <text class="status-item-name">{{ serviceName }}</text>
             <text class="order-no">订单编号：{{ order.orderNo }}</text>
-            <text class="appoint-time">预计完成时间：{{ appointTimeText }}</text>
+            <text class="order-no">服务时间：{{ appointTimeText }}</text>
+          </view>
+          <view class="status-badge">
+            <text class="badge-text">{{ statusTagLabel }}</text>
           </view>
         </view>
+      </view>
 
-        <!-- ===== 客户联系信息条 ===== -->
-        <view class="contact-bar">
+      <!-- ===== 客户联系信息条（对齐居民端服务人员卡片） ===== -->
+      <view class="info-card contact-card">
+        <view class="service-row">
           <view class="contact-left">
-            <view class="contact-avatar">
-              <image class="avatar-icon-img" src="/static/icons/customer.png" mode="aspectFit" />
-            </view>
+            <image class="avatar-icon-img" src="/static/icons/customer.png" mode="aspectFit" />
             <text class="contact-phone">{{ order.contactPhone }}</text>
           </view>
-          <view class="contact-actions">
-            <view class="contact-btn contact-btn--nav" @tap="handleNavigate">
-              <text class="contact-btn-icon">🗺️</text>
-            </view>
-            <view class="contact-btn contact-btn--call" @tap="handleCall">
-              <image class="contact-btn-icon-img" src="/static/icons/phone.png" mode="aspectFit" />
-            </view>
-          </view>
+          <image
+            class="phone-call-icon"
+            src="/static/icons/icon_dianhua_n.png"
+            mode="aspectFit"
+            @tap="handleCall(order.contactPhone)"
+          />
+        </view>
+      </view>
+
+      <!-- ===== 订单信息卡 ===== -->
+      <view class="info-card">
+        <view class="card-section-title">
+          <text class="section-title-text">订单信息</text>
         </view>
 
-        <!-- ===== 订单信息卡 ===== -->
-        <view class="info-card">
-          <view class="card-section-title">
-            <text class="section-title-text">订单信息</text>
-          </view>
-
-          <view class="info-row">
-            <text class="info-label">计划服务时间</text>
-            <text class="info-value">{{ planServiceTime }}</text>
-          </view>
-          <view class="info-row">
-            <text class="info-label">{{ order.isProxyOrder ? '代下单人' : '联系人' }}</text>
-            <text class="info-value">{{ order.contactName }}</text>
-          </view>
-          <view class="info-row">
-            <text class="info-label">联系电话</text>
+        <view class="info-row">
+          <text class="info-label">计划服务时间</text>
+          <text class="info-value">{{ planServiceTime }}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">联系人姓名</text>
+          <text class="info-value">{{ order.contactName }}</text>
+        </view>
+        <view class="info-row-space-between">
+          <view class="info-row info-row--nested">
+            <text class="info-label">联系人电话</text>
             <text class="info-value">{{ order.contactPhone }}</text>
           </view>
+          <image
+            class="phone-call-icon"
+            src="/static/icons/icon_dianhua_n.png"
+            mode="aspectFit"
+            @tap="handleCall(order.contactPhone)"
+          />
+        </view>
+
+        <view class="info-row">
+          <text class="info-label">是否代客下单</text>
+          <view v-if="order.isProxyOrder" class="proxy-label">
+            <text class="proxy-tag-text">代下单</text>
+          </view>
+          <text v-else class="info-value">否</text>
+        </view>
+
+        <template v-if="order.isProxyOrder">
           <view class="info-row">
+            <text class="info-label">被服务人姓名</text>
+            <text class="info-value">{{ order.serviceContactName || '未填写' }}</text>
+          </view>
+          <view class="info-row-space-between">
+            <view class="info-row info-row--nested">
+              <text class="info-label">被服务人电话</text>
+              <text class="info-value">{{ order.serviceContactPhone || '未填写' }}</text>
+            </view>
+            <image
+              v-if="order.serviceContactPhone"
+              class="phone-call-icon"
+              src="/static/icons/icon_dianhua_n.png"
+              mode="aspectFit"
+              @tap="handleCall(order.serviceContactPhone)"
+            />
+          </view>
+        </template>
+
+        <view class="info-row-space-between">
+          <view class="info-row info-row--nested">
             <text class="info-label">服务地址</text>
             <text class="info-value address-value">{{ addressText }}</text>
           </view>
-
-          <!-- 代下单时展示被服务人信息 -->
-          <template v-if="order.isProxyOrder && order.serviceContactName">
-            <view class="divider" />
-            <view class="proxy-row">
-              <view class="proxy-badge">
-                <text class="proxy-badge-text">代下单</text>
-              </view>
-              <text class="proxy-desc">以下为实际被服务人</text>
-            </view>
-            <view class="info-row">
-              <text class="info-label">被服务人</text>
-              <text class="info-value">{{ order.serviceContactName }}</text>
-            </view>
-            <view class="info-row">
-              <text class="info-label">联系方式</text>
-              <text class="info-value">{{ order.serviceContactPhone }}</text>
-            </view>
-          </template>
-
-          <view v-if="order.remark || order.notes" class="info-row">
-            <text class="info-label">备注信息</text>
-            <text class="info-value remark-value">{{ order.remark || order.notes }}</text>
-          </view>
+          <image
+            v-if="addressText"
+            class="phone-call-icon"
+            src="/static/icons/agreement.png"
+            mode="aspectFit"
+            @tap="handleCopyAddress"
+          />
         </view>
 
-        <!-- ===== 服务进度时间轴 ===== -->
-        <view class="info-card">
-          <view class="card-section-title">
-            <text class="section-title-text">服务进度</text>
-          </view>
+        <view v-if="order.remark || order.notes" class="info-row">
+          <text class="info-label">备注信息</text>
+          <text class="info-value remark-value">{{ order.remark || order.notes }}</text>
+        </view>
+      </view>
 
-          <view class="timeline">
-            <view
-              v-for="(node, index) in timelineNodes"
-              :key="node.key"
-              :class="['timeline-item', index < timelineNodes.length - 1 && 'timeline-item--has-line']"
-            >
-              <!-- 节点圆圈 -->
-              <view :class="['timeline-dot', node.done ? 'timeline-dot--done' : node.active ? 'timeline-dot--active' : 'timeline-dot--pending']">
-                <text v-if="node.done" class="dot-check">✓</text>
-                <view v-else-if="node.active" class="dot-active-inner" />
-              </view>
-              <!-- 连接线 -->
-              <view v-if="index < timelineNodes.length - 1" :class="['timeline-line', node.done ? 'timeline-line--done' : 'timeline-line--pending']" />
-              <!-- 节点内容 -->
-              <view class="timeline-content">
-                <text :class="['node-label', node.done ? 'node-label--done' : node.active ? 'node-label--active' : 'node-label--pending']">
-                  {{ node.label }}
-                </text>
-                <text class="node-desc">{{ node.desc }}</text>
-                <text v-if="node.time" class="node-time">{{ node.time }}</text>
-              </view>
+      <!-- ===== 服务进度时间轴 ===== -->
+      <view class="info-card">
+        <view class="card-section-title">
+          <text class="section-title-text">服务进度</text>
+        </view>
+
+        <view class="timeline">
+          <view
+            v-for="(node, index) in timelineNodes"
+            :key="node.key"
+            :class="['timeline-item', index < timelineNodes.length - 1 && 'timeline-item--has-line']"
+          >
+            <!-- 节点圆圈 -->
+            <view :class="['timeline-dot', node.done ? 'timeline-dot--done' : node.active ? 'timeline-dot--active' : 'timeline-dot--pending']">
+              <text v-if="node.done" class="dot-check">✓</text>
+              <view v-else-if="node.active" class="dot-active-inner" />
+            </view>
+            <!-- 连接线 -->
+            <view v-if="index < timelineNodes.length - 1" :class="['timeline-line', node.done ? 'timeline-line--done' : 'timeline-line--pending']" />
+            <!-- 节点内容 -->
+            <view class="timeline-content">
+              <text :class="['node-label', node.done ? 'node-label--done' : node.active ? 'node-label--active' : 'node-label--pending']">
+                {{ node.label }}
+              </text>
+              <text class="node-desc">{{ node.desc }}</text>
+              <text v-if="node.time" class="node-time">{{ node.time }}</text>
             </view>
           </view>
         </view>
+      </view>
 
-        <!-- ===== 作业记录区 ===== -->
-        <view class="info-card">
-          <view class="card-section-title">
-            <text class="section-title-text">作业记录</text>
-          </view>
-
-          <!-- ── 禁用态（ASSIGNED / ACCEPTED）：灰色占位 ── -->
-          <template v-if="workAreaState === 'disabled'">
-            <view class="photo-group">
-              <view class="photo-group-header">
-                <view class="photo-seq-badge photo-seq-badge--pending">
-                  <text class="photo-seq-text">1</text>
-                </view>
-                <text class="photo-group-label">上传服务前照片</text>
-              </view>
-              <view class="photo-upload-area photo-upload-area--disabled">
-                <view class="photo-placeholder">
-                  <image class="photo-camera-icon-img" src="/static/icons/add-photo.png" mode="aspectFit" />
-                </view>
-                <text class="photo-disabled-tip">开始服务后可上传</text>
-              </view>
-            </view>
-            <view class="photo-group">
-              <view class="photo-group-header">
-                <view class="photo-seq-badge photo-seq-badge--pending">
-                  <text class="photo-seq-text">2</text>
-                </view>
-                <text class="photo-group-label">上传服务后照片</text>
-              </view>
-              <view class="photo-upload-area photo-upload-area--disabled">
-                <view class="photo-placeholder">
-                  <image class="photo-camera-icon-img" src="/static/icons/add-photo.png" mode="aspectFit" />
-                </view>
-                <text class="photo-disabled-tip">开始服务后可上传</text>
-              </view>
-            </view>
-          </template>
-
-          <!-- ── 服务中（IN_SERVICE）：可上传编辑 ── -->
-          <template v-else-if="workAreaState === 'active'">
-            <!-- 上传前照片 -->
-            <view class="photo-group">
-              <view class="photo-group-header">
-                <view :class="['photo-seq-badge', beforePhotos.length > 0 ? '' : 'photo-seq-badge--pending']">
-                  <image v-if="beforePhotos.length > 0" class="photo-seq-icon" src="/static/icons/step-1.png" mode="aspectFit" />
-                  <text v-else class="photo-seq-text">1</text>
-                </view>
-                <text class="photo-group-label">上传服务前照片</text>
-                <text class="photo-count-tip">{{ beforePhotos.length }}/9</text>
-              </view>
-              <view class="photo-grid">
-                <view
-                  v-for="(url, idx) in beforePhotos"
-                  :key="url"
-                  class="photo-thumb-wrap"
-                >
-                  <image class="photo-thumb" :src="url" mode="aspectFill" />
-                  <view class="photo-delete-btn" @tap="removePhoto('before', idx)">
-                    <text class="photo-delete-icon">✕</text>
-                  </view>
-                </view>
-                <view
-                  v-if="beforePhotos.length < 9"
-                  :class="['photo-add-btn', uploadingBefore && 'photo-add-btn--loading']"
-                  @tap="handleAddPhoto('before')"
-                >
-                  <text v-if="uploadingBefore" class="photo-uploading-icon">⏳</text>
-                  <image v-else class="photo-camera-icon-img" src="/static/icons/add-photo.png" mode="aspectFit" />
-                </view>
-              </view>
-            </view>
-            <!-- 上传后照片 -->
-            <view class="photo-group">
-              <view class="photo-group-header">
-                <view :class="['photo-seq-badge', afterPhotos.length > 0 ? '' : 'photo-seq-badge--pending']">
-                  <image v-if="afterPhotos.length > 0" class="photo-seq-icon" src="/static/icons/step-2.png" mode="aspectFit" />
-                  <text v-else class="photo-seq-text">2</text>
-                </view>
-                <text class="photo-group-label">上传服务后照片</text>
-                <text class="photo-count-tip">{{ afterPhotos.length }}/9</text>
-              </view>
-              <view class="photo-grid">
-                <view
-                  v-for="(url, idx) in afterPhotos"
-                  :key="url"
-                  class="photo-thumb-wrap"
-                >
-                  <image class="photo-thumb" :src="url" mode="aspectFill" />
-                  <view class="photo-delete-btn" @tap="removePhoto('after', idx)">
-                    <text class="photo-delete-icon">✕</text>
-                  </view>
-                </view>
-                <view
-                  v-if="afterPhotos.length < 9"
-                  :class="['photo-add-btn', uploadingAfter && 'photo-add-btn--loading']"
-                  @tap="handleAddPhoto('after')"
-                >
-                  <text v-if="uploadingAfter" class="photo-uploading-icon">⏳</text>
-                  <image v-else class="photo-camera-icon-img" src="/static/icons/add-photo.png" mode="aspectFit" />
-                </view>
-              </view>
-            </view>
-          </template>
-
-          <!-- ── 只读态（PENDING_REVIEW / REVIEWED）：按 photoType 分服务前/后 ── -->
-          <template v-else>
-            <!-- 服务前照片 -->
-            <view class="photo-group">
-              <view class="photo-group-header">
-                <view :class="['photo-seq-badge', beforeWorkPhotos.length > 0 ? '' : 'photo-seq-badge--pending']">
-                  <image v-if="beforeWorkPhotos.length > 0" class="photo-seq-icon" src="/static/icons/step-1.png" mode="aspectFit" />
-                  <text v-else class="photo-seq-text">1</text>
-                </view>
-                <text class="photo-group-label">服务前照片</text>
-                <text class="photo-count-tip">{{ beforeWorkPhotos.length }} 张</text>
-              </view>
-              <view v-if="beforeWorkPhotos.length === 0" class="photo-empty-tip">
-                <text class="photo-disabled-tip">暂无服务前照片</text>
-              </view>
-              <view v-else class="photo-grid">
-                <view
-                  v-for="photo in beforeWorkPhotos"
-                  :key="photo.id"
-                  class="photo-thumb-wrap"
-                >
-                  <image class="photo-thumb" :src="photo.url" mode="aspectFill" />
-                </view>
-              </view>
-            </view>
-            <!-- 服务后照片 -->
-            <view class="photo-group">
-              <view class="photo-group-header">
-                <view :class="['photo-seq-badge', afterWorkPhotos.length > 0 ? '' : 'photo-seq-badge--pending']">
-                  <image v-if="afterWorkPhotos.length > 0" class="photo-seq-icon" src="/static/icons/step-2.png" mode="aspectFit" />
-                  <text v-else class="photo-seq-text">2</text>
-                </view>
-                <text class="photo-group-label">服务后照片</text>
-                <text class="photo-count-tip">{{ afterWorkPhotos.length }} 张</text>
-              </view>
-              <view v-if="afterWorkPhotos.length === 0" class="photo-empty-tip">
-                <text class="photo-disabled-tip">暂无服务后照片</text>
-              </view>
-              <view v-else class="photo-grid">
-                <view
-                  v-for="photo in afterWorkPhotos"
-                  :key="photo.id"
-                  class="photo-thumb-wrap"
-                >
-                  <image class="photo-thumb" :src="photo.url" mode="aspectFill" />
-                </view>
-              </view>
-            </view>
-          </template>
+      <!-- ===== 作业记录区 ===== -->
+      <view class="info-card">
+        <view class="card-section-title">
+          <text class="section-title-text">作业记录</text>
         </view>
 
-        <!-- ===== 用户评价（仅 REVIEWED 状态且已加载到评价数据时展示）===== -->
-        <view v-if="order.status === 'REVIEWED' && review" class="info-card">
-          <text class="info-card-title">用户评价</text>
-
-          <!-- 星级 -->
-          <view class="review-stars-row">
-            <text
-              v-for="n in 5"
-              :key="n"
-              :class="['review-star', n <= review.rating ? 'review-star--filled' : 'review-star--empty']"
-            >{{ n <= review.rating ? '★' : '☆' }}</text>
-            <text class="review-rating-text">{{ review.rating }}.0 分</text>
-          </view>
-
-          <!-- 标签 -->
-          <view v-if="review.tags && review.tags.length > 0" class="review-tags-row">
-            <text v-for="tag in review.tags" :key="tag" class="review-tag-chip">{{ tag }}</text>
-          </view>
-
-          <!-- 文字评价 -->
-          <text v-if="review.content" class="review-content">{{ review.content }}</text>
-
-          <!-- 图片网格（复用已有样式） -->
-          <view v-if="review.images && review.images.length > 0" class="photo-grid review-images-grid">
-            <view
-              v-for="(imgUrl, idx) in review.images"
-              :key="idx"
-              class="photo-thumb-wrap"
-              @tap="previewReviewImage(imgUrl)"
-            >
-              <image class="photo-thumb" :src="imgUrl" mode="aspectFill" />
+        <!-- ── 禁用态（ASSIGNED / ACCEPTED）：灰色占位 ── -->
+        <template v-if="workAreaState === 'disabled'">
+          <view class="photo-group">
+            <view class="photo-group-header">
+              <view class="photo-seq-badge photo-seq-badge--pending">
+                <text class="photo-seq-text">1</text>
+              </view>
+              <text class="photo-group-label">上传服务前照片</text>
+            </view>
+            <view class="photo-upload-wrap photo-upload-wrap--disabled">
+              <image class="photo-upload-area" src="/static/icons/add-photo.png" mode="aspectFit" />
+              <text class="photo-disabled-tip">开始服务后可上传</text>
             </view>
           </view>
+          <view class="photo-group">
+            <view class="photo-group-header">
+              <view class="photo-seq-badge photo-seq-badge--pending">
+                <text class="photo-seq-text">2</text>
+              </view>
+              <text class="photo-group-label">上传服务后照片</text>
+            </view>
+            <view class="photo-upload-wrap photo-upload-wrap--disabled">
+              <image class="photo-upload-area" src="/static/icons/add-photo.png" mode="aspectFit" />
+              <text class="photo-disabled-tip">开始服务后可上传</text>
+            </view>
+          </view>
+        </template>
 
-          <!-- 评价时间 -->
-          <text class="review-time">评价时间：{{ formatTs(review.createdAt) }}</text>
+        <!-- ── 服务中（IN_SERVICE）：可上传编辑 ── -->
+        <template v-else-if="workAreaState === 'active'">
+          <!-- 上传前照片 -->
+          <view class="photo-group">
+            <view class="photo-group-header">
+              <view :class="['photo-seq-badge', beforePhotos.length > 0 ? '' : 'photo-seq-badge--pending']">
+                <image v-if="beforePhotos.length > 0" class="photo-seq-icon" src="/static/icons/step-1.png" mode="aspectFit" />
+                <text v-else class="photo-seq-text">1</text>
+              </view>
+              <text class="photo-group-label">上传服务前照片</text>
+              <text class="photo-count-tip">{{ beforePhotos.length }}/9</text>
+            </view>
+            <view class="photo-grid">
+              <view
+                v-for="(url, idx) in beforePhotos"
+                :key="url"
+                class="photo-thumb-wrap"
+              >
+                <image class="photo-thumb" :src="url" mode="aspectFill" />
+                <view class="photo-delete-btn" @tap="removePhoto('before', idx)">
+                  <text class="photo-delete-icon">✕</text>
+                </view>
+              </view>
+              <view
+                v-if="beforePhotos.length < 9"
+                :class="['photo-add-btn', uploadingBefore && 'photo-add-btn--loading']"
+                @tap="handleAddPhoto('before')"
+              >
+                <text v-if="uploadingBefore" class="photo-uploading-icon">⏳</text>
+                <image v-else class="photo-upload-area" src="/static/icons/add-photo.png" mode="aspectFit" />
+              </view>
+            </view>
+          </view>
+          <!-- 上传后照片 -->
+          <view class="photo-group">
+            <view class="photo-group-header">
+              <view :class="['photo-seq-badge', afterPhotos.length > 0 ? '' : 'photo-seq-badge--pending']">
+                <image v-if="afterPhotos.length > 0" class="photo-seq-icon" src="/static/icons/step-2.png" mode="aspectFit" />
+                <text v-else class="photo-seq-text">2</text>
+              </view>
+              <text class="photo-group-label">上传服务后照片</text>
+              <text class="photo-count-tip">{{ afterPhotos.length }}/9</text>
+            </view>
+            <view class="photo-grid">
+              <view
+                v-for="(url, idx) in afterPhotos"
+                :key="url"
+                class="photo-thumb-wrap"
+              >
+                <image class="photo-thumb" :src="url" mode="aspectFill" />
+                <view class="photo-delete-btn" @tap="removePhoto('after', idx)">
+                  <text class="photo-delete-icon">✕</text>
+                </view>
+              </view>
+              <view
+                v-if="afterPhotos.length < 9"
+                :class="['photo-add-btn', uploadingAfter && 'photo-add-btn--loading']"
+                @tap="handleAddPhoto('after')"
+              >
+                <text v-if="uploadingAfter" class="photo-uploading-icon">⏳</text>
+                <image v-else class="photo-upload-area" src="/static/icons/add-photo.png" mode="aspectFit" />
+              </view>
+            </view>
+          </view>
+        </template>
+
+        <!-- ── 只读态（PENDING_REVIEW / REVIEWED）：按 photoType 分服务前/后 ── -->
+        <template v-else>
+          <!-- 服务前照片 -->
+          <view class="photo-group">
+            <view class="photo-group-header">
+              <view :class="['photo-seq-badge', beforeWorkPhotos.length > 0 ? '' : 'photo-seq-badge--pending']">
+                <image v-if="beforeWorkPhotos.length > 0" class="photo-seq-icon" src="/static/icons/step-1.png" mode="aspectFit" />
+                <text v-else class="photo-seq-text">1</text>
+              </view>
+              <text class="photo-group-label">服务前照片</text>
+              <text class="photo-count-tip">{{ beforeWorkPhotos.length }} 张</text>
+            </view>
+            <view v-if="beforeWorkPhotos.length === 0" class="photo-empty-tip">
+              <text class="photo-disabled-tip">暂无服务前照片</text>
+            </view>
+            <view v-else class="photo-grid">
+              <view
+                v-for="photo in beforeWorkPhotos"
+                :key="photo.id"
+                class="photo-thumb-wrap"
+              >
+                <image class="photo-thumb" :src="photo.url" mode="aspectFill" />
+              </view>
+            </view>
+          </view>
+          <!-- 服务后照片 -->
+          <view class="photo-group">
+            <view class="photo-group-header">
+              <view :class="['photo-seq-badge', afterWorkPhotos.length > 0 ? '' : 'photo-seq-badge--pending']">
+                <image v-if="afterWorkPhotos.length > 0" class="photo-seq-icon" src="/static/icons/step-2.png" mode="aspectFit" />
+                <text v-else class="photo-seq-text">2</text>
+              </view>
+              <text class="photo-group-label">服务后照片</text>
+              <text class="photo-count-tip">{{ afterWorkPhotos.length }} 张</text>
+            </view>
+            <view v-if="afterWorkPhotos.length === 0" class="photo-empty-tip">
+              <text class="photo-disabled-tip">暂无服务后照片</text>
+            </view>
+            <view v-else class="photo-grid">
+              <view
+                v-for="photo in afterWorkPhotos"
+                :key="photo.id"
+                class="photo-thumb-wrap"
+              >
+                <image class="photo-thumb" :src="photo.url" mode="aspectFill" />
+              </view>
+            </view>
+          </view>
+        </template>
+      </view>
+
+      <!-- ===== 用户评价（仅 REVIEWED 状态且已加载到评价数据时展示）===== -->
+      <view v-if="order.status === 'REVIEWED' && review" class="info-card">
+        <text class="info-card-title">用户评价</text>
+
+        <!-- 星级 -->
+        <view class="review-stars-row">
+          <text
+            v-for="n in 5"
+            :key="n"
+            :class="['review-star', n <= review.rating ? 'review-star--filled' : 'review-star--empty']"
+          >{{ n <= review.rating ? '★' : '☆' }}</text>
+          <text class="review-rating-text">{{ review.rating }}.0 分</text>
         </view>
 
-        <!-- 底部安全区占位 -->
-        <view class="bottom-spacer" />
-      </scroll-view>
+        <!-- 标签 -->
+        <view v-if="review.tags && review.tags.length > 0" class="review-tags-row">
+          <text v-for="tag in review.tags" :key="tag" class="review-tag-chip">{{ tag }}</text>
+        </view>
 
-      <!-- ===== 底部固定按钮 ===== -->
+        <!-- 文字评价 -->
+        <text v-if="review.content" class="review-content">{{ review.content }}</text>
 
+        <!-- 图片网格（复用已有样式） -->
+        <view v-if="review.images && review.images.length > 0" class="photo-grid review-images-grid">
+          <view
+            v-for="(imgUrl, idx) in review.images"
+            :key="idx"
+            class="photo-thumb-wrap"
+            @tap="previewReviewImage(imgUrl)"
+          >
+            <image class="photo-thumb" :src="imgUrl" mode="aspectFill" />
+          </view>
+        </view>
+
+        <!-- 评价时间 -->
+        <text class="review-time">评价时间：{{ formatTs(review.createdAt) }}</text>
+      </view>
+
+      <!-- 底部占位：有操作栏时避开按钮；完成后仍留出内容与屏幕底的间距 -->
+      <view
+        :class="[
+          'bottom-spacer',
+          hasBottomBar && order.status === 'ASSIGNED' && 'bottom-spacer--with-tip',
+          !hasBottomBar && 'bottom-spacer--done',
+        ]"
+      />
+    </scroll-view>
+
+    <!-- ===== 底部固定按钮 ===== -->
+    <block v-if="order">
       <!-- ASSIGNED（已派单）：只能接单，尚不可开始服务 -->
       <view v-if="order.status === 'ASSIGNED'" class="bottom-bar">
         <view class="bottom-tip-row">
@@ -364,8 +407,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { onLoad } from '@dcloudio/uni-app';
+import { ref, computed, nextTick } from 'vue';
+import { onLoad, onPageScroll } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/store/auth';
 import { fetchOrderDetail, acceptOrder, gpsCheckin, completeOrder } from '@/api/order';
 import type { OrderDetailDto } from '@/api/order';
@@ -392,6 +435,11 @@ const completingService = ref(false);
 // ===== REVIEWED 居民评价 =====
 const review = ref<ReviewDto | null>(null);
 
+const navDark = ref(false);
+const heroThreshold = ref(80);
+const navColor = computed(() => (navDark.value ? '#000000' : '#ffffff'));
+const navBgColor = computed(() => (navDark.value ? '#ffffff' : 'transparent'));
+
 // ===== 路由参数加载 =====
 onLoad((query) => {
   orderId.value = Number(query?.orderId ?? 0);
@@ -403,6 +451,7 @@ onLoad((query) => {
 async function loadDetail(): Promise<void> {
   if (!orderId.value) return;
   loading.value = true;
+  navDark.value = false;
   try {
     order.value = await fetchOrderDetail(orderType.value, orderId.value);
     console.info('[task-detail] loadDetail done, status=', order.value?.status);
@@ -421,8 +470,37 @@ async function loadDetail(): Promise<void> {
     console.info('[task-detail] loadDetail failed, err=', msg);
   } finally {
     loading.value = false;
+    if (order.value) {
+      await nextTick();
+      measureHero();
+    }
   }
 }
+
+function measureHero() {
+  uni.createSelectorQuery()
+    .select('.hero')
+    .boundingClientRect((rect) => {
+      if (!rect) return;
+      const sys = uni.getSystemInfoSync();
+      const navH = (sys.statusBarHeight || 0) + 44;
+      heroThreshold.value = Math.max(rect.height - navH, 40);
+      console.info('[task-detail] hero threshold=', heroThreshold.value);
+    })
+    .exec();
+}
+
+function updateNavByScroll(scrollTop: number) {
+  navDark.value = scrollTop >= heroThreshold.value;
+}
+
+function onDetailScroll(e: { detail: { scrollTop: number } }) {
+  updateNavByScroll(e.detail.scrollTop);
+}
+
+onPageScroll((e) => {
+  updateNavByScroll(e.scrollTop);
+});
 
 /**
  * 静默刷新（不触发 loading 遮罩）
@@ -470,18 +548,18 @@ const statusTagLabel = computed<string>(() => {
   return map[s] ?? s;
 });
 
-/** 状态标签样式 */
+/** 状态标签样式（头图上统一半透明白底，class 预留扩展） */
 const statusTagClass = computed<string>(() => {
   const s = order.value?.status ?? '';
-  const map: Record<string, string> = {
-    ASSIGNED: 'status-tag--pending',
-    ACCEPTED: 'status-tag--pending',
-    IN_SERVICE: 'status-tag--active',
-    PENDING_REVIEW: 'status-tag--review',
-    REVIEWED: 'status-tag--done',
-    CANCELLED: 'status-tag--cancelled',
-  };
-  return map[s] ?? '';
+  const blue = ['ASSIGNED', 'ACCEPTED'];
+  const orange = ['IN_SERVICE', 'PENDING_REVIEW'];
+  const green = ['REVIEWED'];
+  const grey = ['CANCELLED'];
+  if (blue.includes(s)) return 'badge-blue';
+  if (orange.includes(s)) return 'badge-orange';
+  if (green.includes(s)) return 'badge-green';
+  if (grey.includes(s)) return 'badge-grey';
+  return 'badge-blue';
 });
 
 /** 预计完成时间：从 appointDate + appointTimeSlot 拼装 */
@@ -489,11 +567,15 @@ const appointTimeText = computed<string>(() => {
   if (!order.value) return '';
   const date = (order.value.appointDate ?? '').slice(0, 10);
   const slot = order.value.appointTimeSlot ?? '';
-  // 取 timeSlot 中的结束时间（如 "14:00-17:00" → "17:00"）
-  const endTime = slot.includes('-') ? slot.split('-')[1]?.trim() : slot;
-  return endTime ? `${endTime}` : date;
+	return `${date} ${slot}`
 });
-
+// const appointTimeText = computed<string>(() => {
+//   if (!order.value) return '';
+//   const date = (order.value.appointDate ?? '').slice(0, 10);
+//   const slot = order.value.appointTimeSlot ?? '';
+//   const endTime = slot.includes('-') ? slot.split('-')[1]?.trim() : slot;
+//   return endTime ? `${endTime}` : date;
+// });
 /** 计划服务时间（完整展示） */
 const planServiceTime = computed<string>(() => {
   if (!order.value) return '';
@@ -502,16 +584,13 @@ const planServiceTime = computed<string>(() => {
   return `${date} ${slot}`;
 });
 
-/** 服务地址文字 */
+/** 服务地址文字：省市区 + 详细地址 + 楼栋信息 */
 const addressText = computed<string>(() => {
   const snap = order.value?.addressSnapshot;
   if (!snap) return '';
-  const parts: string[] = [];
-  if (snap.district) parts.push(snap.district);
-  if (snap.detail) parts.push(snap.detail);
-  if (snap.buildingInfo) parts.push(snap.buildingInfo);
-  if (parts.length > 0) return parts.join('');
-  return [snap.province, snap.city, snap.district].filter(Boolean).join('');
+  return [snap.province, snap.city, snap.district, snap.detail, snap.buildingInfo]
+    .filter(Boolean)
+    .join('');
 });
 
 /**
@@ -528,6 +607,12 @@ const workAreaState = computed<'disabled' | 'active' | 'readonly'>(() => {
 });
 
 const isWorkAreaDisabled = computed<boolean>(() => workAreaState.value === 'disabled');
+
+/** 是否展示底部操作栏（固定定位会遮挡滚动内容） */
+const hasBottomBar = computed<boolean>(() => {
+  const s = order.value?.status ?? '';
+  return s === 'ASSIGNED' || s === 'ACCEPTED' || s === 'IN_SERVICE';
+});
 
 /** 只读态：服务前照片（photoType === BEFORE） */
 const beforeWorkPhotos = computed(() =>
@@ -663,10 +748,39 @@ async function handleAcceptOrder(): Promise<void> {
 }
 
 /** 一键拨号 */
-function handleCall(): void {
-  const phone = order.value?.contactPhone;
-  if (!phone) return;
-  uni.makePhoneCall({ phoneNumber: phone });
+function handleCall(phone?: string | null): void {
+  const target = (phone || order.value?.contactPhone || '').trim();
+  if (!target) {
+    uni.showToast({ title: '暂无联系电话', icon: 'none' });
+    return;
+  }
+  uni.makePhoneCall({
+    phoneNumber: target,
+    complete(e) {
+      console.info('[task-detail] makePhoneCall complete', e);
+    },
+  });
+}
+
+/** 复制服务地址到剪贴板 */
+function handleCopyAddress(): void {
+  const address = addressText.value.trim();
+  if (!address) {
+    uni.showToast({ title: '暂无服务地址', icon: 'none' });
+    return;
+  }
+  uni.setClipboardData({
+    data: address,
+    success: () => {
+      console.info('[task-detail] copy address success');
+      uni.showToast({ title: '地址已复制', icon: 'success' });
+    },
+  });
+}
+
+/** 返回上一页 */
+function onBack(): void {
+  uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/tasks/index' }) });
 }
 
 /**
@@ -767,7 +881,7 @@ function handleAddPhoto(slot: 'before' | 'after'): void {
 
 /**
  * 完成服务：IN_SERVICE → PENDING_REVIEW
- * 弹窗确认 → 调 /complete → 刷新详情
+ * 校验服务前/后照片各至少 1 张 → 弹窗确认 → 调 /complete → 刷新详情
  */
 async function handleCompleteService(): Promise<void> {
   if (completingService.value) return;
@@ -777,9 +891,12 @@ async function handleCompleteService(): Promise<void> {
     return;
   }
 
-  // 至少上传 1 张作业照片（服务前或服务后均可）
-  if (beforePhotos.value.length === 0 && afterPhotos.value.length === 0) {
-    uni.showToast({ title: '请至少上传一张作业照片', icon: 'none', duration: 2000 });
+  if (beforePhotos.value.length === 0) {
+    uni.showToast({ title: '请上传服务前照片', icon: 'none', duration: 2000 });
+    return;
+  }
+  if (afterPhotos.value.length === 0) {
+    uni.showToast({ title: '请上传服务后照片', icon: 'none', duration: 2000 });
     return;
   }
 
@@ -921,24 +1038,32 @@ async function handleStartService(): Promise<void> {
 </script>
 
 <style scoped>
-/* ===== 整体页面 ===== */
+/* ===== 整体页面（对齐居民端详情） ===== */
 .page {
-  min-height: 100vh;
-  background: #f0f4f8;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #F8FAFF;
   position: relative;
 }
 
 .detail-scroll {
-  height: calc(100vh - 0px);
+  flex: 1;
+  height: 0;
+}
+
+.nav-layer.is-dark :deep(.uni-nav-bar-text),
+.nav-layer.is-dark :deep(.uni-icons) {
+  color: #000000 !important;
 }
 
 /* ===== 加载 ===== */
 .loading-wrap {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 60vh;
   gap: 24rpx;
 }
 
@@ -960,182 +1085,185 @@ async function handleStartService(): Promise<void> {
   color: #999;
 }
 
-/* ===== 头部蓝色卡片 ===== */
-.header-card {
-  background: linear-gradient(135deg, #1677ff 0%, #2d8cff 100%);
-  padding: 40rpx 32rpx 36rpx;
+/* ===== 沉浸式头部 ===== */
+.hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 360rpx;
 }
 
-.header-title-row {
+.hero-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.hero :deep(.uni-navbar) {
+  z-index: 999;
+}
+
+.hero-body {
+  position: relative;
+  z-index: 1;
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 16rpx;
-  margin-bottom: 16rpx;
-  flex-wrap: wrap;
+  padding: 16rpx 32rpx 48rpx;
 }
 
-.service-title {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #ffffff;
+.status-header {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+  margin-right: 16rpx;
 }
 
-/* 状态标签 */
-.status-tag {
-  padding: 6rpx 20rpx;
-  border-radius: 24rpx;
-  border: 2rpx solid rgba(255,255,255,0.6);
-}
-
-.status-tag-text {
-  font-size: 22rpx;
-  color: #ffffff;
-  font-weight: 500;
-}
-
-.status-tag--pending {
-  background: rgba(255,255,255,0.2);
-}
-
-.status-tag--active {
-  background: rgba(82, 196, 26, 0.3);
-}
-
-.status-tag--review {
-  background: rgba(250, 173, 20, 0.3);
-}
-
-.status-tag--done {
-  background: rgba(255,255,255,0.15);
-}
-
-.status-tag--cancelled {
-  background: rgba(255,255,255,0.1);
-}
-
-.order-no {
-  font-size: 24rpx;
-  color: rgba(255,255,255,0.8);
-  display: block;
+.status-item-name {
+  color: #fff;
+  font-size: 34rpx;
+  font-weight: bold;
   margin-bottom: 8rpx;
 }
 
-.appoint-time {
-  font-size: 24rpx;
-  color: rgba(255,255,255,0.8);
-  display: block;
+.status-badge {
+	margin-top: 30rpx;
+  padding: 0rpx 20rpx;
+  height: 42rpx;
+  min-width: 80rpx;
+	border: 1rpx solid #FFF;
+  border-radius: 21rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-/* ===== 客户联系条 ===== */
-.contact-bar {
-  background: #ffffff;
-  margin: 0 24rpx;
-  margin-top: -20rpx;
-  border-radius: 16rpx;
-  padding: 28rpx 32rpx;
+.badge-text {
+  font-size: 24rpx;
+  color: #ffffff;
+}
+
+/* .hero-body .badge-blue,
+.hero-body .badge-orange,
+.hero-body .badge-green,
+.hero-body .badge-grey {
+  background: rgba(255, 255, 255, 0.25);
+ }*/
+
+.order-no {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.7);
+  display: block;
+	margin-top: 10rpx;
+  margin-bottom: 4rpx;
+}
+
+/* ===== 客户联系条（对齐居民端服务人员卡片） ===== */
+.contact-card {
+  margin-top: 20rpx;
+}
+
+.service-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.08);
 }
 
 .contact-left {
   display: flex;
   align-items: center;
-  gap: 20rpx;
-}
-
-.contact-avatar {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 50%;
-  background: #e8f0fe;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  flex: 1;
+  min-width: 0;
 }
 
 .avatar-icon-img {
-  /* 图标 PNG 自带底色徽标，需与容器尺寸接近，避免外圈大、图标小 */
-  width: 58rpx;
-  height: 58rpx;
+  width: 90rpx;
+  height: 90rpx;
+  margin-right: 20rpx;
+  flex-shrink: 0;
 }
 
 .contact-phone {
-  font-size: 32rpx;
-  color: #333;
-  font-weight: 500;
+  font-size: 24rpx;
+  color: #58636A;
   letter-spacing: 2rpx;
 }
 
-.contact-actions {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-}
-
-.contact-btn {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.contact-btn--nav {
-  background: #e3f2fd;
-}
-
-.contact-btn--call {
-  background: #e8f5e9;
-}
-
-.contact-btn-icon-img {
-  /* 图标 PNG 自带底色徽标，需与容器尺寸接近，避免外圈大、图标小 */
-  width: 58rpx;
-  height: 58rpx;
+.phone-call-icon {
+  width: 60rpx;
+  height: 60rpx;
+  margin-right: 8rpx;
+  flex-shrink: 0;
 }
 
 /* ===== 信息卡 ===== */
 .info-card {
   background: #ffffff;
-  margin: 20rpx 24rpx 0;
-  border-radius: 16rpx;
-  padding: 0 0 8rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
+  margin: 20rpx 24rpx;
+  border-radius: 32rpx;
+  padding: 28rpx 32rpx 16rpx;
+  box-shadow: 0rpx 4rpx 20rpx 0rpx rgba(0, 0, 0, 0.05);
   overflow: hidden;
 }
 
 .card-section-title {
-  padding: 28rpx 32rpx 20rpx;
-  border-bottom: 1rpx solid #f0f4f8;
+  margin-bottom: 20rpx;
+  padding-bottom: 30rpx;
+	padding-top: 10rpx;
+  border-bottom: 1rpx solid #F7F9FA;
 }
 
 .section-title-text {
   font-size: 30rpx;
-  font-weight: 600;
-  color: #1a1a2e;
+  font-weight: bold;
+  color: #333333;
 }
 
+.info-card-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333333;
+  margin-bottom: 20rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid #EFEFEF;
+}
+
+/* 信息行：标签上、值下（对齐居民端） */
 .info-row {
   display: flex;
-  padding: 20rpx 32rpx;
-  align-items: flex-start;
+  flex-direction: column;
+  margin-bottom: 16rpx;
+}
+
+.info-row--nested {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.info-row-space-between {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
 }
 
 .info-label {
   font-size: 26rpx;
-  color: #888;
-  width: 200rpx;
+  color: #4C5760;
   flex-shrink: 0;
   line-height: 1.6;
 }
 
 .info-value {
   font-size: 26rpx;
-  color: #333;
-  flex: 1;
+  color: #333333;
   line-height: 1.6;
 }
 
@@ -1149,39 +1277,25 @@ async function handleStartService(): Promise<void> {
 
 .divider {
   height: 1rpx;
-  background: #f0f4f8;
-  margin: 4rpx 32rpx;
+  background: #f5f5f5;
+  margin: 16rpx 0;
 }
 
-/* 代下单标签行 */
-.proxy-row {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  padding: 12rpx 32rpx 8rpx;
+.proxy-label {
+  margin-top: 4rpx;
 }
 
-.proxy-desc {
-  font-size: 22rpx;
-  color: #999;
-}
-
-.proxy-badge {
-  display: inline-flex;
-  padding: 4rpx 16rpx;
-  background: #fff3e0;
+.proxy-tag-text {
+  font-size: 24rpx;
+  color: #fa8c16;
+  background: #fff7e0;
+  padding: 4rpx 14rpx;
   border-radius: 8rpx;
-}
-
-.proxy-badge-text {
-  font-size: 22rpx;
-  color: #e65100;
-  font-weight: 500;
 }
 
 /* ===== 时间轴 ===== */
 .timeline {
-  padding: 8rpx 32rpx 16rpx;
+  padding: 8rpx 0 0;
 }
 
 .timeline-item {
@@ -1196,7 +1310,6 @@ async function handleStartService(): Promise<void> {
   margin-bottom: 0;
 }
 
-/* 节点圆圈 */
 .timeline-dot {
   width: 44rpx;
   height: 44rpx;
@@ -1237,7 +1350,6 @@ async function handleStartService(): Promise<void> {
   font-weight: 700;
 }
 
-/* 竖向连接线（绝对定位，挂在 timeline-item 上） */
 .timeline-line {
   position: absolute;
   left: 21rpx;
@@ -1255,7 +1367,6 @@ async function handleStartService(): Promise<void> {
   background: #d0d9e8;
 }
 
-/* 节点文字内容 */
 .timeline-content {
   flex: 1;
   padding: 4rpx 0 40rpx;
@@ -1297,7 +1408,7 @@ async function handleStartService(): Promise<void> {
 
 /* ===== 作业记录 ===== */
 .photo-group {
-  padding: 16rpx 32rpx;
+  padding: 16rpx 0;
 }
 
 .photo-group-header {
@@ -1338,36 +1449,23 @@ async function handleStartService(): Promise<void> {
   font-weight: 500;
 }
 
-.photo-upload-area {
-  width: 160rpx;
-  height: 160rpx;
-  border: 3rpx dashed #c8d6e8;
-  border-radius: 12rpx;
-  background: #f8faff;
+.photo-upload-wrap {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
   gap: 8rpx;
 }
 
-.photo-upload-area--disabled {
-  background: #f5f5f5;
-  border-color: #e0e0e0;
+.photo-upload-wrap--disabled {
   opacity: 0.7;
   pointer-events: none;
 }
 
-.photo-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.photo-camera-icon-img {
-  width: 56rpx;
-  height: 56rpx;
-  opacity: 0.5;
+.photo-upload-area {
+  width: 160rpx;
+  height: 160rpx;
+  display: block;
+  flex-shrink: 0;
 }
 
 .photo-disabled-tip {
@@ -1376,21 +1474,33 @@ async function handleStartService(): Promise<void> {
   text-align: center;
 }
 
-/* ===== 底部安全区 ===== */
 .bottom-spacer {
-  height: 160rpx;
+  height: 170rpx;
+  padding-bottom: env(safe-area-inset-bottom);
+  box-sizing: content-box;
 }
 
-/* ===== 底部固定按钮 ===== */
+/* ASSIGNED 有提示文案，需要更高占位 */
+.bottom-spacer--with-tip {
+  height: 190rpx;
+}
+
+/* 完成后无底栏：内容与屏幕底留出间距 */
+.bottom-spacer--done {
+  height: 48rpx;
+}
+
 .bottom-bar {
   position: fixed;
+  z-index: 20;
   bottom: 0;
   left: 0;
   right: 0;
   background: #ffffff;
-  padding: 24rpx 32rpx;
-  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
-  box-shadow: 0 -2rpx 12rpx rgba(0,0,0,0.08);
+  padding: 20rpx 32rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid #f0f0f0;
+  box-shadow: none;
 }
 
 .bottom-tip-row {
@@ -1405,9 +1515,9 @@ async function handleStartService(): Promise<void> {
 
 .start-btn {
   width: 100%;
-  height: 96rpx;
-  background: #1677ff;
-  border-radius: 48rpx;
+  height: 88rpx;
+	background: linear-gradient( 135deg, #246BFF 0%, #1AA1FF 100%);
+  border-radius: 20rpx;
   border: none;
   display: flex;
   align-items: center;
@@ -1421,42 +1531,38 @@ async function handleStartService(): Promise<void> {
 }
 
 .start-btn[disabled] {
-  background: #91beff;
+  opacity: 0.5;
 }
 
-/* 「立即接单」按钮：绿色，区别于蓝色「开始服务」 */
 .start-btn--accept {
-  background: #52c41a;
+  background: linear-gradient(135deg, #246BFF 0%, #1AA1FF 100%);
 }
 
 .start-btn--accept[disabled] {
-  background: #95de64;
+  opacity: 0.5;
 }
 
 .start-btn-text {
-  font-size: 34rpx;
-  font-weight: 600;
+  font-size: 30rpx;
+  font-weight: 500;
   color: #ffffff;
 }
 
-/* ===== 只读态照片区空提示 ===== */
 .photo-empty-tip {
   padding: 16rpx 0 8rpx;
 }
 
-/* ===== 照片计数提示 ===== */
 .photo-count-tip {
   font-size: 22rpx;
   color: #aaa;
   margin-left: auto;
 }
 
-/* ===== 照片网格（解锁态） ===== */
 .photo-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 16rpx;
-  padding: 0 0 8rpx;
+  gap: 12rpx;
+  padding: 5rpx 0 8rpx;
 }
 
 .photo-thumb-wrap {
@@ -1466,6 +1572,7 @@ async function handleStartService(): Promise<void> {
   overflow: hidden;
   position: relative;
   flex-shrink: 0;
+  background: #f5f5f5;
 }
 
 .photo-thumb {
@@ -1493,18 +1600,19 @@ async function handleStartService(): Promise<void> {
   line-height: 1;
 }
 
-/* 添加照片按钮 */
 .photo-add-btn {
   width: 160rpx;
   height: 160rpx;
-  border: 3rpx dashed #c8d6e8;
+  border: none;
   border-radius: 12rpx;
-  background: #f8faff;
+  background: transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 .photo-add-btn--loading {
@@ -1516,31 +1624,30 @@ async function handleStartService(): Promise<void> {
   font-size: 40rpx;
 }
 
-/* ===== 用户评价区 ===== */
-
 .review-stars-row {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 8rpx;
+  gap: 4rpx;
   margin-bottom: 20rpx;
 }
 
 .review-star {
-  font-size: 48rpx;
+  font-size: 40rpx;
   line-height: 1;
 }
 
 .review-star--filled {
-  color: #1677ff;
+  color: #FF7804;
 }
 
 .review-star--empty {
-  color: #d0d7e3;
+  color: #e0e0e0;
 }
 
 .review-rating-text {
   font-size: 26rpx;
-  color: #1677ff;
+  color: #FF7804;
   margin-left: 8rpx;
   font-weight: 600;
 }
@@ -1549,24 +1656,25 @@ async function handleStartService(): Promise<void> {
   display: flex;
   flex-wrap: wrap;
   gap: 12rpx;
-  margin-bottom: 20rpx;
+  margin-bottom: 16rpx;
 }
 
 .review-tag-chip {
   font-size: 24rpx;
-  color: #1677ff;
-  background: #e8f0fe;
+  color: #0B7CC8;
+  background: #F0F6FF;
   border-radius: 24rpx;
   padding: 6rpx 20rpx;
   line-height: 1.4;
 }
 
 .review-content {
-  font-size: 28rpx;
-  color: #333;
-  line-height: 1.6;
-  margin-bottom: 20rpx;
+  font-size: 26rpx;
+  color: #555;
+  line-height: 1.7;
+  margin-bottom: 16rpx;
   word-break: break-all;
+  display: block;
 }
 
 .review-images-grid {
@@ -1575,7 +1683,7 @@ async function handleStartService(): Promise<void> {
 
 .review-time {
   font-size: 24rpx;
-  color: #aaa;
+  color: #999;
   margin-top: 8rpx;
   display: block;
 }

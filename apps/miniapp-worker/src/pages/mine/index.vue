@@ -1,35 +1,47 @@
 <template>
   <view class="page">
-    <!-- 个人信息卡片 -->
-    <view class="profile-card">
-      <view class="avatar-wrap">
-        <image class="avatar" src="/static/images/worker-avatar.png" mode="aspectFill" />
-      </view>
-      <view class="profile-info">
-        <text class="profile-name">{{ workerName }}</text>
-        <text class="profile-rating">评分：{{ displayRating }}（{{ detail?.totalOrders ?? 0 }}单）</text>
+    <!-- 沉浸式顶部：浅蓝渐变顶到状态栏 -->
+    <view class="mine-header">
+      <view class="mine-header-bg" />
+      <uni-nav-bar
+        status-bar
+        :border="false"
+        background-color="transparent"
+      />
+      <view class="profile-card">
+        <view class="avatar-wrap">
+          <image class="avatar" src="/static/images/worker-avatar.png" mode="aspectFill" />
+        </view>
+        <view class="profile-info">
+          <text class="profile-name">{{ workerName }}</text>
+          <text class="profile-rating">评分：{{ displayRating }}（{{ detail?.totalOrders ?? 0 }}单）</text>
+        </view>
       </view>
     </view>
 
     <!-- 统计双卡：今日订单 / 已完成 -->
     <view class="stats-row">
       <view class="stat-card" @tap="onGoTasks">
-        <view class="stat-icon-wrap">
-          <image class="stat-icon-img" src="/static/icons/task.png" mode="aspectFit" />
-        </view>
-        <view class="stat-body">
+        <view class="stat-text">
           <text class="stat-label">今日订单</text>
           <text class="stat-value">{{ todayCount }}</text>
         </view>
+        <image
+          class="stat-icon"
+          src="/static/icons/icon_today_order_n.png"
+          mode="aspectFit"
+        />
       </view>
       <view class="stat-card" @tap="onGoTasks">
-        <view class="stat-icon-wrap completed">
-          <text class="stat-icon">✅</text>
-        </view>
-        <view class="stat-body">
+        <view class="stat-text">
           <text class="stat-label">已完成</text>
           <text class="stat-value">{{ todayDoneCount }}</text>
         </view>
+        <image
+          class="stat-icon"
+          src="/static/icons/icon_today_done_n.png"
+          mode="aspectFit"
+        />
       </view>
     </view>
 
@@ -50,17 +62,18 @@
 
     <!-- 菜单组 -->
     <view class="menu-group">
-      <view class="menu-item" @tap="onGoSettings">
+      <view class="menu-item" @tap="onGoChangePassword">
         <view class="menu-left">
-          <text class="menu-icon">⚙</text>
-          <text class="menu-label">设置</text>
+          <!-- 待补充：修改密码图标 → /static/icons/icon_password_n.png -->
+          <image class="menu-icon" src="/static/icons/icon_password_n.png" mode="aspectFit" />
+          <text class="menu-label">修改密码</text>
         </view>
         <text class="menu-arrow">›</text>
       </view>
-      <view class="menu-item" @tap="onViewPrivacy">
+      <view class="menu-item" @tap="onViewAgreement">
         <view class="menu-left">
-          <image class="menu-icon-img" src="/static/icons/agreement.png" mode="aspectFit" />
-          <text class="menu-label">用户协议与隐私政策</text>
+          <image class="menu-icon" src="/static/icons/privacy-shield.png" mode="aspectFit" />
+          <text class="menu-label">协议与隐私</text>
         </view>
         <text class="menu-arrow">›</text>
       </view>
@@ -175,16 +188,16 @@ function onViewCert(type: 'health' | 'skill') {
   console.info('[mine] preview cert, type=', type, 'url=', url);
 }
 
-/** 跳转设置页 */
-function onGoSettings() {
-  uni.navigateTo({ url: '/pages/settings/index' });
-  console.info('[mine] go settings');
+/** 跳转修改密码页 */
+function onGoChangePassword() {
+  uni.navigateTo({ url: '/pages/change-password/index' });
+  console.info('[mine] go change-password');
 }
 
-/** 查看隐私协议（占位） */
-function onViewPrivacy() {
-  uni.showToast({ title: '用户协议与隐私政策即将上线', icon: 'none' });
-  console.info('[mine] view privacy placeholder');
+/** 查看协议与隐私 */
+function onViewAgreement() {
+  uni.navigateTo({ url: '/pages/agreement/index' });
+  console.info('[mine] go agreement');
 }
 
 /** 退出登录 */
@@ -206,17 +219,40 @@ function onLogout() {
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #f0f5ff;
+  background: #F8FAFF;
   padding-bottom: 60rpx;
 }
 
-/* ── 个人信息卡片 ── */
+/* ── 沉浸式顶部（对齐居民端 mine：保留导航占位后再放头像） ── */
+.mine-header {
+  position: relative;
+  overflow: hidden;
+  padding-bottom: 8rpx;
+}
+
+.mine-header-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  background: linear-gradient(180deg, #BFD9FF 0%, #DCEAFF 40%, #F8FAFF 100%);
+}
+
+.mine-header :deep(.uni-navbar) {
+  position: relative;
+  z-index: 1;
+}
+
 .profile-card {
-  background: linear-gradient(135deg, #ddeeff 0%, #f0f5ff 100%);
-  padding: 60rpx 40rpx 48rpx;
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 32rpx;
+  padding: 24rpx 40rpx 48rpx;
+  background: transparent;
 }
 
 .avatar-wrap {
@@ -229,101 +265,88 @@ function onLogout() {
   border-radius: 50%;
   background-color: #c8d8f0;
   border: 4rpx solid #ffffff;
-  box-shadow: 0 4rpx 16rpx rgba(22, 119, 255, 0.15);
+  box-shadow: 0 4rpx 16rpx rgba(22, 119, 255, 0.12);
 }
 
 .profile-info {
   display: flex;
   flex-direction: column;
-  gap: 8rpx;
+  gap: 10rpx;
+  min-width: 0;
 }
 
 .profile-name {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #1a1a1a;
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #333333;
 }
 
 .profile-rating {
   font-size: 26rpx;
-  color: #555;
+  color: #58636A;
 }
 
-/* ── 统计双卡 ── */
+/* ── 统计双卡（对齐设计稿：左文右图） ── */
 .stats-row {
   display: flex;
+  flex-direction: row;
   gap: 20rpx;
-  margin: 24rpx 24rpx 0;
+  margin: 0 24rpx;
 }
 
 .stat-card {
   flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
   background: #ffffff;
-  border-radius: 20rpx;
-  padding: 28rpx 24rpx;
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.04);
+  border-radius: 24rpx;
+  padding: 28rpx 28rpx 28rpx 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(22, 119, 255, 0.08);
+  min-height: 140rpx;
+  box-sizing: border-box;
 }
 
-.stat-icon-wrap {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 16rpx;
-  background: #e8f1ff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.stat-icon-wrap.completed {
-  background: #e8f8e8;
-}
-
-.stat-icon {
-  font-size: 34rpx;
-}
-
-.stat-icon-img {
-  /* 图标 PNG 自带底色徽标，需与容器尺寸接近，避免外圈大、图标小 */
-  width: 56rpx;
-  height: 56rpx;
-}
-
-.stat-body {
+.stat-text {
   display: flex;
   flex-direction: column;
-  gap: 4rpx;
+  gap: 8rpx;
 }
 
 .stat-label {
-  font-size: 22rpx;
-  color: #888;
+  font-size: 26rpx;
+  color: #666666;
+  line-height: 1.3;
 }
 
 .stat-value {
-  font-size: 44rpx;
+  font-size: 48rpx;
   font-weight: 700;
-  color: #1677ff;
+  color: #1a1a1a;
   line-height: 1.2;
+}
+
+.stat-icon {
+  width: 72rpx;
+  height: 72rpx;
+  flex-shrink: 0;
 }
 
 /* ── 证书卡片 ── */
 .section-card {
   background: #ffffff;
-  border-radius: 20rpx;
+  border-radius: 24rpx;
   padding: 32rpx;
   margin: 24rpx 24rpx 0;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.04);
+  box-shadow: 0 8rpx 24rpx rgba(22, 119, 255, 0.06);
 }
 
 .section-title {
-  font-size: 28rpx;
-  font-weight: 600;
+  font-size: 30rpx;
+  font-weight: bold;
   color: #333;
-  margin-bottom: 24rpx;
+  margin-bottom: 44rpx;
 }
 
 .cert-row {
@@ -336,30 +359,29 @@ function onLogout() {
   display: flex;
   align-items: center;
   gap: 6rpx;
-  background: #f0f5ff;
-  border: 1rpx solid #c8d8f0;
-  border-radius: 40rpx;
-  padding: 12rpx 28rpx;
+  background: #E3F3FF;
+  border-radius: 8rpx;
+  padding: 14rpx 28rpx;
 }
 
 .cert-tag-text {
   font-size: 26rpx;
-  color: #1677ff;
+  color: #59646B;
 }
 
 .cert-tag-arrow {
   font-size: 30rpx;
-  color: #1677ff;
+  color: #59646B;
   line-height: 1;
 }
 
 /* ── 菜单组 ── */
 .menu-group {
   background: #ffffff;
-  border-radius: 20rpx;
+  border-radius: 24rpx;
   overflow: hidden;
   margin: 24rpx 24rpx 0;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.04);
+  box-shadow: 0 8rpx 24rpx rgba(22, 119, 255, 0.06);
 }
 
 .menu-item {
@@ -381,20 +403,17 @@ function onLogout() {
 }
 
 .menu-icon {
+  width: 36rpx;
+  height: 36rpx;
+  flex-shrink: 0;
   font-size: 32rpx;
-  width: 40rpx;
   text-align: center;
-}
-
-.menu-icon-img {
-  /* agreement.png 自带底色徽标，适当放大以与设置项的图标视觉重量匹配 */
-  width: 44rpx;
-  height: 44rpx;
+  line-height: 36rpx;
 }
 
 .menu-label {
   font-size: 28rpx;
-  color: #333;
+  color: #040C13;
 }
 
 .menu-arrow {
@@ -421,5 +440,9 @@ function onLogout() {
   align-items: center;
   justify-content: center;
   box-shadow: 0 2rpx 10rpx rgba(255, 77, 79, 0.08);
+}
+
+.btn-logout::after {
+  border: none;
 }
 </style>

@@ -1,9 +1,6 @@
 {
   "easycom": {
-    "autoscan": true,
-    "custom": {
-      "^uni-(.*)": "@dcloudio/uni-ui/lib/uni-$1/uni-$1.vue"
-    }
+    "autoscan": true
   },
   "pages": [
     {
@@ -21,7 +18,8 @@
     {
       "path": "pages/mine/index",
       "style": {
-        "navigationBarTitleText": "我的"
+        "navigationBarTitleText": "我的",
+				"navigationStyle": "custom"
       }
     },
     {
@@ -57,7 +55,8 @@
     {
       "path": "pages/order-detail/index",
       "style": {
-        "navigationBarTitleText": "订单详情"
+        "navigationBarTitleText": "订单详情",
+				"navigationStyle": "custom"
       }
     },
     {
@@ -89,6 +88,21 @@
       "style": {
         "navigationBarTitleText": "我的地址"
       }
+    },
+    {
+      "path": "pages/address-edit/index",
+      "style": {
+        "navigationBarTitleText": "新增收货地址"
+      }
+    },
+    {
+      "path": "pages/agreement/index",
+      "style": {
+        "navigationBarTitleText": "协议与隐私",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black",
+        "backgroundColor": "#F8FAFF"
+      }
     }
   ],
   "globalStyle": {
@@ -99,7 +113,7 @@
   },
   "tabBar": {
     "color": "#7A7E83",
-    "selectedColor": "#1677ff",
+    "selectedColor": "#236EFF",
     "borderStyle": "black",
     "backgroundColor": "#ffffff",
     "list": [

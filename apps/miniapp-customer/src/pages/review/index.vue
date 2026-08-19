@@ -219,7 +219,7 @@ async function onSubmit() {
 
 /* 顶部蓝色标题 */
 .status-header {
-  background: #1677ff;
+  background: #236EFF;
   padding: 40rpx 32rpx 36rpx;
   display: flex;
   flex-direction: column;
@@ -271,7 +271,7 @@ async function onSubmit() {
 }
 
 .star {
-  font-size: 72rpx;
+  font-size: 52rpx;
   line-height: 1;
 }
 
@@ -300,7 +300,7 @@ async function onSubmit() {
 }
 
 .tag-chip-active {
-  border-color: #1677ff;
+  border-color: #236EFF;
   background: #e8f1ff;
 }
 
@@ -310,7 +310,7 @@ async function onSubmit() {
 }
 
 .tag-chip-active .tag-text {
-  color: #1677ff;
+  color: #236EFF;
   font-weight: 600;
 }
 
@@ -417,7 +417,7 @@ async function onSubmit() {
 .btn-submit {
   width: 100%;
   height: 88rpx;
-  background: #1677ff;
+  background: #236EFF;
   color: #ffffff;
   font-size: 32rpx;
   font-weight: 600;

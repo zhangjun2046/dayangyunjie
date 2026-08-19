@@ -19,9 +19,9 @@
               :src="banner.imageUrl"
               mode="aspectFill"
             />
-            <view v-if="banner.title" class="banner-img-overlay">
+            <!-- <view v-if="banner.title" class="banner-img-overlay">
               <text class="banner-img-title">{{ banner.title }}</text>
-            </view>
+            </view> -->
           </view>
         </swiper-item>
       </template>
@@ -49,17 +49,17 @@
 
     <!-- 服务入口 -->
     <view class="service-section">
-      <view class="section-header">
+      <!-- <view class="section-header">
         <text class="section-title">服务项目</text>
         <text class="section-sub">专业上门 · 品质保障</text>
-      </view>
+      </view> -->
 
       <!-- 第一行：保洁 + 废品 -->
       <view class="service-row">
         <view class="service-card" @tap="onServiceTap('cleaning')">
           <view class="card-top">
             <view class="icon-circle">
-              <image class="icon-image" src="/static/icons/cleaning.png" mode="aspectFit" />
+              <image class="icon-image" src="/static/icons/cleaning.png" mode="aspectFill" />
             </view>
             <view class="card-info">
               <text class="card-title">保洁服务</text>
@@ -90,7 +90,7 @@
       <!-- 第二行：家政咨询（宽卡横跨全行） -->
       <view class="service-row">
         <view class="service-card service-card-wide" @tap="onServiceTap('consult')">
-          <view class="card-top">
+          <view class="card-top" style="display: flex;">
             <view class="icon-circle">
               <image class="icon-image" src="/static/icons/housekeeping.png" mode="aspectFit" />
             </view>
@@ -111,11 +111,10 @@
       <view class="cs-info">
         <image class="cs-avatar" src="/static/images/customer-service-avatar.png" mode="aspectFill" />
         <view class="cs-text-wrap">
-          <text class="cs-label">{{ contactName }}</text>
-          <text class="cs-phone">{{ contactPhone }}</text>
+					<text class="cs-label">客服在线  快速响应</text>
         </view>
       </view>
-      <view class="cs-btn" @tap="onCallService">立即拨打</view>
+      <view class="cs-btn" @tap="onCallService">电话预约</view>
     </view>
 
     <!-- 身份补全弹窗 -->
@@ -130,6 +129,8 @@
       @agreed="onPrivacyAgreed"
       @declined="onPrivacyDeclined"
     />
+
+    <ContactOperatorPicker ref="contactPickerRef" />
   </view>
 </template>
 
@@ -139,45 +140,30 @@ import { onShow } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/store/auth';
 import ProfileCompleteModal from '@/components/ProfileCompleteModal.vue';
 import PrivacyModal from '@/components/PrivacyModal.vue';
+import ContactOperatorPicker from '@/components/ContactOperatorPicker.vue';
 import { fetchActiveBanners, type BannerDto } from '@/api/banner';
-import { fetchContactOperator } from '@/api/operator';
+import { callContactOperator } from '@/utils/call-contact-operator';
 
 const authStore = useAuthStore();
 const profileModalRef = ref<InstanceType<typeof ProfileCompleteModal> | null>(null);
 const privacyModalRef = ref<InstanceType<typeof PrivacyModal> | null>(null);
+const contactPickerRef = ref<InstanceType<typeof ContactOperatorPicker> | null>(null);
 
 /** 动态 Banner 列表（API 返回；为空则展示品牌默认卡） */
 const banners = ref<BannerDto[]>([]);
-
-/** 客服联系人（来自 /operators/contact；默认兜底值） */
-const contactName = ref('电话预约');
-const contactPhone = ref('400-123-4567');
 
 /** 待跳转的服务类型（补全手机号后继续） */
 let pendingServiceType = '';
 
 // ── 页面数据加载 ─────────────────────────────────────────────────
 
-/** 并发加载首页动态数据，任一失败均静默处理，不影响页面展示 */
+/** 加载首页 Banner，失败静默处理，不影响页面展示 */
 async function loadPageData() {
-  const [bannersResult, operatorResult] = await Promise.allSettled([
-    fetchActiveBanners(),
-    fetchContactOperator(),
-  ]);
-
-  if (bannersResult.status === 'fulfilled') {
-    banners.value = bannersResult.value ?? [];
+  try {
+    banners.value = (await fetchActiveBanners()) ?? [];
     console.info('[home] banners loaded, count=', banners.value.length);
-  } else {
+  } catch {
     console.info('[home] banners load failed, using default placeholder');
-  }
-
-  if (operatorResult.status === 'fulfilled' && operatorResult.value?.phone) {
-    contactName.value = operatorResult.value.name || '电话预约';
-    contactPhone.value = operatorResult.value.phone;
-    console.info('[home] contact operator loaded=', contactName.value, contactPhone.value);
-  } else {
-    console.info('[home] operator contact load failed, using default phone');
   }
 }
 
@@ -213,11 +199,31 @@ async function doWechatLogin() {
   }
 }
 
-/** 用户同意隐私协议：标记已同意后，进入微信手机号授权步骤 */
-function onPrivacyAgreed() {
-  authStore.setPrivacyAgreed();
+/**
+ * 确保已登录后再弹出手机号授权
+ * decrypt-phone 需要 JWT，必须先 wx.login 换 token
+ */
+async function ensureLoginThenShowPhoneModal() {
+  if (!authStore.isLoggedIn) {
+    await doWechatLogin();
+  }
+  if (!authStore.isLoggedIn) {
+    console.info('[home] skip phone modal: still not logged in');
+    return;
+  }
+  // 登录后若服务端已有手机号，无需再授权
+  if (authStore.hasPhone && authStore.resident?.phone) {
+    console.info('[home] phone already bound on server, skip phone modal');
+    return;
+  }
   profileModalRef.value?.show();
-  console.info('[home] privacy agreed, showing phone auth modal');
+  console.info('[home] showing phone auth modal, residentId=', authStore.resident?.id);
+}
+
+/** 用户同意隐私协议：先静默登录，再进入微信手机号授权 */
+async function onPrivacyAgreed() {
+  authStore.setPrivacyAgreed();
+  await ensureLoginThenShowPhoneModal();
 }
 
 /** 用户拒绝隐私协议 */
@@ -233,12 +239,22 @@ onShow(() => {
   // 无论登录状态如何，每次显示都刷新首页动态数据
   loadPageData();
 
-  if (authStore.isLoggedIn) return;
-
   if (!authStore.hasAgreedPrivacy) {
-    setTimeout(() => {
-      privacyModalRef.value?.show();
-    }, 300);
+    if (!authStore.isLoggedIn) {
+      setTimeout(() => {
+        privacyModalRef.value?.show();
+      }, 300);
+    }
+    return;
+  }
+
+  if (!authStore.isLoggedIn) {
+    void (async () => {
+      await doWechatLogin();
+      if (authStore.isLoggedIn && !authStore.hasPhone) {
+        profileModalRef.value?.show();
+      }
+    })();
     return;
   }
 
@@ -246,10 +262,7 @@ onShow(() => {
     setTimeout(() => {
       profileModalRef.value?.show();
     }, 300);
-    return;
   }
-
-  doWechatLogin();
 });
 
 // ── Banner 交互 ───────────────────────────────────────────────
@@ -270,11 +283,11 @@ function onBannerTap(banner: BannerDto) {
 
 // ── 服务卡片导航 ──────────────────────────────────────────────
 
-/** 点击服务卡片：先确认手机号，再跳转服务详情页 */
-function onServiceTap(type: string) {
+/** 点击服务卡片：先确认登录与手机号，再跳转服务详情页 */
+async function onServiceTap(type: string) {
   if (!authStore.hasPhone) {
     pendingServiceType = type;
-    profileModalRef.value?.show();
+    await ensureLoginThenShowPhoneModal();
     console.info('[home] profile complete required before viewing service, type=', type);
     return;
   }
@@ -289,46 +302,47 @@ function navigateToServiceDetail(type: string) {
 async function onProfileCompleted(payload: { phone: string }) {
   console.info('[home] profile completed, phone=', payload.phone.slice(0, 3) + '****', 'pendingServiceType=', pendingServiceType);
 
+  // 兜底：极端情况下授权前未登录成功，补一次登录并写回本地 phone
   if (!authStore.isLoggedIn) {
     await doWechatLogin();
-    // resident.value 已由 wechatLogin 填入，现在再写一次 phone 确保持久化
     authStore.setPhone(payload.phone);
-    console.info('[home] initial login completed via phone auth, isLoggedIn=', authStore.isLoggedIn);
-    return;
+    console.info('[home] late login after phone auth, isLoggedIn=', authStore.isLoggedIn);
   }
 
-  uni.showToast({ title: '信息完善成功！', icon: 'success', duration: 1500 });
-  setTimeout(() => {
-    if (pendingServiceType) {
-      navigateToServiceDetail(pendingServiceType);
-      pendingServiceType = '';
-    }
-  }, 1600);
+  if (pendingServiceType) {
+    navigateToServiceDetail(pendingServiceType);
+    pendingServiceType = '';
+  }
 }
 
 // ── 客服电话 ─────────────────────────────────────────────────
 
 function onCallService() {
-  uni.makePhoneCall({ phoneNumber: contactPhone.value });
+  void callContactOperator(contactPickerRef.value);
+  console.info('[home] call contact operator');
 }
 </script>
 
 <style scoped>
 .page {
-  background-color: #f5f5f5;
+  background-color: #F8FAFF;
   min-height: 100vh;
+	padding: 24rpx;
 }
 
 /* ── Banner ── */
 .banner-swiper {
   width: 100%;
-  height: 320rpx;
+  height: 300rpx;
 }
 
 /* API 图片 Banner */
 .banner-img-card {
   width: 100%;
-  height: 320rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+  height: 300rpx;
   position: relative;
   overflow: hidden;
 }
@@ -336,6 +350,7 @@ function onCallService() {
 .banner-img {
   width: 100%;
   height: 100%;
+	border-radius: 30rpx;
 }
 
 .banner-img-overlay {
@@ -355,9 +370,10 @@ function onCallService() {
 
 /* 默认品牌占位卡 */
 .banner-card {
+	border-radius: 30rpx;
   width: 100%;
-  height: 320rpx;
-  background: linear-gradient(135deg, #1677ff 0%, #36cfc9 100%);
+  height: 300rpx;
+  background: linear-gradient(135deg, #236EFF 0%, #36cfc9 100%);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -446,7 +462,7 @@ function onCallService() {
 
 /* ── 服务入口 ── */
 .service-section {
-  padding: 28rpx 24rpx 160rpx;
+  padding: 24rpx 0;
 }
 
 .section-header {
@@ -478,7 +494,7 @@ function onCallService() {
   flex: 1;
   background-color: #ffffff;
   border-radius: 20rpx;
-  padding: 28rpx 24rpx 24rpx;
+  padding: 36rpx 30rpx;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -489,6 +505,7 @@ function onCallService() {
 .service-card-wide {
   flex: 1;
   min-height: 140rpx;
+	display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
@@ -496,9 +513,10 @@ function onCallService() {
 }
 
 .card-top {
-  display: flex;
-  align-items: flex-start;
+  /* display: flex;
+  align-items: flex-start; */
   gap: 16rpx;
+	margin-bottom: 20rpx;
 }
 
 .service-card-wide .card-top {
@@ -507,57 +525,52 @@ function onCallService() {
 
 /* 图标圆 */
 .icon-circle {
-  width: 76rpx;
-  height: 76rpx;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  width: 142rpx;
+  height: 142rpx;
+	margin-left: -20rpx;
 }
 
 .service-card-wide .icon-circle {
-  width: 64rpx;
-  height: 64rpx;
+  width: 142rpx;
+  height: 142rpx;
 }
 
 .icon-image {
   /* 图标 PNG 自带圆角方形底色，无需再叠加外层圆形背景，
      故尺寸与 icon-circle 容器基本一致，避免“外圈大、图标小”的比例失衡 */
-  width: 76rpx;
-  height: 76rpx;
+  width: 142rpx;
+  height: 142rpx;
   display: block;
   flex-shrink: 0;
 }
 
 .service-card-wide .icon-image {
-  width: 64rpx;
-  height: 64rpx;
+  width: 142rpx;
+  height: 142rpx;
 }
 
 .card-info {
   display: flex;
   flex-direction: column;
   gap: 8rpx;
-  padding-top: 4rpx;
+  padding: 8rpx 0;
 }
 
 .card-title {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #1a1a1a;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #303030;
 }
 
 .card-subtitle {
-  font-size: 22rpx;
-  color: #aaa;
-  line-height: 1.4;
+  font-size: 28rpx;
+  color: #303030;
 }
 
 /* 箭头按钮 */
 .arrow-btn {
-  width: 56rpx;
-  height: 56rpx;
+  width: 58rpx;
+  height: 58rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -571,15 +584,15 @@ function onCallService() {
 }
 
 .arrow-btn.blue-btn {
-  background-color: #1677ff;
+	background: linear-gradient( 135deg, #246BFF 0%, #1AA1FF 100%);
 }
 
 .arrow-btn.green-btn {
-  background-color: #07c160;
+	background: linear-gradient( 306deg, #2FDE84 0%, #0FB660 100%);
 }
 
 .arrow-btn.orange-btn {
-  background-color: #fa8c16;
+	background: linear-gradient( 135deg, #FF6A24 0%, #FF931A 100%);
 }
 
 .arrow-icon {
@@ -596,7 +609,7 @@ function onCallService() {
   right: 24rpx;
   background-color: #ffffff;
   border-radius: 100rpx;
-  padding: 12rpx 16rpx 12rpx 12rpx;
+  padding: 16rpx 16rpx 16rpx 16rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -611,8 +624,8 @@ function onCallService() {
 }
 
 .cs-avatar {
-  width: 64rpx;
-  height: 64rpx;
+  width: 80rpx;
+  height: 80rpx;
   border-radius: 50%;
   background-color: #f0f0f0;
 }
@@ -624,8 +637,9 @@ function onCallService() {
 }
 
 .cs-label {
-  font-size: 22rpx;
-  color: #999;
+  font-size: 32rpx;
+  color: #333333;
+	font-weight: bold;
 }
 
 .cs-phone {
@@ -636,11 +650,11 @@ function onCallService() {
 }
 
 .cs-btn {
-  background-color: #1677ff;
+	background: linear-gradient( 135deg, #246BFF 0%, #1AA1FF 100%);
   color: #ffffff;
   font-size: 26rpx;
   font-weight: 600;
-  padding: 16rpx 36rpx;
+  padding: 20rpx 30rpx;
   border-radius: 40rpx;
 }
 </style>

@@ -15,7 +15,7 @@ class ResidentProfileDto {
   @ApiProperty({ description: '居民 ID', example: 1 })
   id!: number;
 
-  @ApiProperty({ description: '居民 openid', example: 'mock_openid_wx_code_123' })
+  @ApiProperty({ description: '居民 openid', example: 'oXXXX' })
   openid!: string;
 
   @ApiProperty({ description: '居民昵称', required: false, nullable: true })
@@ -23,6 +23,9 @@ class ResidentProfileDto {
 
   @ApiProperty({ description: '居民头像', required: false, nullable: true })
   avatar!: string | null;
+
+  @ApiProperty({ description: '绑定手机号', required: false, nullable: true })
+  phone!: string | null;
 }
 
 export class LoginResultDto {

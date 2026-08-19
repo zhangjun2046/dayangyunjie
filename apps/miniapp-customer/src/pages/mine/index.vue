@@ -1,15 +1,23 @@
 <template>
   <view class="page">
-    <!-- 用户信息卡片（淡蓝色渐变背景） -->
-    <view class="user-card" @tap="onTapUserCard">
-      <image
-        class="avatar"
-        :src="resident?.avatar || defaultAvatar"
-        mode="aspectFill"
+    <!-- 沉浸式头部：渐变背景顶到屏幕最上，导航透明叠在上面 -->
+    <view class="hero">
+      <view class="hero-bg" />
+      <uni-nav-bar
+        status-bar
+        :border="false"
+        background-color="transparent"
       />
-      <view class="user-info">
-        <text class="phone-number">{{ displayPhone }}</text>
-        <text v-if="!resident?.phone && isLoggedIn" class="phone-hint">点击绑定完整手机号</text>
+      <view class="user-card" @tap="onTapUserCard">
+        <image
+          class="avatar"
+          :src="resident?.avatar || defaultAvatar"
+          mode="aspectFill"
+        />
+        <view class="user-info">
+          <text class="phone-number">{{ displayPhone }}</text>
+          <text v-if="!resident?.phone && isLoggedIn" class="phone-hint">点击绑定完整手机号</text>
+        </view>
       </view>
     </view>
 
@@ -22,9 +30,33 @@
         </view>
         <text class="menu-arrow">›</text>
       </view>
-      <view class="menu-item" @tap="onGoComplaintList">
+			<view class="menu-item" @tap="onCallService">
+			  <view class="menu-left">
+			    <image class="menu-icon" src="/static/icons/customer-service.png" mode="aspectFit" />
+			    <text class="menu-label">客服联系方式</text>
+			  </view>
+			  <text class="menu-arrow">›</text>
+			</view>
+			<view class="menu-item" @tap="onViewAgreement">
+			  <view class="menu-left">
+			    <image class="menu-icon" src="/static/icons/privacy-shield.png" mode="aspectFit" />
+			    <text class="menu-label">协议与隐私</text>
+			  </view>
+			  <view class="menu-right">
+			    <text v-if="hasAgreedPrivacy" class="agreed-tag">已同意</text>
+			    <text class="menu-arrow">›</text>
+			  </view>
+			</view>
+      <!-- <view class="menu-item" @tap="onWechatPrivacy">
         <view class="menu-left">
-          <text class="menu-icon-emoji">📋</text>
+          <image class="menu-icon" src="/static/icons/privacy-shield.png" mode="aspectFit" />
+          <text class="menu-label">微信隐私授权</text>
+        </view>
+        <text class="menu-arrow">›</text>
+      </view> -->
+      <!-- <view class="menu-item" @tap="onGoComplaintList">
+        <view class="menu-left">
+          <text class="menu-icon-emoji">��</text>
           <text class="menu-label">我的投诉</text>
         </view>
         <text class="menu-arrow">›</text>
@@ -35,11 +67,11 @@
           <text class="menu-label">消息通知</text>
         </view>
         <text class="menu-arrow">›</text>
-      </view>
+      </view> -->
     </view>
 
     <!-- 菜单组2：客服 & 协议 -->
-    <view class="menu-group">
+    <!-- <view class="menu-group">
       <view class="menu-item" @tap="onCallService">
         <view class="menu-left">
           <image class="menu-icon" src="/static/icons/customer-service.png" mode="aspectFit" />
@@ -49,7 +81,7 @@
       </view>
       <view class="menu-item" @tap="onServiceAgreement">
         <view class="menu-left">
-          <text class="menu-icon-emoji">🤝</text>
+          <text class="menu-icon-emoji">��</text>
           <text class="menu-label">服务协议</text>
         </view>
         <text class="menu-arrow">›</text>
@@ -64,33 +96,34 @@
           <text class="menu-arrow">›</text>
         </view>
       </view>
-    </view>
+    </view> -->
 
     <!-- 退出登录按钮 -->
     <view class="logout-wrap" v-if="isLoggedIn">
       <button class="btn-logout" @tap="onLogout">退出登录</button>
     </view>
 
-    <!-- 隐私协议弹窗（再次查看） -->
-    <PrivacyModal ref="privacyModalRef" @agreed="onPrivacyReAgreed" />
-
     <!-- 手机号绑定弹窗（phone 缺失时可重新绑定） -->
     <ProfileCompleteModal ref="profileModalRef" @completed="onPhoneCompleted" />
+
+    <ContactOperatorPicker ref="contactPickerRef" />
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useAuthStore } from '@/store/auth';
-import PrivacyModal from '@/components/PrivacyModal.vue';
 import ProfileCompleteModal from '@/components/ProfileCompleteModal.vue';
-
-/** 客服电话 */
-const CUSTOMER_SERVICE_PHONE = '400-888-0000';
+import ContactOperatorPicker from '@/components/ContactOperatorPicker.vue';
+import { callContactOperator } from '@/utils/call-contact-operator';
+import {
+  getWechatPrivacySetting,
+  requireWechatPrivacyAuthorize,
+} from '@/utils/wechat-privacy';
 
 const authStore = useAuthStore();
-const privacyModalRef = ref<InstanceType<typeof PrivacyModal> | null>(null);
 const profileModalRef = ref<InstanceType<typeof ProfileCompleteModal> | null>(null);
+const contactPickerRef = ref<InstanceType<typeof ContactOperatorPicker> | null>(null);
 
 const resident = computed(() => authStore.resident);
 const isLoggedIn = computed(() => authStore.isLoggedIn);
@@ -114,7 +147,6 @@ function onTapUserCard() {
 
 function onPhoneCompleted(payload: { phone: string }) {
   console.info('[mine] phone bound, phone=', payload.phone.slice(0, 3) + '****');
-  uni.showToast({ title: '手机号绑定成功', icon: 'success' });
 }
 
 function onGoAddress() {
@@ -141,8 +173,8 @@ function onNotification() {
 }
 
 function onCallService() {
-  uni.makePhoneCall({ phoneNumber: CUSTOMER_SERVICE_PHONE });
-  console.info('[mine] call service phone');
+  void callContactOperator(contactPickerRef.value);
+  console.info('[mine] call contact operator');
 }
 
 function onServiceAgreement() {
@@ -150,13 +182,66 @@ function onServiceAgreement() {
   console.info('[mine] service agreement placeholder');
 }
 
-function onViewPrivacy() {
-  privacyModalRef.value?.show();
-  console.info('[mine] view privacy modal');
+function onViewAgreement() {
+  uni.navigateTo({ url: '/pages/agreement/index' });
+  console.info('[mine] go agreement');
 }
 
-function onPrivacyReAgreed() {
-  uni.showToast({ title: '感谢您的确认', icon: 'success' });
+/** 拉起微信官方隐私授权弹窗，把同意状态同步到微信侧 */
+async function onWechatPrivacy() {
+  console.info('[mine] wechat privacy authorize tap');
+  // #ifndef MP-WEIXIN
+  uni.showModal({
+    title: '微信隐私授权',
+    content: '当前不是微信小程序环境。请用微信开发者工具导入 dist/dev/mp-weixin 后再点这一项。',
+    showCancel: false,
+  });
+  return;
+  // #endif
+
+  // #ifdef MP-WEIXIN
+  try {
+    const setting = await getWechatPrivacySetting();
+    console.info('[mine] privacy setting', setting);
+
+    if (!setting.privacyContractName) {
+      uni.showModal({
+        title: '微信不会弹窗（正常）',
+        content:
+          '公众平台还没配置《用户隐私保护指引》，微信会直接判定“无需授权”，所以点了没有官方弹窗。\n\n请到微信公众平台 → 设置 → 服务内容声明 → 用户隐私保护指引，勾选手机号、相册后保存，再回到开发者工具重新编译试一次。',
+        showCancel: false,
+      });
+      return;
+    }
+
+    if (!setting.needAuthorization) {
+      uni.showModal({
+        title: '已经授权过',
+        content: `当前指引：${setting.privacyContractName}\n\n微信记录你已同意，不会再弹窗。开发者工具可在「详情 → 本地设置」清除授权数据后再试。`,
+        showCancel: false,
+      });
+      authStore.setPrivacyAgreed();
+      return;
+    }
+
+    await requireWechatPrivacyAuthorize();
+    authStore.setPrivacyAgreed();
+    uni.showModal({
+      title: '已同步微信隐私授权',
+      content: `已同意：${setting.privacyContractName}`,
+      showCancel: false,
+    });
+    console.info('[mine] wechat privacy authorize success');
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '授权失败';
+    uni.showModal({
+      title: '微信隐私授权',
+      content: msg,
+      showCancel: false,
+    });
+    console.info('[mine] wechat privacy authorize failed:', msg);
+  }
+  // #endif
 }
 
 function onLogout() {
@@ -180,10 +265,32 @@ function onLogout() {
   background: #f0f5ff;
 }
 
+/* 沉浸式头部 */
+.hero {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  background: linear-gradient(135deg, #e8f1ff 0%, #f0f5ff 100%);
+}
+
+.hero :deep(.uni-navbar) {
+  position: relative;
+  z-index: 1;
+}
+
 /* 用户信息卡片 */
 .user-card {
-  background: linear-gradient(135deg, #e8f1ff 0%, #f0f5ff 100%);
-  padding: 60rpx 40rpx 48rpx;
+  position: relative;
+  z-index: 1;
+  padding: 24rpx 40rpx 48rpx;
   display: flex;
   align-items: center;
   gap: 32rpx;
@@ -212,7 +319,7 @@ function onLogout() {
 
 .phone-hint {
   font-size: 24rpx;
-  color: #1677ff;
+  color: #236EFF;
   margin-top: 6rpx;
 }
 
@@ -285,7 +392,7 @@ function onLogout() {
 
 /* 退出登录 */
 .logout-wrap {
-  margin: 40rpx 24rpx 0;
+  margin: 60rpx 24rpx 0;
 }
 
 .btn-logout {

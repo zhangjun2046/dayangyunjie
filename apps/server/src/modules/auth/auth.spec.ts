@@ -79,6 +79,16 @@ function makeEnvConfigMock() {
     jwtAccessExpiresIn: '2h',
     jwtRefreshExpiresIn: '7d',
     mockOpenidPrefix: 'mock_',
+    hasWechatCustomerCredentials: false,
+  };
+}
+
+/** 构造 WechatCustomerService mock（默认未配置，走 mock openid/手机号） */
+function makeWechatCustomerMock() {
+  return {
+    isConfigured: false,
+    code2Session: jest.fn(),
+    getPhoneNumber: jest.fn(),
   };
 }
 
@@ -100,6 +110,7 @@ describe('AuthService.workerLogin', () => {
       prismaMock as any,
       jwtMock as any,
       makeEnvConfigMock() as any,
+      makeWechatCustomerMock() as any,
     );
   });
 
@@ -238,7 +249,12 @@ describe('WorkerService.resetPassword', () => {
     prismaMock.worker.findUnique.mockResolvedValue(makeWorkerRow({ passwordHash: phoneHash }));
 
     const jwtMock = makeJwtMock();
-    const authService = new AuthService(prismaMock as any, jwtMock as any, makeEnvConfigMock() as any);
+    const authService = new AuthService(
+      prismaMock as any,
+      jwtMock as any,
+      makeEnvConfigMock() as any,
+      makeWechatCustomerMock() as any,
+    );
 
     // 用手机号作为密码登录
     const result = await authService.workerLogin({ phone: PHONE, password: PHONE });

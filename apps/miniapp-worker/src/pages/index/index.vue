@@ -1,65 +1,116 @@
 <template>
   <view class="page">
-    <!-- 待接单分区标题 -->
-    <view class="section-header">
-      <view class="section-indicator" />
-      <text class="section-title">待接单</text>
-    </view>
-
-    <!-- 加载中占位 -->
-    <view v-if="loading" class="status-wrap">
-      <view class="loading-spinner" />
-      <text class="loading-text">加载中…</text>
-    </view>
-
-    <!-- 空状态 -->
-    <view v-else-if="orders.length === 0" class="status-wrap empty-wrap">
-      <image class="empty-icon-img" src="/static/icons/task.png" mode="aspectFit" />
-      <text class="empty-text">暂无待接单任务</text>
-      <text class="empty-sub">下拉刷新可更新列表</text>
-    </view>
-
-    <!-- 任务卡片列表 -->
-    <view v-else class="order-list">
-      <view
-        v-for="item in orders"
-        :key="item.orderNo"
-        class="order-card"
-      >
-        <!-- 卡片主信息区 -->
-        <view class="card-main">
-          <!-- 服务类型图标 -->
-          <view :class="['service-icon', item.orderType === 'cleaning' ? 'icon-cleaning' : 'icon-recycling']">
-            <image
-              class="icon-img"
-              :src="item.orderType === 'cleaning' ? '/static/icons/cleaning.png' : '/static/icons/recycling.png'"
-              mode="aspectFit"
-            />
-          </view>
-          <!-- 文字信息 -->
-          <view class="card-info">
-            <text class="service-name">{{ item.serviceName }}</text>
-            <view class="time-row">
-              <text class="meta-icon">⏰</text>
-              <text class="time-text">{{ item.appointDate }}&nbsp;&nbsp;{{ item.appointTimeSlot }}</text>
-            </view>
-            <view class="addr-row">
-              <text class="meta-icon">📍</text>
-              <text class="addr-text">{{ item.address || '地址加载中…' }}</text>
-            </view>
-          </view>
+    <!-- 顶部沉浸式头图（icon_bj_n + 底部圆角）+ 统计双卡 -->
+    <view class="home-header">
+      <view class="header-hero">
+        <image
+          class="header-bg-img"
+          src="/static/images/icon_bj_n.png"
+          mode="aspectFill"
+        />
+        <!-- 仅占位状态栏高度，不显示标题 -->
+        <uni-nav-bar
+          status-bar
+          title=""
+          background-color="transparent"
+          color="#ffffff"
+          :border="false"
+          left-icon=""
+          :left-width="0"
+          :right-width="0"
+        />
+        <!-- 标题：导航栏底部偏左 -->
+        <view class="header-title-row">
+          <text class="header-title">大洋云洁·智享社区</text>
         </view>
+      </view>
+      <view class="stats-row">
+        <view class="stat-card" @tap="onGoTasks">
+          <view class="stat-text">
+            <text class="stat-label">今日订单</text>
+            <text class="stat-value">{{ todayCount }}</text>
+          </view>
+          <!-- 待补充：今日订单图标 → /static/icons/icon_today_order_n.png -->
+          <image
+            class="stat-icon"
+            src="/static/icons/icon_today_order_n.png"
+            mode="aspectFit"
+          />
+        </view>
+        <view class="stat-card" @tap="onGoTasks">
+          <view class="stat-text">
+            <text class="stat-label">已完成</text>
+            <text class="stat-value">{{ todayDone }}</text>
+          </view>
+          <!-- 待补充：已完成图标 → /static/icons/icon_today_done_n.png -->
+          <image
+            class="stat-icon"
+            src="/static/icons/icon_today_done_n.png"
+            mode="aspectFit"
+          />
+        </view>
+      </view>
+    </view>
 
-        <!-- 操作按钮区 -->
-        <view class="card-actions">
-          <button class="btn btn-outline" @tap="handleViewDetail(item)">查看详情</button>
-          <button
-            class="btn btn-primary"
-            :disabled="acceptingOrderNo === item.orderNo"
-            @tap="handleAccept(item)"
-          >
-            {{ acceptingOrderNo === item.orderNo ? '接单中…' : '立即接单' }}
-          </button>
+    <view class="page-body">
+      <!-- 待接单分区标题 -->
+      <view class="section-header">
+        <view class="section-indicator" />
+        <text class="section-title">待接单</text>
+      </view>
+
+      <!-- 加载中占位 -->
+      <view v-if="loading" class="status-wrap">
+        <view class="loading-spinner" />
+        <text class="loading-text">加载中…</text>
+      </view>
+
+      <!-- 空状态 -->
+      <view v-else-if="orders.length === 0" class="status-wrap empty-wrap">
+        <image class="empty-icon-img" src="/static/icons/task.png" mode="aspectFit" />
+        <text class="empty-text">暂无待接单任务</text>
+        <text class="empty-sub">下拉刷新可更新列表</text>
+      </view>
+
+      <!-- 任务卡片列表 -->
+      <view v-else class="order-list">
+        <view
+          v-for="item in orders"
+          :key="item.orderNo"
+          class="order-card"
+					@click="handleViewDetail(item)"
+        >
+          <view class="card-main">
+            <view :class="['service-icon', item.orderType === 'cleaning' ? 'icon-cleaning' : 'icon-recycling']">
+              <image
+                class="icon-img"
+                :src="item.orderType === 'cleaning' ? '/static/icons/cleaning.png' : '/static/icons/recycling.png'"
+                mode="aspectFit"
+              />
+            </view>
+            <view class="card-info">
+              <text class="service-name">{{ item.serviceName }}</text>
+              <view class="time-row">
+                <image class="meta-icon" src="/static/icons/icon_shijian_n.png" mode="aspectFit" />
+                <text class="time-text">{{ item.appointDate }}&nbsp;&nbsp;{{ item.appointTimeSlot }}</text>
+              </view>
+              <view class="addr-row">
+                <image class="meta-icon" src="/static/icons/icon_weizhi_n.png" mode="aspectFit" />
+                <text class="addr-text">{{ item.address || '地址加载中…' }}</text>
+              </view>
+            </view>
+          </view>
+
+          <view class="card-actions">
+            <button class="btn btn-outline">查看详情</button>
+            <button
+              class="btn btn-primary"
+              :disabled="acceptingOrderNo === item.orderNo"
+              @click.stop="handleAccept(item)"
+            >
+              {{ acceptingOrderNo === item.orderNo ? '接单中…' : '立即接单' }}
+            </button>
+          </view>
         </view>
       </view>
     </view>
@@ -70,7 +121,7 @@
 import { ref } from 'vue';
 import { onShow, onPullDownRefresh } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/store/auth';
-import { fetchAssignedOrders, acceptOrder } from '@/api/order';
+import { fetchAssignedOrders, acceptOrder, fetchWorkerOrders } from '@/api/order';
 import type { AssignedOrderItem } from '@/api/order';
 
 const authStore = useAuthStore();
@@ -78,7 +129,43 @@ const orders = ref<AssignedOrderItem[]>([]);
 const loading = ref(false);
 const acceptingOrderNo = ref<string | null>(null);
 
-/** 加载 ASSIGNED 状态待接单列表 */
+/** 今日订单数（与 mine 页 todayCount 同源逻辑） */
+const todayCount = ref(0);
+/** 今日已完成数（与 mine 页 todayDoneCount 同源逻辑） */
+const todayDone = ref(0);
+
+function getTodayPrefix(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function normalizeDate(dateStr: string): string {
+  return dateStr.replace(/\./g, '-').slice(0, 10);
+}
+
+/** 加载今日统计（今日订单 / 已完成） */
+async function loadTodayStats(): Promise<void> {
+  const workerId = authStore.worker?.id;
+  if (!workerId) return;
+  try {
+    const [cleaningResult, recyclingResult] = await Promise.all([
+      fetchWorkerOrders(workerId, 'cleaning', [], 1, 100),
+      fetchWorkerOrders(workerId, 'recycling', [], 1, 100),
+    ]);
+    const todayPrefix = getTodayPrefix();
+    const allItems = [...cleaningResult.items, ...recyclingResult.items];
+    const todayItems = allItems.filter((o) => normalizeDate(o.appointDate) === todayPrefix);
+    todayCount.value = todayItems.length;
+    todayDone.value = todayItems.filter((o) => o.status === 'REVIEWED').length;
+    console.info('[home] todayStats, todayCount=', todayCount.value, 'todayDone=', todayDone.value);
+  } catch (err) {
+    console.info('[home] loadTodayStats error', err);
+  }
+}
+
 async function loadOrders(): Promise<void> {
   const workerId = authStore.worker?.id;
   if (!workerId) {
@@ -96,18 +183,23 @@ async function loadOrders(): Promise<void> {
   }
 }
 
-/** 页面每次显示时刷新列表 */
+async function refreshPage(): Promise<void> {
+  await Promise.all([loadOrders(), loadTodayStats()]);
+}
+
 onShow(() => {
-  loadOrders();
+  refreshPage();
 });
 
-/** 下拉刷新 */
 onPullDownRefresh(async () => {
-  await loadOrders();
+  await refreshPage();
   uni.stopPullDownRefresh();
 });
 
-/** 立即接单：调 accept 接口，成功后从列表移除 */
+function onGoTasks(): void {
+  uni.switchTab({ url: '/pages/tasks/index' });
+}
+
 async function handleAccept(item: AssignedOrderItem): Promise<void> {
   if (acceptingOrderNo.value) return;
   const workerId = authStore.worker?.id;
@@ -119,6 +211,7 @@ async function handleAccept(item: AssignedOrderItem): Promise<void> {
     orders.value = orders.value.filter((o) => o.orderNo !== item.orderNo);
     uni.showToast({ title: '接单成功', icon: 'success' });
     console.info('[home] acceptOrder success, orderNo=', item.orderNo);
+    loadTodayStats();
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : '接单失败';
     uni.showToast({ title: msg, icon: 'none' });
@@ -128,7 +221,6 @@ async function handleAccept(item: AssignedOrderItem): Promise<void> {
   }
 }
 
-/** 查看详情：跳转到任务详情页 */
 function handleViewDetail(item: AssignedOrderItem): void {
   console.info('[home] handleViewDetail, orderNo=', item.orderNo, 'type=', item.orderType);
   uni.navigateTo({
@@ -140,12 +232,108 @@ function handleViewDetail(item: AssignedOrderItem): void {
 <style scoped>
 .page {
   min-height: 100vh;
-  background-color: #f0f5ff;
-  padding: 24rpx 24rpx 48rpx;
+  background-color: #F8FAFF;
   box-sizing: border-box;
 }
 
-/* 分区标题 */
+/* ===== 顶部沉浸式头图 + 统计卡 ===== */
+.home-header {
+  position: relative;
+  margin-bottom: 8rpx;
+}
+
+.header-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0 0 48rpx 48rpx;
+  /* 头图加高 */
+  min-height: 320rpx;
+}
+
+.header-bg-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  border-radius: 0 0 32rpx 32rpx;
+}
+
+.header-hero :deep(.uni-navbar) {
+  position: relative;
+  z-index: 1;
+}
+
+/* 标题贴在导航栏底部偏左 */
+.header-title-row {
+  position: relative;
+  z-index: 1;
+  padding: 0 32rpx 72rpx;
+  margin-top: -28rpx;
+}
+
+.header-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1.3;
+}
+
+.stats-row {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: row;
+  gap: 20rpx;
+  margin-top: -76rpx;
+  padding: 0 24rpx;
+}
+
+.stat-card {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+	background: linear-gradient( 180deg, #EDF5FF 0%, #FFFFFF 100%);
+  border-radius: 38rpx;
+  padding: 38rpx 46rpx 38rpx 30rpx;
+	box-shadow: 0rpx 4rpx 20rpx 0rpx rgba(0,0,0,0.05);
+  min-height: 140rpx;
+  box-sizing: border-box;
+}
+
+.stat-text {
+  display: flex;
+  flex-direction: column;
+	align-items: center;
+  gap: 8rpx;
+}
+
+.stat-label {
+  font-size: 28rpx;
+  color: #000000;
+  line-height: 1.3;
+}
+
+.stat-value {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #333;
+  line-height: 1.2;
+}
+
+.stat-icon {
+  width: 64rpx;
+  height: 64rpx;
+  flex-shrink: 0;
+}
+
+.page-body {
+  padding: 44rpx 24rpx 48rpx;
+}
+
 .section-header {
   display: flex;
   align-items: center;
@@ -155,7 +343,7 @@ function handleViewDetail(item: AssignedOrderItem): void {
 .section-indicator {
   width: 6rpx;
   height: 32rpx;
-  background-color: #1677ff;
+  background-color: #236EFF;
   border-radius: 3rpx;
   margin-right: 14rpx;
 }
@@ -166,7 +354,6 @@ function handleViewDetail(item: AssignedOrderItem): void {
   color: #1a1a1a;
 }
 
-/* 状态区（loading / empty） */
 .status-wrap {
   display: flex;
   flex-direction: column;
@@ -194,22 +381,19 @@ function handleViewDetail(item: AssignedOrderItem): void {
   color: #aaa;
 }
 
-/* 订单列表 */
 .order-list {
   display: flex;
   flex-direction: column;
   gap: 24rpx;
 }
 
-/* 单张卡片 */
 .order-card {
   background-color: #ffffff;
-  border-radius: 20rpx;
-  padding: 32rpx 28rpx 28rpx;
-  box-shadow: 0 2rpx 12rpx rgba(22, 119, 255, 0.08);
+  border-radius: 32rpx;
+  padding: 46rpx 28rpx 38rpx;
+	box-shadow: 0rpx 4rpx 20rpx 0rpx rgba(0,0,0,0.05);
 }
 
-/* 卡片主信息行 */
 .card-main {
   display: flex;
   align-items: flex-start;
@@ -217,31 +401,20 @@ function handleViewDetail(item: AssignedOrderItem): void {
   margin-bottom: 28rpx;
 }
 
-/* 服务图标容器 */
 .service-icon {
-  width: 88rpx;
-  height: 88rpx;
-  border-radius: 18rpx;
+  width: 120rpx;
+  height: 120rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.icon-cleaning {
-  background-color: #e8f5e9;
-}
-
-.icon-recycling {
-  background-color: #fff3e0;
-}
-
 .icon-img {
-  width: 48rpx;
-  height: 48rpx;
+  width: 100%;
+  height: 100%;
 }
 
-/* 卡片文字信息 */
 .card-info {
   flex: 1;
   display: flex;
@@ -250,84 +423,86 @@ function handleViewDetail(item: AssignedOrderItem): void {
 }
 
 .service-name {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #1a1a1a;
-  line-height: 1.4;
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333333;
+  line-height: 1.5;
 }
 
 .time-row,
 .addr-row {
   display: flex;
+  color: #636D73;
+  font-size: 26rpx;
   align-items: center;
   gap: 8rpx;
 }
 
 .meta-icon {
-  font-size: 24rpx;
+  width: 32rpx;
+  height: 32rpx;
   flex-shrink: 0;
 }
 
 .time-text {
   font-size: 26rpx;
-  color: #555;
+  color: #636D73;
 }
 
 .addr-text {
   font-size: 26rpx;
-  color: #555;
+  color: #636D73;
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+	max-width: 460rpx;
 }
 
-/* 操作按钮区 */
 .card-actions {
   display: flex;
-  gap: 20rpx;
+  gap: 40rpx;
+	margin-top: 70rpx;
 }
 
 .btn {
   flex: 1;
-  height: 72rpx;
-  line-height: 72rpx;
-  border-radius: 36rpx;
+  height: 68rpx;
+  line-height: 68rpx;
+  border-radius: 20rpx;
   font-size: 28rpx;
-  font-weight: 500;
   text-align: center;
   margin: 0;
   padding: 0;
 }
 
 .btn-outline {
-  background-color: #ffffff;
-  color: #1677ff;
-  border: 2rpx solid #1677ff;
+  background: #ffffff;
+  color: #236EFF;
+  border: 1rpx solid #236EFF;
 }
 
 .btn-primary {
-  background-color: #1677ff;
+  background: linear-gradient(135deg, #246BFF 0%, #1AA1FF 100%);
   color: #ffffff;
   border: none;
 }
 
 .btn-primary[disabled] {
-  background-color: #91caff;
+  background: linear-gradient(135deg, #246BFF 0%, #1AA1FF 100%);
   color: #ffffff;
+  opacity: 0.5;
 }
 
-/* 消除 uni-app button 默认样式 */
 .btn::after {
   border: none;
 }
 
-/* 加载动画 */
 .loading-spinner {
   width: 48rpx;
   height: 48rpx;
   border: 4rpx solid #e0eaff;
-  border-top-color: #1677ff;
+  border-top-color: #236EFF;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: 16rpx;

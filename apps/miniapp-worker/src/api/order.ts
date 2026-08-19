@@ -104,13 +104,9 @@ const WORKER_VISIBLE_STATUSES = [
 /** 从 addressSnapshot 提取可显示的地址字符串：省市区 + 详细地址 + 楼栋信息 */
 function resolveAddress(snapshot: AddressSnapshot | undefined): string {
   if (!snapshot) return '';
-  const parts: string[] = [];
-  if (snapshot.district) parts.push(snapshot.district);
-  if (snapshot.detail) parts.push(snapshot.detail);
-  if (snapshot.buildingInfo) parts.push(snapshot.buildingInfo);
-  if (parts.length > 0) return parts.join('');
-  // 降级：省市区拼接
-  return [snapshot.province, snapshot.city, snapshot.district].filter(Boolean).join('');
+  return [snapshot.province, snapshot.city, snapshot.district, snapshot.detail, snapshot.buildingInfo]
+    .filter(Boolean)
+    .join('');
 }
 
 /** 将 ISO 日期截取日期部分再格式化：2026-06-17T00:00:00.000Z → 2026.06.17 */

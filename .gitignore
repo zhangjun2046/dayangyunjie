@@ -44,3 +44,13 @@ coverage/
 tmp/
 temp/
 *.tmp
+
+# HBuilderX 本地运行配置
+.hbuilderx/
+
+# 本地临时物（不入库，保留在磁盘上备查）
+/icon/
+/apps/server/prisma.rar
+/apps/server/query-test.js
+
+

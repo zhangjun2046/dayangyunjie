@@ -1,33 +1,33 @@
 {
-  "name": "大洋云洁-员工端",
-  "appid": "__UNI__DAYANG_WORKER",
-  "description": "大洋云洁智享社区 · 员工端小程序",
-  "versionName": "0.1.0",
-  "versionCode": "100",
-  "transformPx": false,
-  "mp-weixin": {
-    "appid": "wx0000000000000000",
-    "setting": {
-      "urlCheck": false,
-      "es6": true,
-      "minified": true
+    "name" : "大洋云洁-员工端",
+    "appid" : "__UNI__DAYANG_WORKER",
+    "description" : "大洋云洁智享社区 · 员工端小程序",
+    "versionName" : "0.1.0",
+    "versionCode" : "100",
+    "transformPx" : false,
+    "mp-weixin" : {
+        "appid" : "wx02b6a6438695bf92",
+        "setting" : {
+            "urlCheck" : false,
+            "es6" : true,
+            "minified" : true
+        },
+        "usingComponents" : true,
+        "requiredPrivateInfos" : [ "getLocation" ],
+        "permission" : {
+            "scope.userLocation" : {
+                "desc" : "员工签到时需要获取您的位置，用于确认已到达服务现场"
+            }
+        }
     },
-    "usingComponents": true,
-    "requiredPrivateInfos": ["getLocation"],
-    "permission": {
-      "scope.userLocation": {
-        "desc": "员工签到时需要获取您的位置，用于确认已到达服务现场"
-      }
-    }
-  },
-  "h5": {
-    "title": "大洋云洁 · 员工端",
-    "router": {
-      "mode": "hash"
+    "h5" : {
+        "title" : "大洋云洁 · 员工端",
+        "router" : {
+            "mode" : "hash"
+        },
+        "devServer" : {
+            "port" : 5175
+        }
     },
-    "devServer": {
-      "port": 5175
-    }
-  },
-  "vueVersion": "3"
+    "vueVersion" : "3"
 }

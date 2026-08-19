@@ -1,6 +1,6 @@
 /**
  * 运营人员 API
- * 对接后端 GET /operators/contact（返回用途=接单的第一条记录）
+ * 对接后端 GET /operators（列表有几条返回几条，不做用途筛选）
  */
 import { request } from './request';
 
@@ -13,10 +13,18 @@ export interface OperatorDto {
   updatedAt: string;
 }
 
+interface OperatorPageResult {
+  items: OperatorDto[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 /**
- * 获取接单运营人员联系信息（用于首页客服电话）
- * 无接单人员时后端返回 data: null
+ * 获取运营人员联系信息列表（用于客服/电话预约拨号）
  */
-export function fetchContactOperator(): Promise<OperatorDto | null> {
-  return request<OperatorDto | null>('GET', '/operators/contact');
+export function fetchContactOperators(): Promise<OperatorDto[]> {
+  return request<OperatorPageResult>('GET', '/operators', { page: 1, pageSize: 100 }).then(
+    (res) => res?.items ?? [],
+  );
 }

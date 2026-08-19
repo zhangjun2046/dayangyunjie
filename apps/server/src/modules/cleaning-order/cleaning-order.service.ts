@@ -187,7 +187,7 @@ export class CleaningOrderService {
       where: { id },
       include: {
         workPhotos: true,
-        worker: { select: { id: true, name: true, phone: true } },
+        worker: { select: { id: true, name: true, phone: true, gender: true } },
       },
     });
     if (!row) {
@@ -406,7 +406,7 @@ export class CleaningOrderService {
   private async findOneOrThrow(id: number) {
     const row = await this.prismaService.cleaningOrder.findUnique({
       where: { id },
-      include: { worker: { select: { id: true, name: true, phone: true } } },
+      include: { worker: { select: { id: true, name: true, phone: true, gender: true } } },
     });
     if (!row) {
       throw new NotFoundException(`CleaningOrder ${id} not found`);
@@ -479,13 +479,20 @@ export class CleaningOrderService {
     };
   }
 
-  private toDto(row: CleaningOrder & { workPhotos?: WorkPhoto[]; worker?: Pick<Worker, 'id' | 'name' | 'phone'> | null }): CleaningOrderDto {
+  private toDto(row: CleaningOrder & { workPhotos?: WorkPhoto[]; worker?: Pick<Worker, 'id' | 'name' | 'phone' | 'gender'> | null }): CleaningOrderDto {
     return {
       id: row.id,
       orderNo: row.orderNo,
       residentId: row.residentId,
       workerId: row.workerId,
-      worker: row.worker ? { id: row.worker.id, name: row.worker.name, phone: row.worker.phone } : null,
+      worker: row.worker
+        ? {
+            id: row.worker.id,
+            name: row.worker.name,
+            phone: row.worker.phone,
+            ...('gender' in row.worker ? { gender: row.worker.gender } : {}),
+          }
+        : null,
       serviceItem: row.serviceItem,
       serviceDuration: row.serviceDuration,
       appointDate: row.appointDate.toISOString(),

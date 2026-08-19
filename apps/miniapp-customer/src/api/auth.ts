@@ -15,20 +15,22 @@ export interface LoginResult {
     openid: string;
     nickname: string | null;
     avatar: string | null;
+    phone?: string | null;
   };
 }
 
 /**
- * 将 getPhoneNumber 回调的 code 发给后端解密，返回手机号
- * 生产环境后端会调微信接口解密；mock 模式返回确定性伪手机号
+ * 将 getPhoneNumber 回调的 code 发给后端解密并绑定当前居民
+ * 已配置微信凭证时走微信 getuserphonenumber；未配置时返回 mock 号
+ * 需已登录（自动带 Authorization）
  */
 export function decryptPhone(code: string): Promise<{ phone: string }> {
   return request<{ phone: string }>('POST', '/auth/decrypt-phone', { code });
 }
 
 /**
- * 微信登录：发送 code 换取 accessToken + resident 信息
- * mock 模式下任意 code 均可使用
+ * 微信登录：发送 wx.login code 换取 accessToken + resident
+ * 已配置微信凭证时走 code2session（稳定 openid）；未配置时 mock
  */
 export function wechatLogin(
   code: string,

@@ -1,74 +1,104 @@
 <template>
   <view class="page">
-    <!-- 渐变背景装饰区 -->
-    <view class="bg-gradient" />
-
-    <!-- 表单区域 -->
-    <view class="form-wrap">
-      <view class="input-card">
-        <input
-          v-model="phone"
-          class="input-field"
-          type="number"
-          maxlength="11"
-          placeholder="请输入手机号"
-          placeholder-class="input-placeholder"
-          @input="onPhoneInput"
-        />
-      </view>
-
-      <view class="input-card" style="margin-top: 24rpx;">
-        <input
-          v-model="password"
-          class="input-field"
-          :password="true"
-          placeholder="请输入密码"
-          placeholder-class="input-placeholder"
-        />
-      </view>
-
-      <!-- 登录按钮 -->
-      <button
-        class="btn-login"
-        :class="{ 'btn-login--loading': loading }"
-        :disabled="loading"
-        @tap="onLogin"
-      >
-        {{ loading ? '登录中...' : '开始服务' }}
-      </button>
-
-      <!-- 忘记密码提示 -->
-      <view class="forgot-hint">忘记密码？请联系管理员重置</view>
+    <!-- 本地会话校验中：避免已登录时闪一下登录表单 -->
+    <view v-if="checkingSession" class="checking-wrap">
+      <text class="checking-text">正在验证登录状态…</text>
     </view>
 
-    <!-- 底部协议区 -->
-    <view class="agreement-bar">
-      <view class="agreement-inner" @tap="toggleAgreement">
-        <image
-          class="checkbox-img"
-          :src="agreed ? '/static/icons/radio-checked.png' : '/static/icons/radio-unchecked.png'"
-          mode="aspectFit"
-        />
-        <text class="agreement-text">我已阅读并同意</text>
-        <text class="agreement-link" @tap.stop="onViewAgreement('user')">《用户协议》</text>
-        <text class="agreement-text">和</text>
-        <text class="agreement-link" @tap.stop="onViewAgreement('privacy')">《隐私政策》</text>
+    <template v-else>
+      <!-- 全屏背景图 -->
+      <image class="bg-image" src="/static/icons/bg_denglu_n.png" mode="aspectFill" />
+
+      <!-- 表单区域 -->
+      <view class="form-wrap">
+        <view class="input-card">
+          <input
+            v-model="phone"
+            class="input-field"
+            type="number"
+            maxlength="11"
+            placeholder="请输入手机号"
+            placeholder-class="input-placeholder"
+            @input="onPhoneInput"
+          />
+        </view>
+
+        <view class="input-card" style="margin-top: 46rpx;">
+          <input
+            v-model="password"
+            class="input-field"
+            :password="true"
+            placeholder="请输入密码"
+            placeholder-class="input-placeholder"
+          />
+        </view>
+
+        <!-- 登录按钮 -->
+        <button
+          class="btn-login"
+          :class="{ 'btn-login--loading': loading }"
+          :disabled="loading"
+          @tap="onLogin"
+        >
+          {{ loading ? '登录中...' : '开始服务' }}
+        </button>
+
+        <!-- 忘记密码提示：点击联系管理员 -->
+        <view class="forgot-hint" @tap="onCallAdmin">
+          忘记密码？请联系管理员重置
+        </view>
       </view>
-    </view>
+
+      <!-- 底部协议区 -->
+      <view class="agreement-bar">
+        <view class="agreement-inner" @tap="toggleAgreement">
+          <image
+            class="checkbox-img"
+            :src="agreed ? '/static/icons/radio-checked.png' : '/static/icons/radio-unchecked.png'"
+            mode="aspectFit"
+          />
+          <text class="agreement-text">我已阅读并同意</text>
+          <text class="agreement-link" @tap.stop="onViewAgreement('user')">《用户协议》</text>
+          <text class="agreement-text">和</text>
+          <text class="agreement-link" @tap.stop="onViewAgreement('privacy')">《隐私政策》</text>
+        </view>
+      </view>
+
+      <ContactOperatorPicker ref="contactPickerRef" />
+    </template>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { workerLogin } from '@/api/auth';
 import { useAuthStore } from '@/store/auth';
+import ContactOperatorPicker from '@/components/ContactOperatorPicker.vue';
+import { callContactOperator } from '@/utils/call-contact-operator';
 
-const phone = ref('');
-const password = ref('');
-const agreed = ref(false);
+const phone = ref('15610203040');
+const password = ref('123456');
+const agreed = ref(true);
 const loading = ref(false);
+const checkingSession = ref(true);
+const contactPickerRef = ref<InstanceType<typeof ContactOperatorPicker> | null>(null);
 
 const authStore = useAuthStore();
+
+onShow(async () => {
+  checkingSession.value = true;
+  try {
+    const ok = await authStore.ensureSession();
+    if (ok) {
+      console.info('[login] local session valid, switch to tabs');
+      uni.switchTab({ url: '/pages/index/index' });
+      return;
+    }
+  } finally {
+    checkingSession.value = false;
+  }
+});
 
 function onPhoneInput(e: { detail: { value: string } }) {
   // 只保留数字
@@ -80,13 +110,14 @@ function toggleAgreement() {
 }
 
 function onViewAgreement(type: 'user' | 'privacy') {
-  const title = type === 'user' ? '用户协议' : '隐私政策';
-  uni.showModal({
-    title,
-    content: '协议内容将在后续版本完善，敬请期待。',
-    showCancel: false,
-    confirmText: '我知道了',
-  });
+  const url = `/pages/agreement/index?tab=${type}`;
+  console.info('[login] open agreement page, type=', type);
+  uni.navigateTo({ url });
+}
+
+function onCallAdmin() {
+  void callContactOperator(contactPickerRef.value);
+  console.info('[login] call admin contact');
 }
 
 async function onLogin() {
@@ -131,23 +162,33 @@ async function onLogin() {
 
 <style scoped>
 .page {
-  min-height: 100vh;
-  background: linear-gradient(180deg, #ddeeff 0%, #eef5ff 40%, #ffffff 100%);
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: hidden;
 }
 
-/* 顶部渐变装饰弧形 */
-.bg-gradient {
+.checking-wrap {
+  flex: 1;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checking-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 全屏背景图 */
+.bg-image {
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
-  height: 480rpx;
-  background: linear-gradient(160deg, #c8e0ff 0%, #ddeeff 50%, transparent 100%);
-  border-radius: 0 0 50% 50% / 0 0 80rpx 80rpx;
+  width: 100%;
+  height: 100vh;
   z-index: 0;
 }
 
@@ -155,7 +196,7 @@ async function onLogin() {
 .form-wrap {
   position: relative;
   z-index: 1;
-  margin-top: 280rpx;
+  margin-top: 380rpx;
   padding: 0 48rpx;
 }
 
@@ -188,8 +229,8 @@ async function onLogin() {
   margin-top: 56rpx;
   width: 100%;
   height: 96rpx;
-  border-radius: 48rpx;
-  background: linear-gradient(90deg, #1677ff 0%, #36a3ff 100%);
+  border-radius: 20rpx;
+	background: linear-gradient( 135deg, #246BFF 0%, #1AA1FF 100%);
   color: #ffffff;
   font-size: 32rpx;
   font-weight: 600;
@@ -214,7 +255,7 @@ async function onLogin() {
   margin-top: 32rpx;
   text-align: center;
   font-size: 26rpx;
-  color: #9aa3af;
+  color: #236eff;
 }
 
 /* 底部协议栏 */
@@ -249,6 +290,6 @@ async function onLogin() {
 
 .agreement-link {
   font-size: 26rpx;
-  color: #1677ff;
+  color: #236EFF;
 }
 </style>

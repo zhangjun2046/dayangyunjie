@@ -46,10 +46,12 @@ type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export function getTokenFromStorage(): string | null {
   try {
     const raw = uni.getStorageSync(WORKER_AUTH_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as { accessToken?: string | null };
-      return parsed.accessToken ?? null;
-    }
+    if (!raw) return null;
+    const parsed =
+      typeof raw === 'string'
+        ? (JSON.parse(raw) as { accessToken?: string | null })
+        : (raw as { accessToken?: string | null });
+    return parsed.accessToken ?? null;
   } catch {
     // storage 读取失败时忽略
   }
@@ -66,7 +68,9 @@ export async function request<T = unknown>(
   const header: Record<string, string> = {
     'Content-Type': 'application/json',
   };
-  if (token) {
+  // 登录/刷新接口不携带旧 Token，避免过期 access 干扰
+  const isAuthBootstrap = path === '/auth/worker-login' || path === '/auth/refresh';
+  if (token && !isAuthBootstrap) {
     header['Authorization'] = `Bearer ${token}`;
   }
 

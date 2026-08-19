@@ -6,8 +6,8 @@
 
 import { useAuthStore } from '@/store/auth';
 
-/** 不需要登录即可访问的页面路径（仅登录页公开） */
-const PUBLIC_PAGES = ['pages/login/index'];
+/** 不需要登录即可访问的页面路径（登录页与协议页公开） */
+const PUBLIC_PAGES = ['pages/login/index', 'pages/agreement/index'];
 
 function isProtected(url: string): boolean {
   const path = url.split('?')[0].replace(/^\//, '');

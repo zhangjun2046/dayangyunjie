@@ -173,7 +173,7 @@ export class RecyclingOrderService {
       where: { id },
       include: {
         workPhotos: true,
-        worker: { select: { id: true, name: true, phone: true } },
+        worker: { select: { id: true, name: true, phone: true, gender: true } },
       },
     });
     if (!row) {
@@ -467,7 +467,7 @@ export class RecyclingOrderService {
     };
   }
 
-  private toDto(row: RecyclingOrder & { workPhotos?: WorkPhoto[]; worker?: Pick<Worker, 'id' | 'name' | 'phone'> | null }): RecyclingOrderDto {
+  private toDto(row: RecyclingOrder & { workPhotos?: WorkPhoto[]; worker?: Pick<Worker, 'id' | 'name' | 'phone' | 'gender'> | null }): RecyclingOrderDto {
     return {
       id: row.id,
       orderNo: row.orderNo,

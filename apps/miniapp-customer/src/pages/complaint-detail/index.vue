@@ -204,7 +204,7 @@ function formatDateTime(dateStr: string | undefined): string {
 }
 
 .card-blue {
-  background: #1677ff;
+  background: #236EFF;
 }
 
 .card-green {
@@ -326,7 +326,7 @@ function formatDateTime(dateStr: string | undefined): string {
   width: 20rpx;
   height: 20rpx;
   border-radius: 50%;
-  background: #1677ff;
+  background: #236EFF;
   flex-shrink: 0;
   margin-top: 8rpx;
   margin-right: 20rpx;

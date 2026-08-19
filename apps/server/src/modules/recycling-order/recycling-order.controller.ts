@@ -134,7 +134,7 @@ export class RecyclingOrderController {
   @ApiOperation({
     summary: '完成服务（员工上传完工照片）',
     description:
-      '员工上传完工照片 URL 列表（至少 1 张），系统写入 work_photos 表（recyclingOrderId），' +
+      '员工上传服务前/后照片 URL 列表（各至少 1 张），系统写入 work_photos 表（recyclingOrderId），' +
       '状态由 IN_SERVICE 变更为 PENDING_REVIEW。',
   })
   @ApiOkResponse({ description: '完成服务成功，返回最新订单数据' })

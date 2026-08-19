@@ -6,9 +6,19 @@
       class="timeline-item"
       :class="{ 'is-active': node.active, 'is-done': node.done, 'is-last': index === nodes.length - 1 }"
     >
-      <!-- 节点圆圈 -->
+      <!-- 节点圆圈：已完成用固定图片，当前/未到仍用圆点 -->
       <view class="timeline-dot-wrap">
-        <view class="timeline-dot" :class="{ 'dot-active': node.active, 'dot-done': node.done }" />
+        <image
+          v-if="node.done"
+          class="timeline-dot-img"
+          src="/static/icons/radio-checked.png"
+          mode="aspectFit"
+        />
+        <view
+          v-else
+          class="timeline-dot"
+          :class="{ 'dot-active': node.active }"
+        />
         <view v-if="index < nodes.length - 1" class="timeline-line" :class="{ 'line-done': node.done }" />
       </view>
       <!-- 节点内容 -->
@@ -126,7 +136,7 @@ const nodes = computed<TimelineNode[]>(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 32rpx;
+  width: 36rpx;
   margin-right: 24rpx;
   flex-shrink: 0;
 }
@@ -141,15 +151,17 @@ const nodes = computed<TimelineNode[]>(() => {
 }
 
 .dot-active {
-  background: #1677ff;
-  border-color: #1677ff;
+  background: #236EFF;
+  border-color: #236EFF;
   width: 24rpx;
   height: 24rpx;
 }
 
-.dot-done {
-  background: #52c41a;
-  border-color: #52c41a;
+.timeline-dot-img {
+  width: 28rpx;
+  height: 28rpx;
+  margin-top: 2rpx;
+  flex-shrink: 0;
 }
 
 .timeline-line {
@@ -161,7 +173,7 @@ const nodes = computed<TimelineNode[]>(() => {
 }
 
 .line-done {
-  background: #52c41a;
+  background: #236EFF;
 }
 
 .timeline-content {
@@ -176,7 +188,7 @@ const nodes = computed<TimelineNode[]>(() => {
 }
 
 .label-active {
-  color: #1677ff;
+  color: #236EFF;
   font-weight: 600;
   font-size: 30rpx;
 }

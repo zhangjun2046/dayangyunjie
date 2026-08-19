@@ -7,7 +7,13 @@
 
       <scroll-view class="modal-body" scroll-y>
         <text class="app-name">大洋云洁</text>
-        <text class="intro">感谢您使用大洋云洁智享社区服务平台。在您使用本服务前，请仔细阅读以下隐私政策。</text>
+        <text class="intro">感谢您使用大洋云洁智享社区服务平台。在您使用本服务前，请仔细阅读</text>
+        <view class="link-row">
+          <text class="link" @tap="onOpenAgreement">《用户协议》</text>
+          <text class="intro">与</text>
+          <text class="link" @tap="onOpenPrivacy">《隐私政策》</text>
+          <text class="intro">。</text>
+        </view>
 
         <text class="section-title">一、我们收集的信息</text>
         <text class="section-content">
@@ -32,7 +38,18 @@
 
       <view class="modal-footer">
         <button class="btn-decline" @tap="onDecline">暂不使用</button>
+        <!-- #ifdef MP-WEIXIN -->
+        <button
+          class="btn-agree"
+          open-type="agreePrivacyAuthorization"
+          @agreeprivacyauthorization="onAgree"
+        >
+          同意并继续
+        </button>
+        <!-- #endif -->
+        <!-- #ifndef MP-WEIXIN -->
         <button class="btn-agree" @tap="onAgree">同意并继续</button>
+        <!-- #endif -->
       </view>
     </view>
   </view>
@@ -66,6 +83,16 @@ function onDecline() {
   visible.value = false;
   emit('declined');
   console.info('[PrivacyModal] user declined');
+}
+
+function onOpenAgreement() {
+  console.info('[PrivacyModal] open user-agreement');
+  uni.navigateTo({ url: '/pages/agreement/index?tab=user' });
+}
+
+function onOpenPrivacy() {
+  console.info('[PrivacyModal] open privacy-policy');
+  uni.navigateTo({ url: '/pages/agreement/index?tab=privacy' });
 }
 
 defineExpose({ show, hide });
@@ -115,16 +142,28 @@ defineExpose({ show, hide });
   display: block;
   font-size: 32rpx;
   font-weight: 600;
-  color: #1677ff;
+  color: #236EFF;
   margin-bottom: 16rpx;
 }
 
 .intro {
-  display: block;
   font-size: 28rpx;
   color: #555;
   line-height: 1.6;
+}
+
+.link-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
   margin-bottom: 24rpx;
+}
+
+.link {
+  font-size: 28rpx;
+  color: #236EFF;
+  line-height: 1.6;
 }
 
 .section-title {
@@ -164,11 +203,17 @@ defineExpose({ show, hide });
   flex: 2;
   height: 88rpx;
   line-height: 88rpx;
-  background-color: #1677ff;
+  background-color: #236EFF;
   color: #ffffff;
   font-size: 32rpx;
   font-weight: 600;
   border-radius: 12rpx;
+  border: none;
+  margin: 0;
+}
+
+.btn-agree::after,
+.btn-decline::after {
   border: none;
 }
 </style>

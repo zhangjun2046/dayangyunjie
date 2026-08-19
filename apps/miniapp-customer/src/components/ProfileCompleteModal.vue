@@ -14,7 +14,15 @@
           <text class="info-title">你的手机号码</text>
           
           <!-- #ifdef MP-WEIXIN -->
-          <view v-if="!form.phone" class="phone-auth-container">
+          <!-- 微信授权成功：展示脱敏号；手工输入中：始终保留 input，避免 form.phone 非空时被卸载 -->
+          <view v-if="phoneFromWechat" class="phone-filled-container">
+            <text class="phone-number">{{ maskedPhone }}</text>
+            <text class="phone-tag">微信绑定号码</text>
+            <text class="icon-check">✓</text>
+            <text class="phone-change" @tap="onChangePhone">修改</text>
+          </view>
+
+          <view v-else class="phone-auth-container">
             <button
               class="btn-wechat"
               open-type="getPhoneNumber"
@@ -23,7 +31,7 @@
               <image class="wechat-icon" src="data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M8.5 14c-.83 0-1.5-.67-1.5-1.5S7.67 11 8.5 11s1.5.67 1.5 1.5S9.33 14 8.5 14zm7 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm-3.5-8c-4.14 0-7.5 2.8-7.5 6.25 0 1.93 1.03 3.65 2.65 4.81l-.85 2.55 2.95-1.47c.87.24 1.79.36 2.75.36 4.14 0 7.5-2.8 7.5-6.25S16.14 6 12 6z'/%3E%3C/svg%3E" />
               微信一键授权手机号
             </button>
-            <view class="manual-toggle" @tap="showManual = !showManual" v-if="!showManual">
+            <view class="manual-toggle" @tap="showManual = true" v-if="!showManual">
               使用其他手机号码
             </view>
             <input
@@ -34,13 +42,6 @@
               placeholder="请输入手机号"
               maxlength="11"
             />
-          </view>
-          
-          <view v-else class="phone-filled-container">
-            <text class="phone-number">{{ maskedPhone }}</text>
-            <text class="phone-tag">微信绑定号码</text>
-            <text class="icon-check">✓</text>
-            <text class="phone-change" @tap="form.phone = ''">修改</text>
           </view>
           <!-- #endif -->
 
@@ -78,6 +79,8 @@ const authStore = useAuthStore();
 
 const visible = ref(false);
 const showManual = ref(false);
+/** 仅微信授权拿到的号走「已填写」展示；手工输入不受 form.phone 非空影响 */
+const phoneFromWechat = ref(false);
 const form = reactive({ phone: '' });
 
 const maskedPhone = computed(() => {
@@ -90,11 +93,42 @@ const canSubmit = computed(() => /^1[3-9]\d{9}$/.test(form.phone));
 function show() {
   form.phone = '';
   showManual.value = false;
+  phoneFromWechat.value = false;
   visible.value = true;
 }
 
 function hide() {
   visible.value = false;
+}
+
+function onChangePhone() {
+  form.phone = '';
+  phoneFromWechat.value = false;
+  showManual.value = false;
+}
+
+/** 解密前确保本地已有 accessToken（decrypt-phone 需 JWT） */
+async function ensureAccessToken(): Promise<boolean> {
+  if (authStore.isLoggedIn) return true;
+  try {
+    let code: string;
+    // #ifdef MP-WEIXIN
+    code = await new Promise<string>((resolve, reject) => {
+      wx.login({
+        success: (res: { code: string }) => resolve(res.code),
+        fail: (err: { errMsg: string }) => reject(new Error(String(err.errMsg))),
+      });
+    });
+    // #endif
+    // #ifndef MP-WEIXIN
+    code = `mock_h5_${Date.now()}`;
+    // #endif
+    await authStore.wechatLogin(code);
+    return authStore.isLoggedIn;
+  } catch (err) {
+    console.info('[ProfileCompleteModal] ensure login failed', String(err));
+    return false;
+  }
 }
 
 /** 微信小程序 getPhoneNumber 回调（支持新版 code-only 模式） */
@@ -110,16 +144,28 @@ async function onGetPhoneNumber(e: any) {
   if (detail.phoneNumber) {
     // 旧版微信：回调直接包含手机号
     form.phone = detail.phoneNumber;
+    phoneFromWechat.value = true;
+    showManual.value = false;
     console.info('[ProfileCompleteModal] phone assigned directly');
   } else if (detail.errMsg && String(detail.errMsg).includes('ok') && detail.code) {
     // 新版微信：只返回 code，需后端解密
     try {
       uni.showLoading({ title: '获取中...' });
+      const ready = await ensureAccessToken();
+      if (!ready) {
+        phoneFromWechat.value = false;
+        showManual.value = true;
+        uni.showToast({ title: '请先登录后再授权', icon: 'none' });
+        return;
+      }
       const result = await decryptPhone(detail.code);
       form.phone = result.phone;
+      phoneFromWechat.value = true;
+      showManual.value = false;
       console.info('[ProfileCompleteModal] phone decrypted via backend', { phoneLen: form.phone.length });
     } catch (err) {
       console.info('[ProfileCompleteModal] decryptPhone failed, fallback to manual', String(err));
+      phoneFromWechat.value = false;
       showManual.value = true;
       uni.showToast({ title: '获取失败，请手工输入', icon: 'none' });
     } finally {
@@ -127,6 +173,7 @@ async function onGetPhoneNumber(e: any) {
     }
   } else {
     // 用户拒绝授权或发生错误
+    phoneFromWechat.value = false;
     showManual.value = true;
     console.info('[ProfileCompleteModal] getPhoneNumber not ok, errMsg=', detail.errMsg);
     uni.showToast({ title: '授权失败，请手工输入', icon: 'none' });

@@ -8,8 +8,8 @@ export interface CleaningOrderDto {
   orderNo: string;
   residentId: number | null;
   workerId?: number | null;
-  /** 已派单时携带服务人员基本信息（name / phone） */
-  worker?: { id: number; name: string; phone: string } | null;
+  /** 已派单时携带服务人员基本信息；详情含 gender，列表仅 id/name/phone */
+  worker?: { id: number; name: string; phone: string; gender?: string | null } | null;
   serviceItem: string;
   serviceDuration: number;
   appointDate: string;
@@ -44,8 +44,8 @@ export interface RecyclingOrderDto {
   orderNo: string;
   residentId: number | null;
   workerId?: number | null;
-  /** 服务人员信息（列表/详情接口返回，用于管理端展示） */
-  worker?: { id: number; name: string; phone: string } | null;
+  /** 服务人员信息；详情含 gender，列表仅 id/name/phone */
+  worker?: { id: number; name: string; phone: string; gender?: string | null } | null;
   serviceItem: string;
   estimatedWeight: number;
   appointDate: string;

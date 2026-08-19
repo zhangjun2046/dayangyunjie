@@ -8,7 +8,7 @@
         class="step-item"
       >
         <view class="step-circle" :class="{ active: store.step > idx, current: store.step === idx + 1 }">
-          <text class="step-num">{{ idx + 1 }}</text>
+					<text class="step-num" :class="{ active: store.step > idx, current: store.step === idx + 1 }">{{ idx + 1 }}</text>					
         </view>
         <text class="step-label" :class="{ active: store.step >= idx + 1 }">{{ label }}</text>
         <view v-if="idx < STEP_LABELS.length - 1" class="step-line" :class="{ active: store.step > idx + 1 }" />
@@ -17,17 +17,12 @@
 
     <!-- ===================== STEP 1: 选择服务类型 ===================== -->
     <scroll-view v-if="store.step === 1" scroll-y class="scroll-area">
-      <view class="section-title-bar">
-        <text class="section-title-text">请选择家政服务类型</text>
-      </view>
+      <view class="section-wrap-1">
+        <view v-if="catalogLoading" class="loading-tip">
+          <text>加载中...</text>
+        </view>
 
-      <!-- 加载中 -->
-      <view v-if="catalogLoading" class="loading-tip">
-        <text>加载中...</text>
-      </view>
-
-      <!-- 服务类型卡片列表 -->
-      <view class="catalog-list">
+        <!-- 服务类型卡片列表 -->
         <view
           v-for="item in catalogs"
           :key="item.id"
@@ -36,24 +31,23 @@
           @tap="selectCatalog(item)"
         >
           <view class="card-left">
-            <view class="card-icon-wrap" :class="iconBgClass(item)">
-              <text class="card-icon">{{ item.icon || defaultIcon(item) }}</text>
+            <view class="card-icon-wrap">
+							<image v-if="itemIconSrc(item)" class="card-icon-img" :src="itemIconSrc(item)!" mode="aspectFit" />
+              <text v-else class="card-icon">{{ item.icon || defaultIcon(item) }}</text>
             </view>
             <view class="card-text">
               <text class="card-name">{{ item.name }}</text>
               <text v-if="item.subtitle" class="card-subtitle">{{ item.subtitle }}</text>
             </view>
           </view>
-          <!-- 选中对勾 -->
           <view v-if="store.selectedCatalog?.id === item.id" class="card-check">
             <text class="check-icon">✓</text>
           </view>
         </view>
-      </view>
 
-      <!-- 空态 -->
-      <view v-if="!catalogLoading && catalogs.length === 0" class="empty-tip">
-        <text>暂无可用服务类型，请联系客服</text>
+        <view v-if="!catalogLoading && catalogs.length === 0" class="empty-tip">
+          <text>暂无可用服务类型，请联系客服</text>
+        </view>
       </view>
 
       <!-- 提示说明 -->
@@ -70,15 +64,17 @@
         <text class="selected-type-val">{{ store.selectedCatalog?.name }}</text>
       </view>
 
-      <!-- 代家人下单开关 -->
+      <!-- 代家人下单 -->
       <view class="section-wrap proxy-section">
-        <view class="proxy-row">
-          <view class="proxy-left">
-            <text class="proxy-title">是否为家人代下单</text>
-            <text class="proxy-desc">勾选后需填写服务对象信息</text>
+        <text class="sub-title">是否为代家人下单</text>
+        <view class="radio-group">
+          <view class="radio-item" @tap="store.isProxy = true">
+            <image class="radio-icon" :src="store.isProxy ? '/static/icons/radio-checked.png' : '/static/icons/radio-unchecked.png'" mode="aspectFit" />
+            <text class="radio-label">是</text>
           </view>
-          <view class="proxy-switch" :class="{ on: store.isProxy }" @tap="store.isProxy = !store.isProxy">
-            <view class="switch-knob" :class="{ on: store.isProxy }" />
+          <view class="radio-item" @tap="store.isProxy = false">
+            <image class="radio-icon" :src="!store.isProxy ? '/static/icons/radio-checked.png' : '/static/icons/radio-unchecked.png'" mode="aspectFit" />
+            <text class="radio-label">否</text>
           </view>
         </view>
       </view>
@@ -88,21 +84,23 @@
         <text class="sub-title">服务对象信息</text>
         <view class="input-card">
           <view class="input-row">
-            <text class="input-label required">姓名</text>
+            <text class="input-label">姓名</text>
             <input
               class="input-field"
               placeholder="请输入服务对象姓名"
+              placeholder-style="color:#999;font-size:30rpx;"
               :value="store.serviceContactName"
               @input="store.serviceContactName = $event.detail.value"
             />
           </view>
           <view class="input-row">
-            <text class="input-label required">手机号</text>
+            <text class="input-label">手机号</text>
             <input
               class="input-field"
               type="number"
               maxlength="11"
               placeholder="请输入服务对象手机号"
+              placeholder-style="color:#999;font-size:30rpx;"
               :value="store.serviceContactPhone"
               @input="store.serviceContactPhone = $event.detail.value"
             />
@@ -134,6 +132,7 @@
             <input
               class="input-field"
               placeholder="请输入您的姓名"
+              placeholder-style="color:#999;font-size:30rpx;"
               :value="store.contactName"
               @input="store.contactName = $event.detail.value"
             />
@@ -145,6 +144,7 @@
               type="number"
               maxlength="11"
               placeholder="请输入您的联系电话"
+              placeholder-style="color:#999;font-size:30rpx;"
               :value="store.contactPhone"
               @input="store.contactPhone = $event.detail.value"
             />
@@ -156,7 +156,7 @@
       <!-- 备注（可选） -->
       <view class="section-wrap">
         <text class="sub-title">备注（可选）</text>
-        <view class="textarea-wrap">
+        <view class="remark-wrap">
           <textarea
             class="remark-area"
             placeholder="其他补充说明..."
@@ -223,30 +223,31 @@ const catalogLoading = ref(false);
 /** 为没有图标的条目提供默认 emoji */
 function defaultIcon(item: ServiceCatalogDto): string {
   const iconMap: Record<string, string> = {
-    保姆: '👩',
-    月嫂: '🤱',
-    育儿嫂: '👶',
-    陪诊: '🏥',
-    代买菜: '🛒',
-    老人陪护: '👴',
-    家电维修: '🔧',
-    搬家: '📦',
+    保姆: '��',
+    月嫂: '��',
+    育儿嫂: '��',
+    陪诊: '��',
+    代买菜: '��',
+    老人陪护: '��',
+    家电维修: '��',
+    搬家: '��',
   };
-  return iconMap[item.name] ?? '🏠';
+  return iconMap[item.name] ?? '��';
 }
 
-/** 图标背景色循环 */
-const ICON_BG_CLASSES = ['bg-pink', 'bg-purple', 'bg-orange', 'bg-green', 'bg-blue'];
-function iconBgClass(item: ServiceCatalogDto): string {
-  const idx = catalogs.value.indexOf(item) % ICON_BG_CLASSES.length;
-  return ICON_BG_CLASSES[idx];
+function itemIconSrc(item: ServiceCatalogDto): string | null {
+  if (item.name?.includes('保姆')) return '/static/icons/icon_baomu_n.png';
+  if (item.name?.includes('月嫂')) return '/static/icons/icon_yuesao_n.png';
+  if (item.name?.includes('育儿嫂')) return '/static/icons/icon_yuersao_n.png';
+  if (item.name?.includes('陪诊')) return '/static/icons/icon_peizhen_n.png';
+  if (item.name?.includes('买菜')) return '/static/icons/icon_daimaicai_n.png';
+  return null;
 }
 
 async function loadCatalogs() {
   catalogLoading.value = true;
   try {
     catalogs.value = await fetchConsultCatalogs();
-    // 默认选中第一条
     if (catalogs.value.length > 0 && !store.selectedCatalog) {
       store.selectedCatalog = catalogs.value[0];
     }
@@ -284,7 +285,6 @@ function prevStep() {
 const submitting = ref(false);
 
 async function submitOrder() {
-  // 表单校验
   if (!store.requirementDesc.trim()) {
     uni.showToast({ title: '请填写核心诉求', icon: 'none' });
     return;
@@ -357,7 +357,7 @@ onShow(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #f5f6fa;
+  background: #F8FAFF;
 }
 
 /* ── 步骤条 ── */
@@ -365,7 +365,7 @@ onShow(() => {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 24rpx 32rpx 16rpx;
+  padding: 30rpx 32rpx;
   background: #fff;
   position: relative;
 }
@@ -390,17 +390,22 @@ onShow(() => {
 }
 
 .step-circle.current {
-  background: #fa8c16;
+  background: #236EFF;
 }
 
 .step-circle.active {
-  background: #fa8c16;
+  background: #236EFF;
 }
 
 .step-num {
   font-size: 26rpx;
-  color: #fff;
-  font-weight: 600;
+  color: #9CABBA;
+  font-weight: bold;
+}
+
+.step-num.active {
+	color: #FFF;
+  font-size: 26rpx;
 }
 
 .step-label {
@@ -411,7 +416,7 @@ onShow(() => {
 }
 
 .step-label.active {
-  color: #fa8c16;
+  color: #236EFF;
 }
 
 .step-line {
@@ -425,48 +430,61 @@ onShow(() => {
 }
 
 .step-line.active {
-  background: #fa8c16;
+  background: #236EFF;
 }
 
 /* ── 滚动区 ── */
 .scroll-area {
   flex: 1;
   height: 0;
-  padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
+  padding-bottom: calc(150rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
-/* ── Step 1 标题条 ── */
-.section-title-bar {
-  padding: 28rpx 32rpx 12rpx;
+/* ── 通用 section ── */
+.section-wrap-1 {
+  border-radius: 30rpx;
+  margin: 20rpx 26rpx;
+  padding: 24rpx 0;
 }
 
-.section-title-text {
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #1a1a1a;
+.section-wrap {
+  border-radius: 30rpx;
+  margin: 20rpx 26rpx;
+  padding: 24rpx;
+  background-color: #FFF;
 }
 
-/* ── 服务目录卡片列表 ── */
-.catalog-list {
-  margin: 0 24rpx;
+.sub-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333333;
+  margin-top: 20rpx;
+  padding-bottom: 20rpx;
+  display: block;
+  border-bottom: 1rpx solid #F7F9FA;
 }
 
+.required-title::before {
+  content: '* ';
+  color: #ff4d4f;
+}
+
+/* ── Step 1 卡片 ── */
 .service-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 28rpx 24rpx;
-  border-radius: 20rpx;
-  border: 2rpx solid #e8e8e8;
+  padding: 52rpx 28rpx;
+  border-radius: 30rpx;
+  border: 2rpx solid #fff;
   margin-bottom: 20rpx;
   background: #fff;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.04);
 }
 
 .service-card.selected {
-  border-color: #fa8c16;
-  background: #fff8f0;
+  border-color: #236EFF;
+  background: #fff;
 }
 
 .card-left {
@@ -476,41 +494,30 @@ onShow(() => {
 }
 
 .card-icon-wrap {
-  width: 80rpx;
-  height: 80rpx;
+  width: 100rpx;
+  height: 100rpx;
+  background: #f0f6ff;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 }
-
-/* 循环背景色（对照附图中的彩色图标） */
-.bg-pink   { background: #ffe0e6; }
-.bg-purple { background: #ede0ff; }
-.bg-orange { background: #fff0d9; }
-.bg-green  { background: #d6f5e3; }
-.bg-blue   { background: #dceeff; }
 
 .card-icon {
   font-size: 40rpx;
 }
 
-.card-text {
-  flex: 1;
-}
-
 .card-name {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #1a1a1a;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #303030;
   display: block;
 }
 
 .card-subtitle {
-  font-size: 24rpx;
-  color: #999;
-  margin-top: 8rpx;
+  font-size: 28rpx;
+  color: #303030;
+  margin-top: 6rpx;
   display: block;
 }
 
@@ -518,11 +525,10 @@ onShow(() => {
   width: 44rpx;
   height: 44rpx;
   border-radius: 50%;
-  background: #1677ff;
+  background: #236EFF;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 }
 
 .check-icon {
@@ -537,117 +543,58 @@ onShow(() => {
 }
 
 .tip-text {
-  font-size: 24rpx;
-  color: #bbb;
+  font-size: 26rpx;
+  color: #A3B1CD;
   line-height: 1.7;
-}
-
-/* ── 加载/空态 ── */
-.loading-tip,
-.empty-tip {
-  text-align: center;
-  padding: 60rpx 0;
-  color: #999;
-  font-size: 28rpx;
-}
-
-/* ── Step 2 通用 section ── */
-.section-wrap {
-  background: #fff;
-  border-radius: 16rpx;
-  margin: 20rpx 24rpx 0;
-  padding: 24rpx;
-}
-
-.sub-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 20rpx;
-  display: block;
-}
-
-.required-title::before {
-  content: '* ';
-  color: #ff4d4f;
 }
 
 /* ── 已选服务类型回显 ── */
 .selected-type-bar {
-  background: #fff8f0;
-  border-radius: 16rpx;
-  margin: 20rpx 24rpx 0;
-  padding: 24rpx 28rpx;
+  background: #f0f6ff;
+  border-radius: 30rpx;
+  margin: 20rpx 26rpx 0;
+  padding: 28rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border: 2rpx solid #fa8c16;
+  border: 2rpx solid #236EFF;
 }
 
 .selected-type-label {
   font-size: 28rpx;
-  color: #999;
+  color: #666;
 }
 
 .selected-type-val {
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #fa8c16;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #236EFF;
 }
 
-/* ── 代下单开关 ── */
-.proxy-row {
+/* ── 代下单单选 ── */
+.proxy-section .sub-title {
+  margin-bottom: 24rpx;
+}
+
+.radio-group {
+  display: flex;
+  gap: 48rpx;
+}
+
+.radio-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12rpx;
 }
 
-.proxy-left {
-  flex: 1;
+.radio-icon {
+  width: 32rpx;
+  height: 32rpx;
 }
 
-.proxy-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #1a1a1a;
-  display: block;
-}
-
-.proxy-desc {
-  font-size: 24rpx;
-  color: #999;
-  margin-top: 6rpx;
-  display: block;
-}
-
-.proxy-switch {
-  width: 100rpx;
-  height: 56rpx;
-  border-radius: 28rpx;
-  background: #d9d9d9;
-  position: relative;
-  transition: background 0.25s;
-  flex-shrink: 0;
-}
-
-.proxy-switch.on {
-  background: #fa8c16;
-}
-
-.switch-knob {
-  position: absolute;
-  top: 6rpx;
-  left: 6rpx;
-  width: 44rpx;
-  height: 44rpx;
-  border-radius: 50%;
-  background: #fff;
-  transition: left 0.25s;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.15);
-}
-
-.switch-knob.on {
-  left: 50rpx;
+.radio-label {
+  font-size: 32rpx;
+  color: #333;
 }
 
 /* ── 输入行 ── */
@@ -668,8 +615,8 @@ onShow(() => {
 
 .input-label {
   width: 120rpx;
-  font-size: 28rpx;
-  color: #666;
+  font-size: 30rpx;
+  color: #333;
   flex-shrink: 0;
 }
 
@@ -685,11 +632,11 @@ onShow(() => {
   text-align: right;
 }
 
-/* ── 核心诉求文本框 ── */
+/* ── 核心诉求 / 备注 ── */
 .textarea-wrap {
-  background: #f5f6fa;
-  border-radius: 12rpx;
-  padding: 16rpx;
+  background: #F7F9FA;
+  border-radius: 20rpx;
+  padding: 26rpx;
   position: relative;
 }
 
@@ -700,6 +647,12 @@ onShow(() => {
   color: #333;
   box-sizing: border-box;
   line-height: 1.7;
+}
+
+.remark-wrap {
+  background: #F7F9FA;
+  border-radius: 20rpx;
+  padding: 26rpx;
 }
 
 .remark-area {
@@ -718,10 +671,9 @@ onShow(() => {
   margin-top: 8rpx;
 }
 
-/* ── 地址提示 ── */
 .addr-tip {
   font-size: 24rpx;
-  color: #bbb;
+  color: #A3B1CD;
   margin-top: 16rpx;
   display: block;
 }
@@ -729,19 +681,20 @@ onShow(() => {
 /* ── 服务须知 ── */
 .notice-wrap {
   margin: 20rpx 24rpx 120rpx;
-  padding: 0 8rpx;
+  padding: 30rpx 8rpx;
 }
 
 .notice-title-text {
-  font-size: 24rpx;
-  color: #bbb;
+  font-size: 30rpx;
+  color: #A3B1CD;
+  font-weight: bold;
   display: block;
   margin-bottom: 12rpx;
 }
 
 .notice-item-text {
-  font-size: 22rpx;
-  color: #ccc;
+  font-size: 30rpx;
+  color: #A3B1CD;
   display: block;
   line-height: 1.8;
 }
@@ -763,8 +716,8 @@ onShow(() => {
 .back-btn {
   flex: 0 0 180rpx;
   height: 88rpx;
-  border-radius: 44rpx;
-  border: 2rpx solid #fa8c16;
+  border-radius: 20rpx;
+  border: 2rpx solid #236EFF;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -772,26 +725,35 @@ onShow(() => {
 
 .back-text {
   font-size: 30rpx;
-  color: #fa8c16;
+  color: #236EFF;
 }
 
 .next-btn {
   flex: 1;
   height: 88rpx;
-  border-radius: 44rpx;
-  background: linear-gradient(90deg, #fa8c16 0%, #fadb14 100%);
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, #236EFF 0%, #1AA1FF 100%);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .next-btn.loading {
-  opacity: 0.6;
+  background: #91b8ff;
 }
 
 .next-text {
   font-size: 32rpx;
   color: #fff;
   font-weight: 600;
+}
+
+/* ── 加载/空态 ── */
+.loading-tip,
+.empty-tip {
+  text-align: center;
+  padding: 60rpx 0;
+  color: #999;
+  font-size: 28rpx;
 }
 </style>

@@ -45,13 +45,13 @@
 
       <!-- 未登录提示 -->
       <view v-else-if="notLoggedIn" class="empty-wrap">
-        <text class="empty-icon">🔒</text>
+        <image class="empty-icon" src="/static/icons/add-photo.png" mode="aspectFit" />
         <text class="empty-text">请先登录后查看订单</text>
       </view>
 
       <!-- 空状态 -->
       <view v-else-if="!loading && orders.length === 0" class="empty-wrap">
-        <text class="empty-icon">📋</text>
+        <image class="empty-icon" src="/static/icons/add-photo.png" mode="aspectFit" />
         <text class="empty-text">暂无订单</text>
       </view>
 
@@ -63,44 +63,48 @@
           class="order-card"
           @tap="goToDetail(order)"
         >
+				
+				<image class="order-icon" :src="getOrderIcon(order)"></image>
           <!-- 卡片头：服务项 + 状态徽标 -->
-          <view class="card-header">
-            <text class="card-service">{{ getServiceLabel(order) }}</text>
-            <view class="status-badge" :class="getStatusClass(order.status)">
-              <text class="badge-text">{{ getStatusLabel(order.status, activeTab) }}</text>
-            </view>
-          </view>
-
-          <!-- 订单号 -->
-          <text class="card-order-no">{{ order.orderNo }}</text>
-
-          <!-- 时间 -->
-          <view class="card-info-row" v-if="getAppointInfo(order)">
-            <text class="info-icon">🗓</text>
-            <text class="info-text">{{ getAppointInfo(order) }}</text>
-          </view>
-
-          <!-- 地址（保洁/废品有） -->
-          <view class="card-info-row" v-if="getAddressText(order)">
-            <text class="info-icon">📍</text>
-            <text class="info-text">{{ getAddressText(order) }}</text>
-          </view>
-
-          <!-- 家政咨询：需求描述摘要 -->
-          <view class="card-info-row" v-if="activeTab === 'consult' && (order as ConsultOrderDto).requirementDesc">
-            <text class="info-icon">📝</text>
-            <text class="info-text desc-truncate">{{ (order as ConsultOrderDto).requirementDesc }}</text>
-          </view>
-
-          <!-- 代下单标记 -->
-          <view v-if="order.isProxyOrder" class="proxy-tag">
-            <text>代下单</text>
-          </view>
-
-          <!-- 箭头 -->
-          <view class="card-arrow">
-            <text class="arrow-icon">›</text>
-          </view>
+				<view class="card-info">
+					<view class="card-header">
+					  <text class="card-service">{{ getServiceLabel(order) }}</text>
+					  <view class="status-badge" :class="getStatusClass(order.status)">
+					    <text class="badge-text">{{ getStatusLabel(order.status, activeTab) }}</text>
+					  </view>
+					</view>
+					
+					<!-- 订单号 -->
+					<!-- <text class="card-order-no">{{ order.orderNo }}</text> -->
+					
+					<!-- 时间 -->
+					<view class="card-info-row" v-if="getAppointInfo(order)">
+						<image class="info-icon" src="/src/static/icons/icon_shijian_n.png" mode="aspectFit"></image>
+					  <text class="info-text">{{ getAppointInfo(order) }}</text>
+					</view>
+					
+					<!-- 地址（保洁/废品有） -->
+					<view class="card-info-row" v-if="getAddressText(order)">
+						<image class="info-icon" src="/src/static/icons/icon_weizhi_n.png" mode="aspectFit"></image>
+					  <text class="info-text">{{ getAddressText(order) }}</text>
+					</view>
+					
+					<!-- 家政咨询：需求描述摘要 -->
+					<!-- <view class="card-info-row" v-if="activeTab === 'consult' && (order as ConsultOrderDto).requirementDesc">
+					  <image class="info-icon" src="/src/static/icons/icon_shijian_n.png" mode="aspectFit"></image>
+					  <text class="info-text">{{ getAppointInfo(order) }}</text>
+					</view> -->
+					
+					<!-- 代下单标记 -->
+					<!-- <view v-if="order.isProxyOrder" class="proxy-tag">
+					  <text>代下单</text>
+					</view> -->
+					
+					<!-- 箭头 -->
+					<!-- <view class="card-arrow">
+					  <text class="arrow-icon"></text>
+					</view> -->
+				</view>
         </view>
       </view>
 
@@ -321,7 +325,13 @@ function getServiceLabel(order: AnyOrder): string {
 
 /** 获取预约时间信息 */
 function getAppointInfo(order: AnyOrder): string {
-  if (activeTab.value === 'consult') return '';
+  if (activeTab.value === 'consult') {
+		const o = order as ConsultOrderDto;
+		if (!o.createdAt) return '';
+		const date = o.createdAt.substring(0, 10);
+		return date;
+		
+	}
   const o = order as CleaningOrderDto | RecyclingOrderDto;
   if (!o.appointDate) return '';
   const date = o.appointDate.substring(0, 10);
@@ -329,14 +339,37 @@ function getAppointInfo(order: AnyOrder): string {
   return slot ? `${date} ${slot}` : date;
 }
 
-/** 获取地址文本 */
+/** 获取地址文本：省市区 + 详细地址 + 楼栋信息（与员工端任务列表一致） */
 function getAddressText(order: AnyOrder): string {
   if (activeTab.value === 'consult') return '';
   const snapshot = (order as CleaningOrderDto).addressSnapshot as Record<string, unknown> | null | undefined;
   if (!snapshot) return '';
-  const detail = (snapshot.detail as string) || (snapshot.address as string) || '';
-  return detail.length > 20 ? detail.substring(0, 20) + '…' : detail;
+  return [snapshot.province, snapshot.city, snapshot.district, snapshot.detail, snapshot.buildingInfo]
+    .filter(Boolean)
+    .join('');
 }
+
+function getOrderIcon(order: AnyOrder): string {
+	if (activeTab.value === 'cleaning') {
+	  const serviceItem = (order as CleaningOrderDto).serviceItem;
+		if (serviceItem?.includes('日常')) return '/static/icons/daily-cleaning.png';
+		if (serviceItem?.includes('深度')) return '/static/icons/deep-cleaning.png';
+		if (serviceItem?.includes('专项')) return '/static/icons/special-cleaning.png';
+	}
+	if (activeTab.value === 'recycling') {
+	  const serviceItem = (order as RecyclingOrderDto).serviceItem;
+		if (serviceItem?.includes('大件')) return '/static/icons/icon_dajian_n.png';
+		if (serviceItem?.includes('小件')) return '/static/icons/icon_xiaojian_n.png';
+	}
+	const serviceItem = (order as ConsultOrderDto).serviceType;
+	if (serviceItem?.includes('保姆')) return '/static/icons/icon_baomu_n.png';	
+	if (serviceItem?.includes('月嫂')) return '/static/icons/icon_yuesao_n.png';	
+	if (serviceItem?.includes('育儿嫂')) return '/static/icons/icon_yuersao_n.png';	
+	if (serviceItem?.includes('陪诊')) return '/static/icons/icon_peizhen_n.png';	
+	if (serviceItem?.includes('代买菜')) return '/static/icons/icon_daimaicai_n.png';	
+	return ''
+}
+
 
 /** 状态对应的展示名（居民端）*/
 function getStatusLabel(status: string, tab: TabKey): string {
@@ -379,7 +412,7 @@ function getStatusClass(status: string): string {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #f5f5f5;
+  background: #F8FAFF;
 }
 
 /* 顶部 Tab */
@@ -401,13 +434,13 @@ function getStatusClass(status: string): string {
 }
 
 .top-tab-text {
-  font-size: 30rpx;
+  font-size: 36rpx;
   color: #666;
   padding-bottom: 20rpx;
 }
 
 .tab-active .top-tab-text {
-  color: #1677ff;
+  color: #333333;
   font-weight: 600;
 }
 
@@ -418,16 +451,14 @@ function getStatusClass(status: string): string {
   right: 20%;
   height: 4rpx;
   border-radius: 2rpx;
-  background: #1677ff;
+  background: #236EFF;
 }
 
 /* 状态筛选胶囊
    微信小程序 scroll-view 不支持 flex 溢出，
    必须用 white-space:nowrap + display:inline-flex 内联方案 */
 .filter-scroll {
-  background: #ffffff;
-  padding: 16rpx 0;
-  border-bottom: 1rpx solid #f0f0f0;
+  padding: 18rpx 0;
 }
 
 .filter-row {
@@ -439,11 +470,10 @@ function getStatusClass(status: string): string {
 .filter-pill {
   display: inline-flex;
   align-items: center;
-  padding: 10rpx 28rpx;
+  padding: 14rpx 28rpx;
   border-radius: 40rpx;
-  border: 1rpx solid #e0e0e0;
-  background: #fafafa;
-  font-size: 26rpx;
+  background: #fff;
+  font-size: 28rpx;
   color: #666;
   white-space: nowrap;
   margin-right: 16rpx;
@@ -455,9 +485,8 @@ function getStatusClass(status: string): string {
 }
 
 .pill-active {
-  background: #e6f0ff;
-  border-color: #1677ff;
-  color: #1677ff;
+  background: #236EFF;
+  color: #fff;
 }
 
 /* 列表区 */
@@ -481,7 +510,8 @@ function getStatusClass(status: string): string {
 }
 
 .empty-icon {
-  font-size: 80rpx;
+  width: 160rpx;
+  height: 160rpx;
   margin-bottom: 24rpx;
 }
 
@@ -492,16 +522,24 @@ function getStatusClass(status: string): string {
 
 /* 订单卡片 */
 .card-list {
-  padding: 24rpx 32rpx;
+  padding: 4rpx 26rpx 14rpx 26rpx;
 }
 
 .order-card {
+	display: flex;
+	align-items: center;
   background: #ffffff;
-  border-radius: 16rpx;
-  padding: 28rpx 28rpx 24rpx;
+  border-radius: 32rpx;
+  padding: 38rpx 28rpx;
   margin-bottom: 20rpx;
   position: relative;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+	box-shadow: 0rpx 4rpx 20rpx 0rpx rgba(0,0,0,0.05);	
+}
+
+.order-icon {
+	width: 100rpx;
+	height: 100rpx;
+	margin-right: 30rpx;
 }
 
 .card-header {
@@ -513,8 +551,8 @@ function getStatusClass(status: string): string {
 }
 
 .card-service {
-  font-size: 32rpx;
-  font-weight: 600;
+  font-size: 36rpx;
+  font-weight: bold;
   color: #222;
   flex: 1;
   margin-right: 16rpx;
@@ -527,15 +565,14 @@ function getStatusClass(status: string): string {
 }
 
 .badge-text {
-  font-size: 24rpx;
-  font-weight: 500;
+  font-size: 26rpx;
 }
 
 .badge-blue {
   background: #e6f0ff;
 }
 .badge-blue .badge-text {
-  color: #1677ff;
+  color: #236EFF;
 }
 
 .badge-orange {
@@ -560,30 +597,40 @@ function getStatusClass(status: string): string {
 }
 
 .card-order-no {
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #bbb;
-  margin-bottom: 12rpx;
+	margin-top: 5rpx;
+  margin-bottom: 16rpx;
   display: block;
+}
+
+.card-info {
+	flex: 1;
 }
 
 .card-info-row {
   display: flex;
   flex-direction: row;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 8rpx;
 }
 
 .info-icon {
-  font-size: 24rpx;
+	width: 32rpx;
+	height: 32rpx;
   margin-right: 8rpx;
   flex-shrink: 0;
   line-height: 1.6;
 }
 
 .info-text {
-  font-size: 26rpx;
-  color: #555;
+  font-size: 30rpx;
+  color: #58636A;
   line-height: 1.6;
+	overflow: hidden;
+	display: -webkit-box;
+	-webkit-line-clamp: 1;
+	-webkit-box-orient: vertical;
 }
 
 .desc-truncate {

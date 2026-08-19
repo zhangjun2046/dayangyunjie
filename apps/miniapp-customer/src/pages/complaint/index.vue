@@ -227,8 +227,8 @@ async function onSubmit() {
 }
 
 .reason-chip-active {
-  border-color: #1677ff;
-  background: #1677ff;
+  border-color: #236EFF;
+  background: #236EFF;
 }
 
 .reason-text {
@@ -337,18 +337,20 @@ async function onSubmit() {
 .btn-submit {
   width: 100%;
   height: 88rpx;
-  background: #1677ff;
+	background: linear-gradient( 135deg, #246BFF 0%, #1AA1FF 100%);
+	border-radius: 20rpx;
   color: #ffffff;
-  font-size: 32rpx;
-  font-weight: 600;
-  border-radius: 44rpx;
+  font-size: 30rpx;
+	font-weight: bold;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+
 .btn-submit[disabled] {
   background: #b0c9f5;
+	color: #ffffff;
 }
 </style>

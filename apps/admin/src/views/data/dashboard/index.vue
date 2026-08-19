@@ -132,7 +132,7 @@ echarts.use([
 
 // ─── 时间范围 ─────────────────────────────────────────────────────────────────
 
-const timeRange = ref<'day' | 'week' | 'month'>('day');
+const timeRange = ref<'day' | 'week' | 'month'>('month');
 
 const timeRangeLabel = computed(() => ({ day: '本日', week: '本周', month: '本月' }[timeRange.value]));
 

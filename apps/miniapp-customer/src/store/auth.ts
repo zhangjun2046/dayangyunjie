@@ -84,6 +84,9 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken.value = result.tokens.accessToken;
     refreshToken.value = result.tokens.refreshToken;
     resident.value = result.resident;
+    if (result.resident.phone) {
+      hasPhone.value = true;
+    }
     persist();
     console.info('[auth-store] wechatLogin success, residentId=', result.resident.id);
   }

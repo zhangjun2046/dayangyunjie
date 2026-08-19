@@ -20,7 +20,7 @@
 
     <!-- 空状态 -->
     <view v-else-if="!loading && items.length === 0" class="state-wrap">
-      <text class="state-icon">📋</text>
+      <text class="state-icon">��</text>
       <text class="state-text">暂无投诉记录</text>
     </view>
 
@@ -212,7 +212,7 @@ function formatDate(dateStr: string): string {
 }
 
 .tab-item-active {
-  border-bottom: 4rpx solid #1677ff;
+  border-bottom: 4rpx solid #236EFF;
 }
 
 .tab-text {
@@ -221,7 +221,7 @@ function formatDate(dateStr: string): string {
 }
 
 .tab-item-active .tab-text {
-  color: #1677ff;
+  color: #236EFF;
   font-weight: 600;
 }
 
@@ -275,7 +275,7 @@ function formatDate(dateStr: string): string {
 
 .order-type-text {
   font-size: 22rpx;
-  color: #1677ff;
+  color: #236EFF;
   font-weight: 500;
 }
 
@@ -306,7 +306,7 @@ function formatDate(dateStr: string): string {
 }
 
 .badge-blue .status-text {
-  color: #1677ff;
+  color: #236EFF;
 }
 
 .badge-green .status-text {
@@ -360,7 +360,7 @@ function formatDate(dateStr: string): string {
 
 .card-arrow {
   font-size: 22rpx;
-  color: #1677ff;
+  color: #236EFF;
 }
 
 /* 底部加载提示 */

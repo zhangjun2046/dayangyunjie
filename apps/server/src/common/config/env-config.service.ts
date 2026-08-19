@@ -29,4 +29,20 @@ export class EnvConfigService {
   get mockOpenidPrefix(): string {
     return this.getValue('WECHAT_MOCK_OPENID_PREFIX', 'mock_openid_');
   }
+
+  /** 居民端小程序 AppID；未配置时微信登录/手机号走 mock */
+  get wechatCustomerAppId(): string | undefined {
+    const value = process.env.WECHAT_CUSTOMER_APPID?.trim();
+    return value || undefined;
+  }
+
+  /** 居民端小程序 AppSecret；未配置时微信登录/手机号走 mock */
+  get wechatCustomerSecret(): string | undefined {
+    const value = process.env.WECHAT_CUSTOMER_SECRET?.trim();
+    return value || undefined;
+  }
+
+  get hasWechatCustomerCredentials(): boolean {
+    return Boolean(this.wechatCustomerAppId && this.wechatCustomerSecret);
+  }
 }

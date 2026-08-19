@@ -51,7 +51,7 @@ export interface RecyclingOrderItem {
   source?: string | null;
   remark?: string | null;
   addressSnapshot?: AddressSnapshot | null;
-  worker?: { id: number; name: string; phone: string } | null;
+  worker?: { id: number; name: string; phone: string; gender?: string | null } | null;
   resident?: { id: number; name?: string | null; phone?: string | null } | null;
   createdAt: string;
   updatedAt: string;

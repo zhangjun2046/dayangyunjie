@@ -7,24 +7,17 @@
         :key="idx"
         class="step-item"
       >
-        <view
-          class="step-circle"
-          :class="{ active: store.step > idx, current: store.step === idx + 1 }"
-        >
-          <text class="step-num">{{ idx + 1 }}</text>
+        <view class="step-circle" :class="{ active: store.step > idx, current: store.step === idx + 1 }">
+					<text class="step-num" :class="{ active: store.step > idx, current: store.step === idx + 1 }">{{ idx + 1 }}</text>
         </view>
         <text class="step-label" :class="{ active: store.step >= idx + 1 }">{{ label }}</text>
-        <view
-          v-if="idx < STEP_LABELS.length - 1"
-          class="step-line"
-          :class="{ active: store.step > idx + 1 }"
-        />
+        <view v-if="idx < STEP_LABELS.length - 1" class="step-line" :class="{ active: store.step > idx + 1 }" />
       </view>
     </view>
 
     <!-- ===================== STEP 1: 选择服务 ===================== -->
     <scroll-view v-if="store.step === 1" scroll-y class="scroll-area">
-      <view class="section-wrap">
+      <view class="section-wrap-1">
         <view v-if="catalogLoading" class="loading-tip">
           <text>加载中...</text>
         </view>
@@ -38,7 +31,7 @@
           @tap="selectCatalog(item)"
         >
           <view class="card-left">
-            <view class="card-icon-wrap" :class="iconBgClass(item)">
+            <view class="card-icon-wrap">
               <image v-if="itemIconSrc(item)" class="card-icon-img" :src="itemIconSrc(item)!" mode="aspectFit" />
               <text v-else class="card-icon">{{ item.icon || '♻️' }}</text>
             </view>
@@ -57,16 +50,21 @@
         </view>
       </view>
 
+      <!-- 大件搬运提示（仅大件类显示） -->
+      <view v-if="isLargeItem" class="hint-row">
+        <text class="hint-text">① 需搬运工上门，请确保保电梯可用</text>
+      </view>
+
       <!-- 预估重量步进器 -->
       <view class="weight-row">
         <text class="weight-label">预估重量（kg）</text>
         <view class="stepper-ctrl">
           <view
-            class="ctrl-btn"
+            class="ctrl-btn-1"
             :class="{ disabled: store.estimatedWeight <= 5 }"
             @tap="changeWeight(-5)"
           >
-            <text class="ctrl-text">-</text>
+            <text>-</text>
           </view>
           <view class="ctrl-val">
             <text class="val-num">{{ store.estimatedWeight }}</text>
@@ -77,11 +75,6 @@
           </view>
         </view>
       </view>
-
-      <!-- 大件搬运提示（仅大件类显示） -->
-      <view v-if="isLargeItem" class="hint-row">
-        <text class="hint-text">① 需搬运工上门，请确保保电梯可用</text>
-      </view>
     </scroll-view>
 
     <!-- ===================== STEP 2: 预约时间 ===================== -->
@@ -89,13 +82,9 @@
       <!-- 日历 -->
       <view class="calendar-wrap">
         <view class="cal-header">
-          <view class="cal-nav" @tap="changeMonth(-1)">
-            <text class="nav-arrow">‹ 上个月</text>
-          </view>
+          <view class="cal-nav" @tap="changeMonth(-1)"><text class="nav-arrow">‹ 上个月</text></view>
           <text class="cal-title">{{ calYear }} 年 {{ calMonth }} 月</text>
-          <view class="cal-nav" @tap="changeMonth(1)">
-            <text class="nav-arrow">下个月 ›</text>
-          </view>
+          <view class="cal-nav" @tap="changeMonth(1)"><text class="nav-arrow">下个月 ›</text></view>
         </view>
         <view class="cal-weekdays">
           <text v-for="w in WEEKDAYS" :key="w" class="weekday">{{ w }}</text>
@@ -142,13 +131,10 @@
           <view class="addr-main">
             <view class="addr-top">
               <view v-if="store.selectedAddress.isDefault" class="addr-badge">默认</view>
-              <text class="addr-district">{{ store.selectedAddress.district }}</text>
+              <text class="addr-district">{{ store.selectedAddress.province }} {{ store.selectedAddress.city }} {{ store.selectedAddress.district }}</text>
             </view>
             <text class="addr-detail">{{ store.selectedAddress.detail }}</text>
-            <text class="addr-contact">
-              {{ store.selectedAddress.contactName }}
-              {{ maskPhone(store.selectedAddress.contactPhone) }}
-            </text>
+            <text class="addr-contact">{{ store.selectedAddress.contactName }} {{ maskPhone(store.selectedAddress.contactPhone) }}</text>
           </view>
           <text class="addr-arrow">›</text>
         </view>
@@ -158,7 +144,7 @@
       </view>
 
       <!-- 代家人下单 -->
-      <view class="section-wrap proxy-row">
+      <view class="section-wrap proxy-section">
         <text class="sub-title">是否为代家人下单</text>
         <view class="radio-group">
           <view class="radio-item" @tap="store.isProxy = true">
@@ -181,6 +167,7 @@
             <input
               class="input-field"
               placeholder="请输入服务对象姓名"
+              placeholder-style="color:#999;font-size:30rpx;"
               :value="store.serviceContactName"
               @input="store.serviceContactName = $event.detail.value"
             />
@@ -192,6 +179,7 @@
               type="number"
               maxlength="11"
               placeholder="请输入服务对象手机号"
+              placeholder-style="color:#999;font-size:30rpx;"
               :value="store.serviceContactPhone"
               @input="store.serviceContactPhone = $event.detail.value"
             />
@@ -326,15 +314,10 @@ const isLargeItem = computed(() =>
   store.selectedCatalog?.name?.includes('大件') ?? false,
 );
 
-/** 卡片图标背景色：大件蓝、小件橙 */
-function iconBgClass(item: ServiceCatalogDto) {
-  return item.name?.includes('大件') ? 'icon-bg-blue' : 'icon-bg-orange';
-}
-
 /** 卡片图标：按名称匹配大件/小件专属图标，无匹配时回退 emoji */
 function itemIconSrc(item: ServiceCatalogDto): string | null {
-  if (item.name?.includes('大件')) return '/static/icons/bulky-item.png';
-  if (item.name?.includes('小件')) return '/static/icons/small-item.png';
+  if (item.name?.includes('大件')) return '/static/icons/icon_dajian_n.png';
+  if (item.name?.includes('小件')) return '/static/icons/icon_xiaojian_n.png';
   return null;
 }
 
@@ -560,19 +543,19 @@ onShow(() => {
 
 <style scoped>
 .booking-page {
-  min-height: 100vh;
-  background-color: #f5f5f5;
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  background: #F8FAFF;
 }
 
 /* ── 步骤条 ── */
 .stepper {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 32rpx 48rpx 24rpx;
-  background-color: #ffffff;
+  padding: 30rpx 32rpx;
+  background: #fff;
   position: relative;
 }
 
@@ -588,7 +571,7 @@ onShow(() => {
   width: 56rpx;
   height: 56rpx;
   border-radius: 50%;
-  background-color: #e0e0e0;
+  background: #d9dde6;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -596,227 +579,155 @@ onShow(() => {
 }
 
 .step-circle.current {
-  background-color: #07c160;
+  background: #236EFF;
 }
 
 .step-circle.active {
-  background-color: #07c160;
+  background: #236EFF;
 }
 
 .step-num {
   font-size: 26rpx;
-  font-weight: 700;
-  color: #ffffff;
+  color: #9CABBA;
+  font-weight: bold;
 }
 
+.step-num.active {
+	color: #FFF;
+  font-size: 26rpx;
+}
 .step-label {
   font-size: 22rpx;
   color: #999;
-  margin-top: 10rpx;
+  margin-top: 8rpx;
   white-space: nowrap;
 }
 
 .step-label.active {
-  color: #07c160;
-  font-weight: 600;
+  color: #236EFF;
 }
 
 .step-line {
   position: absolute;
   top: 28rpx;
-  left: calc(50% + 28rpx);
-  width: calc(100% - 56rpx);
-  height: 2rpx;
-  background-color: #e0e0e0;
+  left: 50%;
+  width: 100%;
+  height: 4rpx;
+  background: #d9dde6;
   z-index: 0;
 }
 
 .step-line.active {
-  background-color: #07c160;
+  background: #236EFF;
 }
 
-/* ── 滚动区域 ── */
+/* ── 滚动区 ── */
 .scroll-area {
   flex: 1;
   height: 0;
-  padding-bottom: 180rpx;
+  padding-bottom: calc(150rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
 }
 
-/* ── Step 1: 服务卡片 ── */
+/* ── 通用 section ── */
+.section-wrap-1 {
+  border-radius: 30rpx;
+  margin: 20rpx 26rpx;
+  padding: 24rpx 0;
+}
+
 .section-wrap {
-  margin: 24rpx 24rpx 0;
-  background-color: #ffffff;
-  border-radius: 20rpx;
-  padding: 28rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+  border-radius: 30rpx;
+  margin: 20rpx 26rpx;
+  padding: 24rpx;
+  background-color: #FFF;
 }
 
-.loading-tip,
-.empty-tip {
-  text-align: center;
-  color: #999;
-  font-size: 28rpx;
-  padding: 40rpx 0;
+.sub-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333333;
+  margin-top: 20rpx;
+  padding-bottom: 20rpx;
+  display: block;
+  border-bottom: 1rpx solid #F7F9FA;
 }
 
+/* ── Step 1 卡片 ── */
 .service-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 28rpx 24rpx;
-  border-radius: 16rpx;
-  border: 2rpx solid #f0f0f0;
+  padding: 52rpx 28rpx;
+  border-radius: 30rpx;
+  border: 2rpx solid #fff;
   margin-bottom: 20rpx;
-  background-color: #ffffff;
-  transition: border-color 0.2s;
-}
-
-.service-card:last-child {
-  margin-bottom: 0;
+  background: #fff;
 }
 
 .service-card.selected {
-  border-color: #07c160;
-  background-color: #f0fff5;
+  border-color: #236EFF;
+  background: #fff;
 }
 
 .card-left {
   display: flex;
   align-items: center;
   gap: 24rpx;
-  flex: 1;
 }
 
 .card-icon-wrap {
-  width: 88rpx;
-  height: 88rpx;
-  border-radius: 20rpx;
+  width: 100rpx;
+  height: 100rpx;
+  background: #f0f6ff;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-}
-
-.card-icon-wrap.icon-bg-blue {
-  background-color: #e6f4ff;
-}
-
-.card-icon-wrap.icon-bg-orange {
-  background-color: #fff3e0;
 }
 
 .card-icon {
-  font-size: 44rpx;
+  font-size: 40rpx;
 }
 
 .card-icon-img {
-  /* 图标 PNG 自带底色徽标，需与容器尺寸接近，避免外圈大、图标小 */
-  width: 80rpx;
-  height: 80rpx;
-}
-
-.card-text {
-  display: flex;
-  flex-direction: column;
+  width: 100rpx;
+  height: 100rpx;
 }
 
 .card-name {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 8rpx;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #303030;
+  display: block;
 }
 
 .card-subtitle {
-  font-size: 26rpx;
-  color: #888;
-  line-height: 1.5;
+  font-size: 28rpx;
+  color: #303030;
+  margin-top: 6rpx;
+  display: block;
 }
 
 .card-check {
-  width: 48rpx;
-  height: 48rpx;
+  width: 44rpx;
+  height: 44rpx;
   border-radius: 50%;
-  background-color: #07c160;
+  background: #236EFF;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 }
 
 .check-icon {
-  font-size: 28rpx;
-  color: #ffffff;
-  font-weight: 700;
-}
-
-/* ── Step 1: 重量步进器 ── */
-.weight-row {
-  margin: 20rpx 24rpx 0;
-  background-color: #ffffff;
-  border-radius: 20rpx;
-  padding: 28rpx 32rpx;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
-}
-
-.weight-label {
-  font-size: 30rpx;
-  color: #333;
-  font-weight: 500;
-}
-
-.stepper-ctrl {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-}
-
-.ctrl-btn {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 50%;
-  background-color: #07c160;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ctrl-btn.disabled {
-  background-color: #e0e0e0;
-}
-
-.ctrl-text {
-  font-size: 40rpx;
-  color: #ffffff;
-  font-weight: 300;
-  line-height: 1;
-}
-
-.ctrl-val {
-  display: flex;
-  align-items: baseline;
-  gap: 4rpx;
-  min-width: 100rpx;
-  justify-content: center;
-}
-
-.val-num {
-  font-size: 44rpx;
-  font-weight: 700;
-  color: #1a1a1a;
-}
-
-.val-unit {
+  color: #fff;
   font-size: 26rpx;
-  color: #888;
+  font-weight: 700;
 }
 
-/* ── Step 1: 大件提示 ── */
+/* ── 大件提示 ── */
 .hint-row {
-  margin: 16rpx 24rpx 0;
+  margin: 0 26rpx 16rpx;
   background-color: #e6f4ff;
   border-radius: 12rpx;
   padding: 20rpx 24rpx;
@@ -824,47 +735,130 @@ onShow(() => {
 
 .hint-text {
   font-size: 26rpx;
-  color: #1677ff;
+  color: #236EFF;
 }
 
-/* ── Step 2: 日历 ── */
+/* ── 重量步进器 ── */
+.weight-row {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-radius: 16rpx;
+  margin: 0rpx 24rpx;
+  padding: 28rpx 24rpx;
+}
+
+.weight-label {
+  font-size: 32rpx;
+  color: #303030;
+  font-weight: bold;
+}
+
+.stepper-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: #f5f6fa;
+  border-radius: 40rpx;
+  padding: 6rpx 16rpx;
+}
+
+.ctrl-btn {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  background: #236EFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ctrl-btn-1 {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  background: #FFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #236EFF;
+  line-height: 60rpx;
+  font-size: 36rpx;
+  font-weight: bold;
+}
+
+.ctrl-btn-1.disabled {
+  background: #d9d9d9;
+  color: #FFF;
+}
+
+.ctrl-btn.disabled {
+  background: #d9d9d9;
+}
+
+.ctrl-text {
+  color: #fff;
+  line-height: 60rpx;
+  font-size: 36rpx;
+  font-weight: bold;
+}
+
+.ctrl-val {
+  min-width: 100rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.val-num {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.val-unit {
+  font-size: 22rpx;
+  color: #999;
+}
+
+/* ── Step 2 日历 ── */
 .calendar-wrap {
-  margin: 24rpx 24rpx 0;
-  background-color: #ffffff;
-  border-radius: 20rpx;
+  background: #fff;
+  border-radius: 30rpx;
+  margin: 20rpx 24rpx 0;
   padding: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
 .cal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24rpx;
-}
-
-.cal-nav {
-  padding: 8rpx 16rpx;
-}
-
-.nav-arrow {
-  font-size: 26rpx;
-  color: #07c160;
+  margin-bottom: 20rpx;
 }
 
 .cal-title {
   font-size: 30rpx;
-  font-weight: 700;
+  font-weight: 600;
   color: #1a1a1a;
 }
 
+.nav-arrow {
+  font-size: 26rpx;
+  color: #236EFF;
+}
+
 .cal-weekdays {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
   margin-bottom: 8rpx;
 }
 
 .weekday {
-  flex: 1;
   text-align: center;
   font-size: 24rpx;
   color: #999;
@@ -872,18 +866,22 @@ onShow(() => {
 }
 
 .cal-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4rpx;
 }
 
 .cal-cell {
-  width: calc(100% / 7);
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 12rpx 0;
-  border-radius: 12rpx;
-  box-sizing: border-box;
+  border-radius: 8rpx;
+  position: relative;
+}
+
+.cal-cell.empty {
+  visibility: hidden;
 }
 
 .cal-cell.disabled .cell-day {
@@ -895,73 +893,58 @@ onShow(() => {
 }
 
 .cal-cell.today .cell-day {
-  color: #07c160;
-  font-weight: 700;
+  color: #236EFF;
+  font-weight: 600;
 }
 
 .cal-cell.selected {
-  background-color: #07c160;
+  background: #236EFF;
+  border-radius: 50%;
 }
 
 .cal-cell.selected .cell-day,
 .cal-cell.selected .cell-lunar {
-  color: #ffffff;
+  color: #fff;
 }
 
 .cell-day {
-  font-size: 30rpx;
-  color: #333;
+  font-size: 28rpx;
+  color: #1a1a1a;
   font-weight: 500;
 }
 
 .cell-lunar {
-  font-size: 20rpx;
-  color: #aaa;
-  margin-top: 4rpx;
+  font-size: 18rpx;
+  color: #bbb;
+  margin-top: 2rpx;
 }
 
-/* ── Step 2: 时段 ── */
-.sub-title {
-  display: block;
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 20rpx;
-}
-
+/* ── 时段格 ── */
 .time-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 16rpx;
+  padding-top: 20rpx;
 }
 
 .time-btn {
-  width: calc(25% - 12rpx);
-  height: 72rpx;
+  padding: 18rpx 0;
   border-radius: 12rpx;
-  border: 2rpx solid #e0e0e0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-}
-
-.time-btn text {
-  font-size: 28rpx;
+  border: 1rpx solid #FFF;
+  text-align: center;
+  font-size: 26rpx;
   color: #333;
+  font-weight: bold;
+  background: #F2F3FC;
 }
 
 .time-btn.selected {
-  border-color: #07c160;
-  background-color: #f0fff5;
+  border-color: #236EFF;
+  color: #236EFF;
+  background: #f0f6ff;
 }
 
-.time-btn.selected text {
-  color: #07c160;
-  font-weight: 600;
-}
-
-/* ── Step 2: 地址 ── */
+/* ── 地址行 ── */
 .addr-row {
   display: flex;
   align-items: center;
@@ -970,6 +953,7 @@ onShow(() => {
 
 .addr-main {
   flex: 1;
+  padding-top: 20rpx;
 }
 
 .addr-top {
@@ -980,56 +964,55 @@ onShow(() => {
 }
 
 .addr-badge {
-  background-color: #07c160;
-  color: #ffffff;
   font-size: 20rpx;
-  padding: 4rpx 12rpx;
+  background-color: #236EFF;
+  color: #fff;
   border-radius: 6rpx;
+  padding: 2rpx 10rpx;
 }
 
 .addr-district {
-  font-size: 24rpx;
-  color: #888;
+  font-size: 28rpx;
+  color: #373737;
 }
 
 .addr-detail {
+  font-size: 36rpx;
+  color: #373737;
+  padding: 10rpx 0;
+  font-weight: bold;
   display: block;
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 6rpx;
+  margin-bottom: 8rpx;
 }
 
 .addr-contact {
-  display: block;
-  font-size: 26rpx;
-  color: #888;
+  font-size: 28rpx;
+  color: #373737;
 }
 
 .addr-arrow {
   font-size: 40rpx;
   color: #ccc;
+  padding-left: 16rpx;
 }
 
 .addr-empty {
-  padding: 16rpx 0;
+  padding: 20rpx 0;
 }
 
 .addr-empty-text {
   font-size: 28rpx;
-  color: #07c160;
+  color: #236EFF;
 }
 
-/* ── Step 2: 代下单 ── */
-.proxy-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* ── 代下单单选 ── */
+.proxy-section .sub-title {
+  margin-bottom: 24rpx;
 }
 
 .radio-group {
   display: flex;
-  gap: 40rpx;
+  gap: 48rpx;
 }
 
 .radio-item {
@@ -1039,28 +1022,26 @@ onShow(() => {
 }
 
 .radio-icon {
-  width: 36rpx;
-  height: 36rpx;
+  width: 32rpx;
+  height: 32rpx;
 }
 
 .radio-label {
-  font-size: 28rpx;
+  font-size: 32rpx;
   color: #333;
 }
 
-/* ── Step 3: 订单详情 ── */
+/* ── Step 3 订单卡 ── */
 .order-card {
-  background-color: #f9f9f9;
   border-radius: 12rpx;
-  padding: 4rpx 0;
+  overflow: hidden;
 }
 
 .order-row {
   display: flex;
-  align-items: center;
   justify-content: space-between;
   padding: 20rpx 0;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid #f5f5f5;
 }
 
 .order-row:last-child {
@@ -1068,30 +1049,25 @@ onShow(() => {
 }
 
 .order-key {
-  font-size: 28rpx;
-  color: #888;
+  font-size: 30rpx;
+  color: #666;
 }
 
 .order-val {
-  font-size: 28rpx;
-  color: #1a1a1a;
-  font-weight: 500;
-  max-width: 60%;
-  text-align: right;
+  font-size: 30rpx;
+  color: #333333;
 }
 
-/* ── Step 3: 代下单输入 ── */
+/* ── 代下单输入 ── */
 .input-card {
-  background-color: #f9f9f9;
   border-radius: 12rpx;
-  padding: 4rpx 0;
 }
 
 .input-row {
   display: flex;
   align-items: center;
   padding: 20rpx 0;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid #f5f5f5;
 }
 
 .input-row:last-child {
@@ -1099,9 +1075,9 @@ onShow(() => {
 }
 
 .input-label {
-  font-size: 28rpx;
-  color: #888;
   width: 120rpx;
+  font-size: 30rpx;
+  color: #333;
   flex-shrink: 0;
 }
 
@@ -1112,11 +1088,11 @@ onShow(() => {
   text-align: right;
 }
 
-/* ── Step 3: 备注 ── */
+/* ── 备注 ── */
 .remark-wrap {
-  background-color: #f9f9f9;
-  border-radius: 12rpx;
-  padding: 16rpx;
+  background: #F7F9FA;
+  border-radius: 20rpx;
+  padding: 26rpx;
 }
 
 .remark-area {
@@ -1127,25 +1103,25 @@ onShow(() => {
   box-sizing: border-box;
 }
 
-/* ── Step 3: 服务须知 ── */
+/* ── 服务须知 ── */
 .notice-wrap {
-  margin: 24rpx 24rpx 0;
-  padding: 16rpx 0;
+  margin: 20rpx 24rpx 120rpx;
+  padding: 30rpx 8rpx;
 }
 
 .notice-title-text {
+  font-size: 30rpx;
+  color: #A3B1CD;
+  font-weight: bold;
   display: block;
-  font-size: 28rpx;
-  color: #888;
-  margin-bottom: 16rpx;
+  margin-bottom: 12rpx;
 }
 
 .notice-item-text {
+  font-size: 30rpx;
+  color: #A3B1CD;
   display: block;
-  font-size: 26rpx;
-  color: #07c160;
-  margin-bottom: 12rpx;
-  line-height: 1.6;
+  line-height: 1.8;
 }
 
 /* ── 底部按钮 ── */
@@ -1154,50 +1130,55 @@ onShow(() => {
   bottom: 0;
   left: 0;
   right: 0;
-  background-color: #ffffff;
+  display: flex;
+  gap: 16rpx;
   padding: 20rpx 32rpx;
   padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
-  box-shadow: 0 -2rpx 16rpx rgba(0, 0, 0, 0.06);
-  box-sizing: border-box;
-  display: flex;
-  gap: 20rpx;
+  background: #fff;
+  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.06);
 }
 
 .back-btn {
-  width: 180rpx;
-  height: 96rpx;
-  border-radius: 48rpx;
-  border: 2rpx solid #07c160;
+  flex: 0 0 180rpx;
+  height: 88rpx;
+  border-radius: 20rpx;
+  border: 2rpx solid #236EFF;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 }
 
 .back-text {
   font-size: 30rpx;
-  color: #07c160;
-  font-weight: 600;
+  color: #236EFF;
 }
 
 .next-btn {
   flex: 1;
-  height: 96rpx;
-  border-radius: 48rpx;
-  background: linear-gradient(90deg, #07c160 0%, #36cfc9 100%);
+  height: 88rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, #236EFF 0%, #1AA1FF 100%);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .next-btn.loading {
-  opacity: 0.6;
+  background: #91b8ff;
 }
 
 .next-text {
-  font-size: 34rpx;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: 2rpx;
+  font-size: 32rpx;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ── 加载/空态 ── */
+.loading-tip,
+.empty-tip {
+  text-align: center;
+  padding: 60rpx 0;
+  color: #999;
+  font-size: 28rpx;
 }
 </style>

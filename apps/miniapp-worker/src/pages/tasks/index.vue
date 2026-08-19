@@ -46,6 +46,7 @@
         v-for="item in orders"
         :key="item.orderNo"
         class="order-card"
+				@click="handleViewDetail(item)"
       >
         <!-- 状态徽标 -->
         <view :class="['status-badge', `status-badge--${item.status.toLowerCase()}`]">
@@ -66,28 +67,37 @@
           <view class="card-info">
             <text class="service-name">{{ item.serviceName }}</text>
             <view class="time-row">
-              <text class="meta-icon">⏰</text>
+              <image class="meta-icon" src="/static/icons/icon_shijian_n.png" mode="aspectFit" />
               <text class="time-text">{{ item.appointDate }}&nbsp;&nbsp;{{ item.appointTimeSlot }}</text>
             </view>
             <view class="addr-row">
-              <text class="meta-icon">📍</text>
+              <image class="meta-icon" src="/static/icons/icon_weizhi_n.png" mode="aspectFit" />
               <text class="addr-text">{{ item.address || '地址加载中…' }}</text>
             </view>
           </view>
         </view>
 
         <!-- 操作按钮区：ASSIGNED 显示接单按钮，所有状态均显示查看详情 -->
-        <view class="card-actions">
-          <button class="btn btn-outline" @tap="handleViewDetail(item)">查看详情</button>
+        <view class="card-actions" v-if="item.status === 'ASSIGNED'">
+          <button class="btn btn-outline" @click.stop="handleViewDetail(item)">查看详情</button>
           <button
-            v-if="item.status === 'ASSIGNED'"
             class="btn btn-primary"
             :disabled="acceptingOrderNo === item.orderNo"
-            @tap="handleAccept(item)"
+            @click.stop="handleAccept(item)"
           >
             {{ acceptingOrderNo === item.orderNo ? '接单中…' : '立即接单' }}
           </button>
         </view>
+				<!-- <view v-else class="card-actions">
+				  <button class="btn btn-outline" @tap="handleViewDetail(item)">查看详情</button>
+				  <button
+				    class="btn btn-primary"
+				    :disabled="acceptingOrderNo === item.orderNo"
+				    @tap="handleAccept(item)"
+				  >
+				    {{ acceptingOrderNo === item.orderNo ? '接单中…' : '立即接单' }}
+				  </button>
+				</view> -->
       </view>
 
       <!-- 底部加载更多提示 -->
@@ -265,17 +275,19 @@ function handleViewDetail(item: WorkerOrderItem): void {
 </script>
 
 <style scoped>
-/* ===== 整体布局 ===== */
+/* ===== 整体布局（对齐居民端订单页） ===== */
 .page {
   min-height: 100vh;
-  background: #f0f4f8;
+  background: #F8FAFF;
 }
 
 /* ===== 顶部双 Tab ===== */
 .top-tabs {
   display: flex;
+  flex-direction: row;
   background: #ffffff;
-  border-bottom: 1rpx solid #e8ecf0;
+  padding: 0 32rpx;
+  border-bottom: 1rpx solid #f0f0f0;
 }
 
 .tab-item {
@@ -283,38 +295,37 @@ function handleViewDetail(item: WorkerOrderItem): void {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24rpx 0 0;
+  padding: 28rpx 0 0;
   position: relative;
 }
 
 .tab-label {
-  font-size: 30rpx;
-  color: #999;
+  font-size: 36rpx;
+  color: #666;
   padding-bottom: 20rpx;
   font-weight: 400;
 }
 
 .tab-item--active .tab-label {
-  color: #1677ff;
+  color: #333333;
   font-weight: 600;
 }
 
 .tab-indicator {
   position: absolute;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 48rpx;
-  height: 6rpx;
-  background: #1677ff;
-  border-radius: 3rpx;
+  left: 20%;
+  right: 20%;
+  width: auto;
+  height: 4rpx;
+  background: #236EFF;
+  border-radius: 2rpx;
+  transform: none;
 }
 
 /* ===== 状态筛选胶囊 ===== */
 .filter-scroll {
-  background: #ffffff;
-  padding: 16rpx 0;
-  border-bottom: 1rpx solid #e8ecf0;
+  padding: 18rpx 0;
   white-space: nowrap;
 }
 
@@ -327,28 +338,31 @@ function handleViewDetail(item: WorkerOrderItem): void {
 .filter-pill {
   display: inline-flex;
   align-items: center;
-  height: 56rpx;
-  padding: 0 24rpx;
+  padding: 14rpx 28rpx;
   margin-right: 16rpx;
-  background: #f0f4f8;
-  border-radius: 28rpx;
-  border: 2rpx solid transparent;
+  background: #fff;
+  border-radius: 40rpx;
+  border: none;
+  vertical-align: middle;
+}
+
+.filter-pill:last-child {
+  margin-right: 48rpx;
 }
 
 .filter-pill--active {
-  background: #e8f0fe;
-  border-color: #1677ff;
+  background: #236EFF;
 }
 
 .filter-pill-text {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #666;
   white-space: nowrap;
 }
 
 .filter-pill--active .filter-pill-text {
-  color: #1677ff;
-  font-weight: 600;
+  color: #fff;
+  font-weight: 400;
 }
 
 /* ===== 状态/空状态 ===== */
@@ -357,14 +371,14 @@ function handleViewDetail(item: WorkerOrderItem): void {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 120rpx 40rpx;
+  padding: 120rpx 0;
 }
 
 .loading-spinner {
   width: 60rpx;
   height: 60rpx;
   border: 6rpx solid #e8ecf0;
-  border-top-color: #1677ff;
+  border-top-color: #236EFF;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: 20rpx;
@@ -386,12 +400,13 @@ function handleViewDetail(item: WorkerOrderItem): void {
 .empty-icon-img {
   width: 96rpx;
   height: 96rpx;
+  margin-bottom: 8rpx;
 }
 
 .empty-text {
-  font-size: 30rpx;
-  color: #666;
-  font-weight: 500;
+  font-size: 28rpx;
+  color: #999;
+  font-weight: 400;
 }
 
 .empty-sub {
@@ -401,111 +416,109 @@ function handleViewDetail(item: WorkerOrderItem): void {
 
 /* ===== 卡片列表 ===== */
 .order-list {
-  padding: 24rpx 24rpx 40rpx;
+  padding: 4rpx 26rpx 14rpx 26rpx;
 }
 
 .order-card {
   background: #ffffff;
-  border-radius: 20rpx;
-  padding: 32rpx;
-  margin-bottom: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+  border-radius: 32rpx;
+  padding: 38rpx 28rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0rpx 4rpx 20rpx 0rpx rgba(0, 0, 0, 0.05);
   position: relative;
 }
 
 /* ===== 状态徽标 ===== */
 .status-badge {
   position: absolute;
-  top: 28rpx;
+  top: 38rpx;
   right: 28rpx;
   padding: 6rpx 18rpx;
   border-radius: 20rpx;
   font-size: 0;
+  flex-shrink: 0;
 }
 
 .status-badge-text {
-  font-size: 22rpx;
-  font-weight: 500;
+  font-size: 26rpx;
 }
 
-/* ASSIGNED 已派单：橙色 */
+/* ASSIGNED 已派单：蓝 */
 .status-badge--assigned {
-  background: #fff3e0;
+  background: #e6f0ff;
 }
 .status-badge--assigned .status-badge-text {
-  color: #e65100;
+  color: #236EFF;
 }
 
-/* ACCEPTED 已接单：蓝色 */
+/* ACCEPTED 已接单：蓝 */
 .status-badge--accepted {
-  background: #e3f2fd;
+  background: #e6f0ff;
 }
 .status-badge--accepted .status-badge-text {
-  color: #1565c0;
+  color: #236EFF;
 }
 
-/* IN_SERVICE 服务中：紫色 */
+/* IN_SERVICE 服务中：橙 */
 .status-badge--in_service {
-  background: #f3e5f5;
+  background: #fff3e0;
 }
 .status-badge--in_service .status-badge-text {
-  color: #6a1b9a;
+  color: #fa8c16;
 }
 
-/* PENDING_REVIEW 待评价：浅蓝 */
+/* PENDING_REVIEW 待评价：橙 */
 .status-badge--pending_review {
-  background: #e8f4fd;
+  background: #fff3e0;
 }
 .status-badge--pending_review .status-badge-text {
-  color: #0277bd;
+  color: #fa8c16;
 }
 
-/* REVIEWED 已评价：绿色 */
+/* REVIEWED 已评价：绿 */
 .status-badge--reviewed {
-  background: #e8f5e9;
+  background: #f0fff0;
 }
 .status-badge--reviewed .status-badge-text {
-  color: #2e7d32;
+  color: #52c41a;
 }
 
-/* CANCELLED 已取消：灰色 */
+/* CANCELLED 已取消：灰 */
 .status-badge--cancelled {
   background: #f5f5f5;
 }
 .status-badge--cancelled .status-badge-text {
-  color: #9e9e9e;
+  color: #999;
 }
 
 /* ===== 卡片主信息 ===== */
 .card-main {
   display: flex;
-  align-items: flex-start;
-  gap: 24rpx;
-  padding-right: 140rpx;
+  align-items: center;
+  gap: 0;
+  padding-right: 120rpx;
 }
 
 .service-icon {
-  width: 88rpx;
-  height: 88rpx;
-  border-radius: 50%;
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 0;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  margin-right: 30rpx;
 }
 
-.icon-cleaning {
-  background: #e8f5e9;
-}
-
+.icon-cleaning,
 .icon-recycling {
-  background: #fff8e1;
+  background: transparent;
 }
 
 .icon-img {
-  /* 图标 PNG 自带底色徽标，需与容器尺寸接近，避免外圈大、图标小 */
-  width: 70rpx;
-  height: 70rpx;
+  width: 100rpx;
+  height: 100rpx;
 }
 
 .card-info {
@@ -514,30 +527,34 @@ function handleViewDetail(item: WorkerOrderItem): void {
 }
 
 .service-name {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #1a1a2e;
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333333;
   display: block;
-  margin-bottom: 14rpx;
+  margin-bottom: 12rpx;
 }
 
 .time-row,
 .addr-row {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 8rpx;
+  gap: 0;
   margin-bottom: 8rpx;
 }
 
 .meta-icon {
-  font-size: 24rpx;
+  width: 32rpx;
+  height: 32rpx;
   flex-shrink: 0;
+  margin-right: 8rpx;
 }
 
 .time-text,
 .addr-text {
-  font-size: 24rpx;
-  color: #888;
+  font-size: 26rpx;
+  color: #636D73;
+  line-height: 1.6;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -552,17 +569,13 @@ function handleViewDetail(item: WorkerOrderItem): void {
 
 .btn {
   flex: 1;
-  height: 76rpx;
-  border-radius: 38rpx;
+  height: 68rpx;
+  line-height: 68rpx;
+  border-radius: 20rpx;
   font-size: 28rpx;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
+  text-align: center;
   margin: 0;
   padding: 0;
-  line-height: 1;
 }
 
 .btn::after {
@@ -571,17 +584,18 @@ function handleViewDetail(item: WorkerOrderItem): void {
 
 .btn-outline {
   background: #ffffff;
-  color: #1677ff;
-  border: 2rpx solid #1677ff;
+  color: #236EFF;
+  border: 1rpx solid #236EFF;
 }
 
 .btn-primary {
-  background: #1677ff;
+  background: linear-gradient(135deg, #246BFF 0%, #1AA1FF 100%);
   color: #ffffff;
 }
 
 .btn-primary[disabled] {
-  background: #b0c8ff;
+  background: linear-gradient(135deg, #246BFF 0%, #1AA1FF 100%);
+  opacity: 0.5;
   color: #ffffff;
 }
 
@@ -589,11 +603,11 @@ function handleViewDetail(item: WorkerOrderItem): void {
 .load-more-tip {
   display: flex;
   justify-content: center;
-  padding: 20rpx 0;
+  padding: 24rpx 0 40rpx;
 }
 
 .load-more-text {
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #bbb;
 }
 </style>
