@@ -426,6 +426,21 @@ model ServiceCatalog {
   @@map("service_catalogs")
 }
 
+// 评价快捷关键词配置：按保洁/废品回收业务分别维护
+model ReviewKeyword {
+  id        Int      @id @default(autoincrement())
+  bizType   String   @map("biz_type") @db.VarChar(16)
+  keyword   String   @db.VarChar(32)
+  sortOrder Int      @default(0) @map("sort_order")
+  isEnabled Boolean  @default(true) @map("is_enabled")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([bizType, keyword])
+  @@index([bizType, isEnabled, sortOrder])
+  @@map("review_keywords")
+}
+
 // v2.0 新增：轮播图管理（§5.4.5 / §6.4）
 // displayTarget 取值：RESIDENT（居民端）/ WORKER（员工端）/ ALL（全部）
 model Banner {

@@ -13,6 +13,7 @@
     "dev:miniapp-worker": "npm run dev:h5 --workspace=@dayangyunjie/miniapp-worker",
     "dev:admin": "npm run dev --workspace=@dayangyunjie/admin",
     "build": "npm run build --workspace=@dayangyunjie/shared && npm run build --workspace=@dayangyunjie/miniapp-customer && npm run build --workspace=@dayangyunjie/miniapp-worker && npm run build --workspace=@dayangyunjie/admin && npm run build --workspace=@dayangyunjie/server",
+    "test:review-keywords": "npm test --workspace=@dayangyunjie/server -- review-keyword && npm test --workspace=@dayangyunjie/admin -- review-keyword && npm test --workspace=@dayangyunjie/miniapp-customer -- review-keyword",
     "lint": "echo 'TODO: eslint setup'",
     "format": "prettier --write \"**/*.{ts,json,md}\""
   },

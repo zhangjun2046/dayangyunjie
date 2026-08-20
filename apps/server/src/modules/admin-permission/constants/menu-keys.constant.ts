@@ -10,6 +10,7 @@ export const ALL_MENU_KEYS = [
   'data.dashboard',
   'staff.workers',
   'config.services',
+  'config.review-keywords',
   'config.operators',
   'config.banners',
   'system.users',

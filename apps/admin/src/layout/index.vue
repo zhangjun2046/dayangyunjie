@@ -77,6 +77,13 @@
             <el-icon><Grid /></el-icon>
             <span>服务配置</span>
           </el-menu-item>
+          <el-menu-item
+            v-if="userStore.hasMenu('config.review-keywords')"
+            index="/config/review-keywords"
+          >
+            <el-icon><ChatDotRound /></el-icon>
+            <span>评价关键词配置</span>
+          </el-menu-item>
           <el-menu-item v-if="userStore.hasMenu('config.operators')" index="/config/operators">
             <el-icon><Phone /></el-icon>
             <span>运营人员配置</span>
@@ -198,6 +205,7 @@ import {
   ArrowDown,
   Avatar,
   Box,
+  ChatDotRound,
   DataAnalysis,
   Document,
   Expand,
@@ -247,7 +255,9 @@ const showOrdersMenu = computed(() =>
 const showDataMenu = computed(() => userStore.hasMenu('data.dashboard'));
 const showStaffMenu = computed(() => userStore.hasMenu('staff.workers'));
 const showConfigMenu = computed(() =>
-  ['config.services', 'config.operators', 'config.banners'].some((key) => userStore.hasMenu(key)),
+  ['config.services', 'config.review-keywords', 'config.operators', 'config.banners'].some((key) =>
+    userStore.hasMenu(key),
+  ),
 );
 
 function handleLogout() {

@@ -24,9 +24,19 @@
         </view>
 
         <!-- 快捷标签 -->
-        <view class="tags-row">
+        <view v-if="keywordsLoading" class="keywords-state">
+          <text class="keywords-state-text">评价关键词加载中…</text>
+        </view>
+        <view v-else-if="keywordsLoadFailed" class="keywords-state">
+          <text class="keywords-state-text">评价关键词加载失败</text>
+          <text class="keywords-retry" @tap="loadReviewKeywords">重新加载</text>
+        </view>
+        <view v-else-if="reviewTags.length === 0" class="keywords-state">
+          <text class="keywords-state-text">暂无评价关键词</text>
+        </view>
+        <view v-else class="tags-row">
           <view
-            v-for="tag in REVIEW_TAGS"
+            v-for="tag in reviewTags"
             :key="tag"
             class="tag-chip"
             :class="selectedTags.includes(tag) ? 'tag-chip-active' : ''"
@@ -96,9 +106,14 @@ import { ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/store/auth';
 import { submitReview } from '@/api/review';
+import { fetchEnabledReviewKeywords } from '@/api/review-keyword';
 import { uploadImage } from '@/api/upload';
+import {
+  mapReviewKeywordsToTags,
+  normalizeReviewOrderType,
+  retainAvailableSelectedTags,
+} from './review-keywords.utils';
 
-const REVIEW_TAGS = ['准时到达', '打扫干净', '态度好', '专业细致', '工具齐全', '着装整齐'];
 const MAX_IMAGES = 9;
 
 const authStore = useAuthStore();
@@ -108,7 +123,10 @@ const orderType = ref<'CLEANING' | 'RECYCLING'>('CLEANING');
 const orderNo = ref('');
 
 const rating = ref(0);
+const reviewTags = ref<string[]>([]);
 const selectedTags = ref<string[]>([]);
+const keywordsLoading = ref(false);
+const keywordsLoadFailed = ref(false);
 const content = ref('');
 const uploadedImageUrls = ref<string[]>([]);
 const previewImages = ref<string[]>([]);
@@ -118,10 +136,27 @@ const submitting = ref(false);
 onLoad((options) => {
   const opts = options as Record<string, string>;
   orderId.value = parseInt(opts?.orderId || '0', 10);
-  orderType.value = (opts?.orderType?.toUpperCase() as 'CLEANING' | 'RECYCLING') || 'CLEANING';
+  orderType.value = normalizeReviewOrderType(opts?.orderType);
   orderNo.value = opts?.orderNo || '';
   console.info(`[review] onLoad orderId=${orderId.value} type=${orderType.value}`);
+  loadReviewKeywords();
 });
+
+async function loadReviewKeywords() {
+  keywordsLoading.value = true;
+  keywordsLoadFailed.value = false;
+  try {
+    const rows = await fetchEnabledReviewKeywords(orderType.value);
+    reviewTags.value = mapReviewKeywordsToTags(rows);
+    selectedTags.value = retainAvailableSelectedTags(selectedTags.value, reviewTags.value);
+    console.info(`[review] keywords loaded type=${orderType.value} count=${rows.length}`);
+  } catch (error) {
+    keywordsLoadFailed.value = true;
+    console.info('[review] keywords load failed', error);
+  } finally {
+    keywordsLoading.value = false;
+  }
+}
 
 function onSelectStar(n: number) {
   rating.value = n;
@@ -290,6 +325,24 @@ async function onSubmit() {
   flex-wrap: wrap;
   gap: 16rpx;
   justify-content: center;
+}
+
+.keywords-state {
+  min-height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+}
+
+.keywords-state-text {
+  font-size: 26rpx;
+  color: #999;
+}
+
+.keywords-retry {
+  font-size: 26rpx;
+  color: #236EFF;
 }
 
 .tag-chip {

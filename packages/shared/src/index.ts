@@ -7,6 +7,7 @@ export * from './entities/user';
 export * from './entities/address';
 export * from './entities/order';
 export * from './entities/review';
+export * from './entities/review-keyword';
 export * from './entities/complaint';
 export * from './entities/catalog';
 export * from './entities/banner';

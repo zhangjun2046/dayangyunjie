@@ -82,6 +82,17 @@ const serviceCatalogSeed = [
   },
 ] as const;
 
+/** 保洁与废品回收初始评价关键词，可在管理端分别调整 */
+const reviewKeywordSeed = ['准时到达', '打扫干净', '态度好', '专业细致', '工具齐全', '着装整齐'].flatMap(
+  (keyword, index) =>
+    ['CLEANING', 'RECYCLING'].map((bizType) => ({
+      bizType,
+      keyword,
+      sortOrder: index + 1,
+      isEnabled: true,
+    })),
+);
+
 async function main() {
   console.info('[seed] Starting database seed...');
 
@@ -110,6 +121,21 @@ async function main() {
   } else {
     console.info(`[seed] ServiceCatalog skipped (${existingCatalogCount} rows already exist)`);
   }
+
+  // ─── ReviewKeyword ─────────────────────────────────────────────────────────
+  for (const row of reviewKeywordSeed) {
+    await prisma.reviewKeyword.upsert({
+      where: {
+        bizType_keyword: {
+          bizType: row.bizType,
+          keyword: row.keyword,
+        },
+      },
+      update: {},
+      create: row,
+    });
+  }
+  console.info(`[seed] ReviewKeyword upserted: ${reviewKeywordSeed.length} rows`);
 
   // ─── Operator（至少一条接单运营人员，居民端首页客服电话兜底） ──────────────
   const existingOperatorCount = await prisma.operator.count();
