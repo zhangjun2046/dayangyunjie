@@ -51,15 +51,6 @@ enum PhotoType {
   RECYCLING_SITE
 }
 
-enum ComplaintReason {
-  POOR_ATTITUDE
-  NOT_CLEAN
-  NOT_ON_TIME
-  ITEM_DAMAGED
-  EXTRA_CHARGE
-  OTHER
-}
-
 enum ComplaintStatus {
   PENDING
   PROCESSING
@@ -359,7 +350,7 @@ model Complaint {
   residentId       Int?            @map("resident_id")
   serviceType      String?         @map("service_type") @db.VarChar(32)
   serviceAddress   String?         @map("service_address") @db.VarChar(256)
-  reason           ComplaintReason
+  reasons          Json             // string[]，投诉原因 value 数组快照
   description      String          @db.Text
   evidenceImages   Json?           @map("evidence_images")
   status           ComplaintStatus @default(PENDING)

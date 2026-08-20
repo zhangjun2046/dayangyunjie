@@ -2,6 +2,14 @@ import type { AddressSnapshot } from '../types/address';
 import type { ConsultStatus, OrderSource, OrderStatus, PaymentStatus } from '../enums';
 import type { WorkPhotoDto } from './work-photo';
 
+export interface ProgressNodeDto {
+  status: string;
+  label: string;
+  state: 'done' | 'current' | 'pending';
+  message: string | null;
+  operatedAt: string | null;
+}
+
 /** 保洁订单（API 出参，v2.0：proxyName→serviceContactName，proxyPhone→serviceContactPhone） */
 export interface CleaningOrderDto {
   id: number;
@@ -9,7 +17,14 @@ export interface CleaningOrderDto {
   residentId: number | null;
   workerId?: number | null;
   /** 已派单时携带服务人员基本信息；详情含 gender，列表仅 id/name/phone */
-  worker?: { id: number; name: string; phone: string; gender?: string | null } | null;
+  worker?: {
+    id: number;
+    name: string;
+    phone: string;
+    gender?: string | null;
+    rating?: number;
+    totalOrders?: number;
+  } | null;
   serviceItem: string;
   serviceDuration: number;
   appointDate: string;
@@ -38,6 +53,10 @@ export interface CleaningOrderDto {
   workPhotos?: WorkPhotoDto[];
 }
 
+export interface CleaningOrderDetailDto extends CleaningOrderDto {
+  progress: ProgressNodeDto[];
+}
+
 /** 废品订单（API 出参，v2.0：proxyName→serviceContactName，proxyPhone→serviceContactPhone） */
 export interface RecyclingOrderDto {
   id: number;
@@ -45,7 +64,14 @@ export interface RecyclingOrderDto {
   residentId: number | null;
   workerId?: number | null;
   /** 服务人员信息；详情含 gender，列表仅 id/name/phone */
-  worker?: { id: number; name: string; phone: string; gender?: string | null } | null;
+  worker?: {
+    id: number;
+    name: string;
+    phone: string;
+    gender?: string | null;
+    rating?: number;
+    totalOrders?: number;
+  } | null;
   serviceItem: string;
   estimatedWeight: number;
   appointDate: string;
@@ -70,6 +96,10 @@ export interface RecyclingOrderDto {
   workPhotos?: WorkPhotoDto[];
 }
 
+export interface RecyclingOrderDetailDto extends RecyclingOrderDto {
+  progress: ProgressNodeDto[];
+}
+
 /** 家政咨询单（API 出参，v2.0：新增代下单 / 服务地址 / 来源字段） */
 export interface ConsultOrderDto {
   id: number;
@@ -88,6 +118,10 @@ export interface ConsultOrderDto {
   status: ConsultStatus;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ConsultOrderDetailDto extends ConsultOrderDto {
+  progress: ProgressNodeDto[];
 }
 
 /** 家政咨询跟进记录（API 出参，v2.0） */

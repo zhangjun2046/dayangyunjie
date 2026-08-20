@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMinSize,
   IsArray,
   IsEnum,
   IsInt,
@@ -36,12 +37,15 @@ export class CreateComplaintDto {
   orderId!: number;
 
   @ApiProperty({
-    description: '投诉原因',
+    description: '投诉原因（可多选）',
     enum: COMPLAINT_REASON_VALUES,
-    example: 'NOT_CLEAN',
+    isArray: true,
+    example: ['NOT_CLEAN', 'POOR_ATTITUDE'],
   })
-  @IsEnum(COMPLAINT_REASON_VALUES)
-  reason!: typeof COMPLAINT_REASON_VALUES[number];
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsEnum(COMPLAINT_REASON_VALUES, { each: true })
+  reasons!: (typeof COMPLAINT_REASON_VALUES)[number][];
 
   @ApiProperty({ description: '投诉详细描述（最长 1000 字符）', example: '保洁员工态度很差，服务不认真' })
   @IsString()

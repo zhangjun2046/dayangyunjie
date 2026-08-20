@@ -4,11 +4,21 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AddressSnapshot, CleaningOrderDto, OrderSource } from '@dayangyunjie/shared';
+import {
+  AddressSnapshot,
+  CleaningOrderDetailDto,
+  CleaningOrderDto,
+  OrderSource,
+} from '@dayangyunjie/shared';
 import { CleaningOrder, OrderSource as PrismaOrderSource, OrderStatus as PrismaOrderStatus, PhotoType, Prisma, Worker, WorkPhoto } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { OrderStateMachineService } from '../../common/order-state-machine/order-state-machine.service';
 import { GeoService } from '../../common/geo/geo.service';
+import {
+  OrderProgressService,
+  ProgressRole,
+  RequestIdentity,
+} from '../../common/order-progress/order-progress.service';
 import { AcceptOrderDto } from './dto/accept-order.dto';
 import { AssignOrderDto } from './dto/assign-order.dto';
 import { CancelOrderDto } from './dto/cancel-order.dto';
@@ -16,6 +26,7 @@ import { CompleteOrderDto } from './dto/complete-order.dto';
 import { CreateCleaningOrderDto } from './dto/create-cleaning-order.dto';
 import { GpsCheckinDto } from './dto/gps-checkin.dto';
 import { QueryCleaningOrderDto } from './dto/query-cleaning-order.dto';
+import { ReassignOrderDto } from './dto/reassign-order.dto';
 import { TransitionOrderDto } from './dto/transition-order.dto';
 import { UpdateCleaningOrderDto } from './dto/update-cleaning-order.dto';
 
@@ -29,10 +40,22 @@ export class CleaningOrderService {
     private readonly prismaService: PrismaService,
     private readonly stateMachine: OrderStateMachineService,
     private readonly geoService: GeoService,
+    private readonly orderProgressService?: OrderProgressService,
   ) {}
 
-  async create(createCleaningOrderDto: CreateCleaningOrderDto): Promise<CleaningOrderDto> {
+  async create(
+    createCleaningOrderDto: CreateCleaningOrderDto,
+    actor?: RequestIdentity | null,
+  ): Promise<CleaningOrderDto> {
     this.validateProxyFields(createCleaningOrderDto);
+    const createActor =
+      actor ??
+      (createCleaningOrderDto.residentId
+        ? { id: createCleaningOrderDto.residentId, role: 'RESIDENT' as const }
+        : null);
+    if (!createActor) {
+      throw new BadRequestException('创建订单缺少有效操作人');
+    }
 
     // 管理后台代下单时 addressSnapshotText 与 addressId 必须二选一
     if (!createCleaningOrderDto.addressId && !createCleaningOrderDto.addressSnapshotText) {
@@ -92,7 +115,7 @@ export class CleaningOrderService {
           const serviceDuration = createCleaningOrderDto.serviceDuration ?? 2;
           const appointDate = this.parseDateString(createCleaningOrderDto.appointDate, 'appointDate');
 
-          return tx.cleaningOrder.create({
+          const order = await tx.cleaningOrder.create({
             data: {
               orderNo,
               residentId: createCleaningOrderDto.residentId ?? null,
@@ -110,6 +133,17 @@ export class CleaningOrderService {
               serviceContactPhone: createCleaningOrderDto.serviceContactPhone,
             },
           });
+          await tx.orderStatusLog.create({
+            data: {
+              orderId: order.id,
+              orderType: 'CLEANING',
+              fromStatus: 'NONE',
+              toStatus: 'PENDING_ASSIGN',
+              operatorId: createActor.id,
+              operatorType: createActor.role,
+            },
+          });
+          return order;
         });
 
         return this.toDto(row);
@@ -125,7 +159,22 @@ export class CleaningOrderService {
   }
 
   async findAll(query: QueryCleaningOrderDto) {
-    const { page = 1, pageSize = 10, status, statuses, residentId, workerId, appointDateFrom, appointDateTo, keyword } = query;
+    const { page = 1, pageSize = 10, status, statuses, residentId, workerId, appointDateFrom, appointDateTo, keyword, completedToday } = query;
+    let completedTodayIds: number[] | undefined;
+    if (completedToday) {
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const todayEnd = new Date(todayStart.getTime() + 86_400_000);
+      const logs = await this.prismaService.orderStatusLog.findMany({
+        where: {
+          orderType: 'CLEANING',
+          toStatus: 'PENDING_REVIEW',
+          createdAt: { gte: todayStart, lt: todayEnd },
+        },
+        select: { orderId: true },
+      });
+      completedTodayIds = logs.map((log) => log.orderId);
+    }
 
     // statuses（逗号分隔）优先级高于 status 单值，供居民端「待服务」聚合 Tab 使用
     const statusList = statuses
@@ -133,6 +182,7 @@ export class CleaningOrderService {
       : null;
 
     const where: Prisma.CleaningOrderWhereInput = {
+      ...(completedTodayIds ? { id: { in: completedTodayIds } } : {}),
       ...(residentId ? { residentId } : {}),
       ...(workerId ? { workerId } : {}),
       ...(statusList && statusList.length > 0
@@ -169,7 +219,18 @@ export class CleaningOrderService {
         skip: (page - 1) * pageSize,
         take: pageSize,
         orderBy: [{ id: 'desc' }],
-        include: { worker: { select: { id: true, name: true, phone: true, gender: true } } },
+        include: {
+          worker: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              gender: true,
+              rating: true,
+              totalOrders: true,
+            },
+          },
+        },
       }),
       this.prismaService.cleaningOrder.count({ where }),
     ]);
@@ -182,18 +243,46 @@ export class CleaningOrderService {
     };
   }
 
-  async findOne(id: number): Promise<CleaningOrderDto> {
+  async findOne(
+    id: number,
+    role: ProgressRole = 'ADMIN',
+    viewerId?: number,
+  ): Promise<CleaningOrderDetailDto> {
     const row = await this.prismaService.cleaningOrder.findUnique({
       where: { id },
       include: {
         workPhotos: true,
-        worker: { select: { id: true, name: true, phone: true, gender: true } },
+        worker: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            gender: true,
+            rating: true,
+            totalOrders: true,
+          },
+        },
       },
     });
     if (!row) {
       throw new NotFoundException(`CleaningOrder ${id} not found`);
     }
-    return this.toDto(row);
+    if (role === 'WORKER' && row.workerId !== viewerId) {
+      throw new NotFoundException(`CleaningOrder ${id} not found`);
+    }
+    return {
+      ...this.toDto(row),
+      progress: this.orderProgressService
+        ? await this.orderProgressService.assemble({
+            orderId: row.id,
+            orderType: 'CLEANING',
+            currentStatus: row.status,
+            createdAt: row.createdAt,
+            workerName: row.worker?.name,
+            role,
+          })
+        : [],
+    };
   }
 
   async update(id: number, updateCleaningOrderDto: UpdateCleaningOrderDto): Promise<CleaningOrderDto> {
@@ -241,7 +330,7 @@ export class CleaningOrderService {
       });
     });
 
-    return this.toDto(await this.findOneOrThrow(id));
+    return this.findOne(id, dto.operatorType, dto.operatorId);
   }
 
   /**
@@ -276,27 +365,87 @@ export class CleaningOrderService {
       });
     });
 
-    return this.toDto(await this.findOneOrThrow(id));
+    return this.findOne(id, 'ADMIN');
   }
 
   /**
    * 接单：员工确认接受派单，状态 ASSIGNED → ACCEPTED。
    */
   async acceptOrder(id: number, dto: AcceptOrderDto): Promise<CleaningOrderDto> {
-    const order = await this.findOneOrThrow(id);
-
     await this.prismaService.$transaction(async (tx) => {
-      await this.stateMachine.transition(tx, {
-        orderId: id,
-        orderType: 'CLEANING',
-        fromStatus: order.status,
-        toStatus: 'ACCEPTED',
-        operatorId: dto.operatorId,
-        operatorType: 'WORKER',
+      const updated = await tx.cleaningOrder.updateMany({
+        where: {
+          id,
+          status: 'ASSIGNED',
+          workerId: dto.operatorId,
+        },
+        data: { status: 'ACCEPTED' },
+      });
+      if (updated.count !== 1) {
+        throw new BadRequestException('订单已被改派、已接单或不属于当前员工');
+      }
+      await tx.orderStatusLog.create({
+        data: {
+          orderId: id,
+          orderType: 'CLEANING',
+          fromStatus: 'ASSIGNED',
+          toStatus: 'ACCEPTED',
+          operatorId: dto.operatorId,
+          operatorType: 'WORKER',
+        },
       });
     });
 
-    return this.toDto(await this.findOneOrThrow(id));
+    return this.findOne(id, 'WORKER', dto.operatorId);
+  }
+
+  async reassignOrder(id: number, dto: ReassignOrderDto): Promise<CleaningOrderDto> {
+    await this.prismaService.$transaction(async (tx) => {
+      const order = await tx.cleaningOrder.findUnique({
+        where: { id },
+        select: {
+          status: true,
+          workerId: true,
+          worker: { select: { name: true } },
+        },
+      });
+      if (!order) throw new NotFoundException(`CleaningOrder ${id} not found`);
+      if (order.status !== 'ASSIGNED') {
+        throw new BadRequestException('仅员工尚未接单的订单允许改派');
+      }
+      if (!order.workerId) throw new BadRequestException('订单尚未派单');
+      if (order.workerId === dto.workerId) {
+        throw new BadRequestException('不能改派给当前服务人员');
+      }
+
+      const nextWorker = await tx.worker.findUnique({
+        where: { id: dto.workerId },
+        select: { id: true, name: true },
+      });
+      if (!nextWorker) throw new NotFoundException(`Worker ${dto.workerId} not found`);
+
+      const updated = await tx.cleaningOrder.updateMany({
+        where: { id, status: 'ASSIGNED', workerId: order.workerId },
+        data: { workerId: dto.workerId },
+      });
+      if (updated.count !== 1) {
+        throw new BadRequestException('订单状态已变化，无法改派');
+      }
+
+      await tx.orderStatusLog.create({
+        data: {
+          orderId: id,
+          orderType: 'CLEANING',
+          fromStatus: 'ASSIGNED',
+          toStatus: 'ASSIGNED',
+          operatorId: dto.operatorId,
+          operatorType: 'ADMIN',
+          remark: `服务人员由${order.worker?.name ?? `员工${order.workerId}`}变更为${nextWorker.name}（管理员改派）`,
+        },
+      });
+    });
+
+    return this.findOne(id, 'ADMIN');
   }
 
   /**
@@ -305,6 +454,9 @@ export class CleaningOrderService {
    */
   async gpsCheckin(id: number, dto: GpsCheckinDto): Promise<CleaningOrderDto> {
     const order = await this.findOneOrThrow(id);
+    if (order.workerId !== dto.operatorId) {
+      throw new NotFoundException(`CleaningOrder ${id} not found`);
+    }
     const snapshot = order.addressSnapshot as unknown as AddressSnapshot;
 
     const { distance: gpsDistance, remark: gpsRemark } = this.geoService.validateCheckin(
@@ -339,7 +491,7 @@ export class CleaningOrderService {
       });
     });
 
-    return this.toDto(await this.findOneOrThrow(id));
+    return this.findOne(id, 'WORKER', dto.operatorId);
   }
 
   /**
@@ -348,6 +500,9 @@ export class CleaningOrderService {
    */
   async completeOrder(id: number, dto: CompleteOrderDto): Promise<CleaningOrderDto> {
     const order = await this.findOneOrThrow(id);
+    if (order.workerId !== dto.operatorId) {
+      throw new NotFoundException(`CleaningOrder ${id} not found`);
+    }
 
     await this.prismaService.$transaction(async (tx) => {
       await tx.workPhoto.createMany({
@@ -377,9 +532,13 @@ export class CleaningOrderService {
         operatorId: dto.operatorId,
         operatorType: 'WORKER',
       });
+      await tx.worker.update({
+        where: { id: dto.operatorId },
+        data: { totalOrders: { increment: 1 } },
+      });
     });
 
-    return this.toDto(await this.findOneOrThrow(id));
+    return this.findOne(id, 'WORKER', dto.operatorId);
   }
 
   /**
@@ -400,13 +559,24 @@ export class CleaningOrderService {
       });
     });
 
-    return this.toDto(await this.findOneOrThrow(id));
+    return this.findOne(id, dto.operatorType);
   }
 
   private async findOneOrThrow(id: number) {
     const row = await this.prismaService.cleaningOrder.findUnique({
       where: { id },
-      include: { worker: { select: { id: true, name: true, phone: true, gender: true } } },
+      include: {
+        worker: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            gender: true,
+            rating: true,
+            totalOrders: true,
+          },
+        },
+      },
     });
     if (!row) {
       throw new NotFoundException(`CleaningOrder ${id} not found`);
@@ -479,7 +649,7 @@ export class CleaningOrderService {
     };
   }
 
-  private toDto(row: CleaningOrder & { workPhotos?: WorkPhoto[]; worker?: Pick<Worker, 'id' | 'name' | 'phone' | 'gender'> | null }): CleaningOrderDto {
+  private toDto(row: CleaningOrder & { workPhotos?: WorkPhoto[]; worker?: Pick<Worker, 'id' | 'name' | 'phone' | 'gender' | 'rating' | 'totalOrders'> | null }): CleaningOrderDto {
     return {
       id: row.id,
       orderNo: row.orderNo,
@@ -491,6 +661,8 @@ export class CleaningOrderService {
             name: row.worker.name,
             phone: row.worker.phone,
             ...('gender' in row.worker ? { gender: row.worker.gender } : {}),
+            ...('rating' in row.worker ? { rating: row.worker.rating } : {}),
+            ...('totalOrders' in row.worker ? { totalOrders: row.worker.totalOrders } : {}),
           }
         : null,
       serviceItem: row.serviceItem,

@@ -64,7 +64,7 @@
             <span class="rating-cell">⭐{{ row.rating?.toFixed(1) }}（{{ row.totalOrders }}单）</span>
           </template>
         </el-table-column>
-        <el-table-column label="今日订单" min-width="100" align="center">
+        <el-table-column label="今日完成" min-width="100" align="center">
           <template #default="{ row }">{{ row.todayOrders ?? 0 }}</template>
         </el-table-column>
         <el-table-column label="技能" min-width="100" align="center">
@@ -120,7 +120,7 @@
           </el-descriptions-item>
           <el-descriptions-item label="技能">{{ skillLabel(currentWorker.skillType) }}</el-descriptions-item>
           <el-descriptions-item label="岗位">{{ positionLabel(currentWorker.position) }}</el-descriptions-item>
-          <el-descriptions-item label="今日订单">{{ currentWorker.todayOrders ?? 0 }}</el-descriptions-item>
+          <el-descriptions-item label="今日完成">{{ currentWorker.todayOrders ?? 0 }}</el-descriptions-item>
           <el-descriptions-item label="累计完成">{{ currentWorker.totalOrders }} 单</el-descriptions-item>
           <el-descriptions-item label="评分">⭐ {{ currentWorker.rating?.toFixed(1) }}</el-descriptions-item>
           <el-descriptions-item label="身份证">{{ currentWorker.idCard || '—' }}</el-descriptions-item>
@@ -166,7 +166,7 @@
         <el-descriptions :column="2" border>
           <el-descriptions-item label="累计完成单数">{{ currentWorker.totalOrders }}</el-descriptions-item>
           <el-descriptions-item label="完成率">
-            {{ currentWorker.totalOrders > 0 ? '100%' : '—' }}
+            {{ currentWorker.completionRate == null ? '—' : `${currentWorker.completionRate}%` }}
           </el-descriptions-item>
           <el-descriptions-item label="平均评分">{{ currentWorker.rating?.toFixed(1) }}</el-descriptions-item>
         </el-descriptions>
@@ -186,7 +186,7 @@
             </div>
             <div class="complaint-body">
               <span class="complaint-type">{{ orderTypeLabel(c.orderType) }}</span>
-              <span class="complaint-reason">{{ c.reason }}</span>
+              <span class="complaint-reason">{{ formatComplaintReasons(c.reasons) }}</span>
             </div>
             <div class="complaint-time">{{ formatDate(c.createdAt) }}</div>
           </div>
@@ -264,7 +264,7 @@
           <el-col :span="12">
             <el-form-item label="员工状态">
               <el-radio-group v-model="form.status">
-                <el-radio value="IDLE">在职</el-radio>
+                <el-radio value="IDLE">空闲</el-radio>
                 <el-radio value="BUSY">服务中</el-radio>
               </el-radio-group>
             </el-form-item>
@@ -471,7 +471,7 @@ const complaintLoading = ref(false);
 
 async function openDetail(row: WorkerListItem) {
   const res = await getWorker(row.id);
-  currentWorker.value = { ...res.data.data, todayOrders: row.todayOrders };
+  currentWorker.value = res.data.data;
   detailVisible.value = true;
   loadComplaints(row.id);
 }
@@ -731,6 +731,20 @@ function complaintStatusType(status: string) {
 function orderTypeLabel(type: string) {
   const map: Record<string, string> = { CLEANING: '保洁', RECYCLING: '废品', CONSULT: '家政' };
   return map[type] ?? type;
+}
+
+const COMPLAINT_REASON_LABELS: Record<string, string> = {
+  POOR_ATTITUDE: '服务态度差',
+  NOT_CLEAN: '打扫不干净',
+  NOT_ON_TIME: '未按约定时间到达',
+  ITEM_DAMAGED: '物品损坏/丢失',
+  EXTRA_CHARGE: '额外收费',
+  OTHER: '其他原因',
+};
+
+function formatComplaintReasons(values: string[] | undefined): string {
+  if (!values?.length) return '—';
+  return values.map((r) => COMPLAINT_REASON_LABELS[r] ?? r).join('、');
 }
 </script>
 

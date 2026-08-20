@@ -69,8 +69,8 @@
 				<view class="card-info">
 					<view class="card-header">
 					  <text class="card-service">{{ getServiceLabel(order) }}</text>
-					  <view class="status-badge" :class="getStatusClass(order.status)">
-					    <text class="badge-text">{{ getStatusLabel(order.status, activeTab) }}</text>
+					  <view class="status-badge" :class="getOrderBadgeClass(order.status)">
+					    <text class="badge-text">{{ getOrderBadgeLabel(order.status, activeTab) }}</text>
 					  </view>
 					</view>
 					
@@ -135,6 +135,12 @@ import {
   fetchConsultOrderList,
   type ConsultOrderDto,
 } from '@/api/consult-order';
+import {
+  FILTERS_CONSULT,
+  FILTERS_MAIN,
+  getOrderBadgeClass,
+  getOrderBadgeLabel,
+} from '@/constants/order-status';
 
 console.info('[orders] page loaded');
 
@@ -152,27 +158,9 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'consult', label: '家政服务' },
 ];
 
-/** 保洁/废品状态筛选 */
-const FILTERS_MAIN = [
-  { key: '', label: '全部' },
-  { key: 'PENDING_ASSIGN,ASSIGNED,ACCEPTED', label: '待服务' },
-  { key: 'IN_SERVICE', label: '进行中' },
-  { key: 'PENDING_REVIEW', label: '待反馈' },
-  { key: 'REVIEWED', label: '已完成' },
-  { key: 'CANCELLED', label: '已取消' },
-];
-
-/** 家政咨询状态筛选 */
-const FILTERS_CONSULT = [
-  { key: '', label: '全部' },
-  { key: 'FOLLOW_UP', label: '待跟进' },
-  { key: 'FOLLOWING', label: '跟进中' },
-  { key: 'COMPLETED', label: '已完成' },
-];
-
 const authStore = useAuthStore();
 const activeTab = ref<TabKey>('cleaning');
-const activeFilter = ref<string>('');
+const activeFilter = ref<string>('all');
 const orders = ref<AnyOrder[]>([]);
 const loading = ref(false);
 const loadingMore = ref(false);
@@ -189,7 +177,7 @@ const currentFilters = computed(() =>
 function switchTab(tab: TabKey) {
   if (activeTab.value === tab) return;
   activeTab.value = tab;
-  activeFilter.value = '';
+  activeFilter.value = 'all';
 }
 
 function switchFilter(key: string) {
@@ -240,6 +228,8 @@ async function loadData(isMore: boolean) {
   try {
     const page = isMore ? currentPage.value : 1;
     const filterKey = activeFilter.value;
+    const selectedFilter = currentFilters.value.find((filter) => filter.key === filterKey);
+    const statuses = selectedFilter?.statuses ?? [];
 
     console.info(`[orders] loadData tab=${activeTab.value} filter="${filterKey}" residentId=${residentId} page=${page}`);
 
@@ -247,24 +237,24 @@ async function loadData(isMore: boolean) {
 
     if (activeTab.value === 'cleaning') {
       const params: Record<string, unknown> = { residentId, page, pageSize: PAGE_SIZE };
-      if (filterKey.includes(',')) {
-        params.statuses = filterKey;
-      } else if (filterKey) {
-        params.status = filterKey;
+      if (statuses.length > 1) {
+        params.statuses = statuses.join(',');
+      } else if (statuses.length === 1) {
+        params.status = statuses[0];
       }
       result = await fetchCleaningOrderList(params as Parameters<typeof fetchCleaningOrderList>[0]);
     } else if (activeTab.value === 'recycling') {
       const params: Record<string, unknown> = { residentId, page, pageSize: PAGE_SIZE };
-      if (filterKey.includes(',')) {
-        params.statuses = filterKey;
-      } else if (filterKey) {
-        params.status = filterKey;
+      if (statuses.length > 1) {
+        params.statuses = statuses.join(',');
+      } else if (statuses.length === 1) {
+        params.status = statuses[0];
       }
       result = await fetchRecyclingOrderList(params as Parameters<typeof fetchRecyclingOrderList>[0]);
     } else {
       const params: Record<string, unknown> = { residentId, page, pageSize: PAGE_SIZE };
-      if (filterKey) {
-        params.status = filterKey;
+      if (statuses.length === 1) {
+        params.status = statuses[0];
       }
       result = await fetchConsultOrderList(params as Parameters<typeof fetchConsultOrderList>[0]);
     }
@@ -371,40 +361,6 @@ function getOrderIcon(order: AnyOrder): string {
 }
 
 
-/** 状态对应的展示名（居民端）*/
-function getStatusLabel(status: string, tab: TabKey): string {
-  if (tab === 'consult') {
-    const map: Record<string, string> = {
-      FOLLOW_UP: '待跟进',
-      FOLLOWING: '跟进中',
-      COMPLETED: '已完成',
-    };
-    return map[status] || status;
-  }
-  const map: Record<string, string> = {
-    PENDING_ASSIGN: '待服务',
-    ASSIGNED: '待服务',
-    ACCEPTED: '待服务',
-    IN_SERVICE: '进行中',
-    PENDING_REVIEW: '待反馈',
-    REVIEWED: '已评价',
-    CANCELLED: '已取消',
-  };
-  return map[status] || status;
-}
-
-/** 状态徽标颜色 class */
-function getStatusClass(status: string): string {
-  const blue = ['PENDING_ASSIGN', 'ASSIGNED', 'ACCEPTED', 'FOLLOW_UP'];
-  const orange = ['IN_SERVICE', 'PENDING_REVIEW', 'FOLLOWING'];
-  const green = ['REVIEWED', 'COMPLETED'];
-  const grey = ['CANCELLED'];
-  if (blue.includes(status)) return 'badge-blue';
-  if (orange.includes(status)) return 'badge-orange';
-  if (green.includes(status)) return 'badge-green';
-  if (grey.includes(status)) return 'badge-grey';
-  return 'badge-blue';
-}
 </script>
 
 <style scoped>

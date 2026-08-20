@@ -1,5 +1,6 @@
 import request from './request';
 import type { ApiResponse } from './request';
+import type { ProgressNodeDto } from '@dayangyunjie/shared';
 
 // ─── 地址快照（Prisma Json 列，后端已反序列化为对象） ───────────────────────────────────
 
@@ -61,6 +62,7 @@ export interface CleaningOrderItem {
 
 export interface CleaningOrderDetail extends CleaningOrderItem {
   workPhotos?: WorkPhotoDto[];
+  progress: ProgressNodeDto[];
 }
 
 // ─── 评价 DTO（详情页加载用） ─────────────────────────────────────────────────
@@ -153,6 +155,17 @@ export const assignCleaningOrder = (
   request.post<ApiResponse<CleaningOrderDetail>>(`/cleaning-orders/${id}/assign`, {
     workerId,
     operatorId: operatorId ?? 1,
+  });
+
+/** 改派：仅 ASSIGNED（员工尚未接单）订单可用 */
+export const reassignCleaningOrder = (
+  id: number,
+  workerId: number,
+  operatorId: number,
+) =>
+  request.post<ApiResponse<CleaningOrderDetail>>(`/cleaning-orders/${id}/reassign`, {
+    workerId,
+    operatorId,
   });
 
 /** 查询订单评价（REVIEWED 状态详情页用） */

@@ -10,6 +10,7 @@
         @tap="onSwitchTab(tab.value)"
       >
         <text class="tab-text">{{ tab.label }}</text>
+        <view v-if="activeTab === tab.value" class="tab-underline" />
       </view>
     </view>
 
@@ -20,7 +21,7 @@
 
     <!-- 空状态 -->
     <view v-else-if="!loading && items.length === 0" class="state-wrap">
-      <text class="state-icon">��</text>
+      <image class="state-icon" src="/static/icons/add-photo.png" mode="aspectFit" />
       <text class="state-text">暂无投诉记录</text>
     </view>
 
@@ -45,7 +46,7 @@
         <!-- 投诉原因 -->
         <view class="card-row">
           <text class="card-label">投诉原因</text>
-          <text class="card-value">{{ COMPLAINT_REASON_LABELS[item.reason as ComplaintReason] || item.reason }}</text>
+          <text class="card-value">{{ formatComplaintReasons(item.reasons) }}</text>
         </view>
 
         <!-- 投诉描述（最多2行） -->
@@ -73,10 +74,9 @@ import { onLoad, onShow } from '@dcloudio/uni-app';
 import {
   getComplaints,
   COMPLAINT_STATUS_LABELS,
-  COMPLAINT_REASON_LABELS,
+  formatComplaintReasons,
   type ComplaintDto,
   type ComplaintStatus,
-  type ComplaintReason,
 } from '@/api/complaint';
 import { useAuthStore } from '@/store/auth';
 
@@ -188,8 +188,8 @@ function formatDate(dateStr: string): string {
 .page {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  background: #f5f5f5;
+  height: 100vh;
+  background: #f8faff;
 }
 
 /* 标签栏 */
@@ -197,32 +197,38 @@ function formatDate(dateStr: string): string {
   display: flex;
   flex-direction: row;
   background: #ffffff;
+  padding: 0 24rpx;
   border-bottom: 1rpx solid #f0f0f0;
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 
 .tab-item {
   flex: 1;
-  padding: 28rpx 0;
+  padding: 28rpx 0 22rpx;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-}
-
-.tab-item-active {
-  border-bottom: 4rpx solid #236EFF;
+  position: relative;
 }
 
 .tab-text {
-  font-size: 26rpx;
-  color: #999;
+  font-size: 30rpx;
+  color: #666666;
 }
 
 .tab-item-active .tab-text {
-  color: #236EFF;
+  color: #333333;
   font-weight: 600;
+}
+
+.tab-underline {
+  position: absolute;
+  right: 28%;
+  bottom: 0;
+  left: 28%;
+  height: 4rpx;
+  border-radius: 2rpx;
+  background: #236eff;
 }
 
 /* 状态占位 */
@@ -232,12 +238,13 @@ function formatDate(dateStr: string): string {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-top: 160rpx;
+  padding: 120rpx 0;
   gap: 24rpx;
 }
 
 .state-icon {
-  font-size: 80rpx;
+  width: 160rpx;
+  height: 160rpx;
 }
 
 .state-text {
@@ -248,15 +255,16 @@ function formatDate(dateStr: string): string {
 /* 列表滚动区 */
 .list-scroll {
   flex: 1;
+  height: 0;
 }
 
 /* 投诉卡片 */
 .complaint-card {
   background: #ffffff;
-  margin: 16rpx 24rpx 0;
-  border-radius: 16rpx;
-  padding: 28rpx 28rpx 20rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.04);
+  margin: 20rpx 26rpx 0;
+  border-radius: 32rpx;
+  padding: 34rpx 30rpx 26rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
 }
 
 .card-header {
@@ -264,23 +272,21 @@ function formatDate(dateStr: string): string {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20rpx;
+  margin-bottom: 24rpx;
 }
 
 .order-type-badge {
-  background: #f0f5ff;
-  border-radius: 8rpx;
-  padding: 6rpx 16rpx;
+  background: transparent;
 }
 
 .order-type-text {
-  font-size: 22rpx;
-  color: #236EFF;
-  font-weight: 500;
+  font-size: 34rpx;
+  color: #222222;
+  font-weight: bold;
 }
 
 .status-badge {
-  padding: 6rpx 16rpx;
+  padding: 6rpx 18rpx;
   border-radius: 20rpx;
 }
 
@@ -297,7 +303,7 @@ function formatDate(dateStr: string): string {
 }
 
 .status-text {
-  font-size: 22rpx;
+  font-size: 26rpx;
   font-weight: 500;
 }
 
@@ -315,30 +321,32 @@ function formatDate(dateStr: string): string {
 
 .card-row {
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  margin-bottom: 12rpx;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 16rpx;
 }
 
 .card-label {
-  font-size: 24rpx;
-  color: #999;
-  width: 120rpx;
-  flex-shrink: 0;
+  font-size: 28rpx;
+  color: #4c5760;
+  margin-bottom: 4rpx;
 }
 
 .card-value {
-  font-size: 24rpx;
-  color: #333;
-  font-weight: 500;
+  font-size: 30rpx;
+  color: #333333;
+  line-height: 1.6;
 }
 
 .card-desc {
-  font-size: 24rpx;
-  color: #666;
-  line-height: 1.6;
-  margin-bottom: 20rpx;
   display: -webkit-box;
+  padding: 18rpx 20rpx;
+  margin-bottom: 24rpx;
+  border-radius: 16rpx;
+  background: #f8faff;
+  font-size: 28rpx;
+  color: #58636a;
+  line-height: 1.6;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -349,18 +357,18 @@ function formatDate(dateStr: string): string {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding-top: 16rpx;
-  border-top: 1rpx solid #f5f5f5;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #efefef;
 }
 
 .card-time {
-  font-size: 22rpx;
-  color: #bbb;
+  font-size: 26rpx;
+  color: #999999;
 }
 
 .card-arrow {
-  font-size: 22rpx;
-  color: #236EFF;
+  font-size: 26rpx;
+  color: #236eff;
 }
 
 /* 底部加载提示 */

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Param,
   ParseIntPipe,
   Patch,
@@ -16,11 +17,15 @@ import { CreateConsultOrderDto } from './dto/create-consult-order.dto';
 import { QueryConsultFollowUpDto } from './dto/query-consult-follow-up.dto';
 import { QueryConsultOrderDto } from './dto/query-consult-order.dto';
 import { UpdateConsultStatusDto } from './dto/update-consult-status.dto';
+import { OrderProgressService } from '../../common/order-progress/order-progress.service';
 
 @ApiTags('ConsultOrders')
 @Controller('consult-orders')
 export class ConsultOrderController {
-  constructor(private readonly consultOrderService: ConsultOrderService) {}
+  constructor(
+    private readonly consultOrderService: ConsultOrderService,
+    private readonly orderProgressService: OrderProgressService,
+  ) {}
 
   @Post()
   @ApiOperation({
@@ -32,8 +37,13 @@ export class ConsultOrderController {
   @ApiOkResponse({ description: '创建成功，返回咨询单数据（含 CNS 前缀订单号）' })
   async create(
     @Body() createConsultOrderDto: CreateConsultOrderDto,
+    @Headers('authorization') authorization?: string,
   ): Promise<ApiResponseDto<Awaited<ReturnType<ConsultOrderService['create']>>>> {
-    const data = await this.consultOrderService.create(createConsultOrderDto);
+    const actor = await this.orderProgressService.resolveCreateActor(
+      authorization,
+      createConsultOrderDto.residentId,
+    );
+    const data = await this.consultOrderService.create(createConsultOrderDto, actor);
     return { code: 0, message: 'ok', data };
   }
 
@@ -52,8 +62,10 @@ export class ConsultOrderController {
   @ApiOkResponse({ description: '查询成功，404 = 咨询单不存在' })
   async findOne(
     @Param('id', ParseIntPipe) id: number,
+    @Headers('authorization') authorization?: string,
   ): Promise<ApiResponseDto<Awaited<ReturnType<ConsultOrderService['findOne']>>>> {
-    const data = await this.consultOrderService.findOne(id);
+    const identity = await this.orderProgressService.resolveIdentity(authorization);
+    const data = await this.consultOrderService.findOne(id, identity?.role ?? 'ADMIN');
     return { code: 0, message: 'ok', data };
   }
 

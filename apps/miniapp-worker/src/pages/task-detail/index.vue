@@ -70,6 +70,14 @@
           <text class="info-label">计划服务时间</text>
           <text class="info-value">{{ planServiceTime }}</text>
         </view>
+        <view v-if="orderType === 'cleaning'" class="info-row">
+          <text class="info-label">预计服务时长</text>
+          <text class="info-value">{{ order.serviceDuration != null ? `${order.serviceDuration}小时` : '—' }}</text>
+        </view>
+        <view v-if="orderType === 'recycling'" class="info-row">
+          <text class="info-label">预估重量</text>
+          <text class="info-value">{{ order.estimatedWeight != null ? `${order.estimatedWeight}kg` : '—' }}</text>
+        </view>
         <view class="info-row">
           <text class="info-label">联系人姓名</text>
           <text class="info-value">{{ order.contactName }}</text>
@@ -143,24 +151,36 @@
 
         <view class="timeline">
           <view
-            v-for="(node, index) in timelineNodes"
-            :key="node.key"
-            :class="['timeline-item', index < timelineNodes.length - 1 && 'timeline-item--has-line']"
+            v-for="(node, index) in order.progress"
+            :key="node.status"
+            :class="['timeline-item', index < order.progress.length - 1 && 'timeline-item--has-line']"
           >
-            <!-- 节点圆圈 -->
-            <view :class="['timeline-dot', node.done ? 'timeline-dot--done' : node.active ? 'timeline-dot--active' : 'timeline-dot--pending']">
-              <text v-if="node.done" class="dot-check">✓</text>
-              <view v-else-if="node.active" class="dot-active-inner" />
+            <!-- 节点圆圈：已完成为蓝底白勾，取消为红底白叉，未到达为空心灰圈 -->
+            <view v-if="node.status === 'CANCELLED'" class="timeline-dot-cancelled">
+              <text class="cancel-cross-text">X</text>
             </view>
+            <image
+              v-else-if="
+                node.state === 'done' ||
+                node.state === 'current'
+              "
+              class="timeline-dot-img"
+              src="/static/icons/radio-checked.png"
+              mode="aspectFit"
+            />
+            <view v-else class="timeline-dot" />
             <!-- 连接线 -->
-            <view v-if="index < timelineNodes.length - 1" :class="['timeline-line', node.done ? 'timeline-line--done' : 'timeline-line--pending']" />
+            <view v-if="index < order.progress.length - 1" class="timeline-line" />
             <!-- 节点内容 -->
             <view class="timeline-content">
-              <text :class="['node-label', node.done ? 'node-label--done' : node.active ? 'node-label--active' : 'node-label--pending']">
+              <text
+                class="node-label"
+                :class="{ 'node-label--cancelled': node.status === 'CANCELLED' }"
+              >
                 {{ node.label }}
               </text>
-              <text class="node-desc">{{ node.desc }}</text>
-              <text v-if="node.time" class="node-time">{{ node.time }}</text>
+              <text v-if="node.message" class="node-desc">{{ node.message }}</text>
+              <text v-if="node.operatedAt" class="node-time">{{ formatTs(node.operatedAt) }}</text>
             </view>
           </view>
         </view>
@@ -415,6 +435,7 @@ import type { OrderDetailDto } from '@/api/order';
 import { uploadImage } from '@/api/upload';
 import { fetchOrderReview } from '@/api/review';
 import type { ReviewDto } from '@/api/review';
+import { getOrderBadgeClass, getOrderBadgeLabel } from '@/constants/order-status';
 
 const authStore = useAuthStore();
 
@@ -537,29 +558,13 @@ const serviceName = computed<string>(() => {
 /** 状态标签文字（工人端展示名） */
 const statusTagLabel = computed<string>(() => {
   const s = order.value?.status ?? '';
-  const map: Record<string, string> = {
-    ASSIGNED: '待服务',
-    ACCEPTED: '待服务',
-    IN_SERVICE: '服务中',
-    PENDING_REVIEW: '待评价',
-    REVIEWED: '已评价',
-    CANCELLED: '已取消',
-  };
-  return map[s] ?? s;
+  return getOrderBadgeLabel(s);
 });
 
 /** 状态标签样式（头图上统一半透明白底，class 预留扩展） */
 const statusTagClass = computed<string>(() => {
   const s = order.value?.status ?? '';
-  const blue = ['ASSIGNED', 'ACCEPTED'];
-  const orange = ['IN_SERVICE', 'PENDING_REVIEW'];
-  const green = ['REVIEWED'];
-  const grey = ['CANCELLED'];
-  if (blue.includes(s)) return 'badge-blue';
-  if (orange.includes(s)) return 'badge-orange';
-  if (green.includes(s)) return 'badge-green';
-  if (grey.includes(s)) return 'badge-grey';
-  return 'badge-blue';
+  return getOrderBadgeClass(s);
 });
 
 /** 预计完成时间：从 appointDate + appointTimeSlot 拼装 */
@@ -629,86 +634,12 @@ const afterWorkPhotos = computed(() =>
 /** 格式化时间戳 */
 function formatTs(ts: string | undefined | null): string {
   if (!ts) return '';
-  return ts.slice(0, 16).replace('T', ' ');
+  const date = new Date(ts);
+  if (Number.isNaN(date.getTime())) return ts;
+  const beijing = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${beijing.getUTCFullYear()}-${pad(beijing.getUTCMonth() + 1)}-${pad(beijing.getUTCDate())} ${pad(beijing.getUTCHours())}:${pad(beijing.getUTCMinutes())}:${pad(beijing.getUTCSeconds())}`;
 }
-
-/** 根据订单状态生成时间轴节点列表 */
-const timelineNodes = computed(() => {
-  const o = order.value;
-  if (!o) return [];
-  const s = o.status;
-
-  // 状态等级映射，等级越高表示流程越靠后
-  const levelMap: Record<string, number> = {
-    ASSIGNED: 1,
-    ACCEPTED: 2,
-    IN_SERVICE: 3,
-    PENDING_REVIEW: 4,
-    REVIEWED: 5,
-  };
-  const cur = levelMap[s] ?? 0;
-  const isPast = (target: string): boolean => cur > (levelMap[target] ?? 0);
-  const isAtOrPast = (target: string): boolean => cur >= (levelMap[target] ?? 0);
-  const isCurrent = (...targets: string[]): boolean => targets.includes(s);
-
-  const serviceTypeName = orderType.value === 'cleaning' ? '保洁服务' : '废品回收';
-
-  return [
-    {
-      key: 'created',
-      label: '已预约',
-      desc: '用户已下单，等待平台派单',
-      done: true,
-      active: false,
-      time: formatTs(o.createdAt),
-    },
-    {
-      key: 'assigned',
-      label: '已派单',
-      desc: '系统派单给您',
-      done: true,
-      active: false,
-      time: formatTs(o.assignedAt),
-    },
-    {
-      key: 'service',
-      // ASSIGNED/ACCEPTED：当前步骤；IN_SERVICE 及之后：已完成（GPS签到时间）
-      label: '待服务',
-      desc: isCurrent('ASSIGNED', 'ACCEPTED')
-        ? `请您在指定时间内开始${serviceTypeName}`
-        : 'GPS 签到完成，服务已开始',
-      done: isAtOrPast('IN_SERVICE'),
-      active: isCurrent('ASSIGNED', 'ACCEPTED'),
-      time: isAtOrPast('IN_SERVICE') ? formatTs(o.gpsCheckinAt) : '',
-    },
-    {
-      key: 'inservice',
-      // IN_SERVICE：当前步骤；PENDING_REVIEW 及之后：已完成
-      label: '服务中',
-      desc: '员工已上门，开始服务中',
-      done: isAtOrPast('PENDING_REVIEW'),
-      active: isCurrent('IN_SERVICE'),
-      time: isAtOrPast('PENDING_REVIEW') ? formatTs(o.completedAt) : '',
-    },
-    {
-      key: 'completed',
-      // PENDING_REVIEW：当前步骤；REVIEWED 及之后：已完成
-      label: '已完成',
-      desc: '员工已完成服务工作',
-      done: isAtOrPast('REVIEWED'),
-      active: isCurrent('PENDING_REVIEW'),
-      time: isAtOrPast('REVIEWED') ? formatTs(o.reviewedAt) : '',
-    },
-    {
-      key: 'reviewed',
-      label: '已评价',
-      desc: '用户已完成评价',
-      done: s === 'REVIEWED',
-      active: false,
-      time: s === 'REVIEWED' ? formatTs(o.reviewedAt) : '',
-    },
-  ];
-});
 
 // ===== 评价辅助 =====
 
@@ -1295,115 +1226,105 @@ async function handleStartService(): Promise<void> {
 
 /* ===== 时间轴 ===== */
 .timeline {
-  padding: 8rpx 0 0;
+  padding: 32rpx 0 8rpx;
 }
 
 .timeline-item {
   display: flex;
-  align-items: flex-start;
-  gap: 20rpx;
+  align-items: stretch;
+  gap: 28rpx;
   position: relative;
-  padding-bottom: 0;
+  min-height: 124rpx;
 }
 
-.timeline-item--has-line {
-  margin-bottom: 0;
+.timeline-item:not(.timeline-item--has-line) {
+  min-height: auto;
 }
 
 .timeline-dot {
-  width: 44rpx;
-  height: 44rpx;
+  width: 34rpx;
+  height: 34rpx;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 3rpx solid #d8dde5;
   flex-shrink: 0;
-  margin-top: 6rpx;
   position: relative;
   z-index: 1;
 }
 
-.timeline-dot--done {
-  background: #1677ff;
+.timeline-dot-img {
+  width: 34rpx;
+  height: 34rpx;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
-.timeline-dot--active {
-  background: #ffffff;
-  border: 4rpx solid #1677ff;
-}
-
-.dot-active-inner {
-  width: 18rpx;
-  height: 18rpx;
+.timeline-dot-cancelled {
+  position: relative;
+  width: 34rpx;
+  height: 34rpx;
   border-radius: 50%;
-  background: #1677ff;
+  background: #f56c6c;
+  flex-shrink: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.timeline-dot--pending {
-  background: #ffffff;
-  border: 4rpx solid #d0d9e8;
-}
-
-.dot-check {
-  font-size: 22rpx;
+.cancel-cross-text {
   color: #ffffff;
-  font-weight: 700;
+  font-size: 21rpx;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .timeline-line {
   position: absolute;
-  left: 21rpx;
-  top: 50rpx;
-  width: 4rpx;
-  height: calc(100% - 6rpx);
-  min-height: 48rpx;
-}
-
-.timeline-line--done {
-  background: #1677ff;
-}
-
-.timeline-line--pending {
-  background: #d0d9e8;
+  left: 16rpx;
+  top: 34rpx;
+  bottom: 0;
+  width: 2rpx;
+  background: #e1e5eb;
 }
 
 .timeline-content {
   flex: 1;
-  padding: 4rpx 0 40rpx;
+  padding: 0 0 42rpx;
+  min-width: 0;
+}
+
+.timeline-item:not(.timeline-item--has-line) .timeline-content {
+  padding-bottom: 0;
 }
 
 .node-label {
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 600;
   display: block;
-  margin-bottom: 6rpx;
+  color: #25282d;
+  line-height: 1.4;
 }
 
-.node-label--done {
-  color: #1677ff;
-}
-
-.node-label--active {
-  color: #1677ff;
-  font-weight: 700;
-}
-
-.node-label--pending {
-  color: #bbb;
+.node-label--cancelled {
+  color: #f56c6c;
 }
 
 .node-desc {
-  font-size: 24rpx;
-  color: #999;
+  font-size: 26rpx;
+  color: #737982;
   display: block;
   line-height: 1.5;
+  margin-top: 8rpx;
 }
 
 .node-time {
-  font-size: 22rpx;
-  color: #bbb;
+  font-size: 24rpx;
+  color: #7d838c;
   display: block;
-  margin-top: 4rpx;
+  margin-top: 6rpx;
 }
 
 /* ===== 作业记录 ===== */

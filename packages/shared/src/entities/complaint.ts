@@ -8,7 +8,7 @@ export interface ComplaintDto {
   recyclingOrderId?: number | null;
   consultOrderId?: number | null;
   orderType: OrderType;
-  reason: ComplaintReason;
+  reasons: ComplaintReason[];
   description: string;
   evidenceImages?: string[] | null;
   status: ComplaintStatus;

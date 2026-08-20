@@ -5,6 +5,11 @@
  */
 
 import { request } from './request';
+import {
+  WORKER_PENDING_ACCEPT_STATUSES,
+  WORKER_VISIBLE_STATUSES,
+} from '@/constants/order-status';
+import type { ProgressNodeDto } from '@dayangyunjie/shared';
 
 /** 后端分页响应结构 */
 interface PagedResult<T> {
@@ -91,16 +96,6 @@ export interface WorkerOrderItem {
   status: string;
 }
 
-/** 员工端可见的状态列表（排除 PENDING_ASSIGN） */
-const WORKER_VISIBLE_STATUSES = [
-  'ASSIGNED',
-  'ACCEPTED',
-  'IN_SERVICE',
-  'PENDING_REVIEW',
-  'REVIEWED',
-  'CANCELLED',
-].join(',');
-
 /** 从 addressSnapshot 提取可显示的地址字符串：省市区 + 详细地址 + 楼栋信息 */
 function resolveAddress(snapshot: AddressSnapshot | undefined): string {
   if (!snapshot) return '';
@@ -126,13 +121,13 @@ export async function fetchAssignedOrders(workerId: number): Promise<AssignedOrd
   const [cleaningResult, recyclingResult] = await Promise.all([
     request<PagedResult<CleaningOrderDto>>('GET', '/cleaning-orders', {
       workerId,
-      statuses: 'ASSIGNED',
+      statuses: WORKER_PENDING_ACCEPT_STATUSES.join(','),
       page: 1,
       pageSize: 100,
     } as unknown as Record<string, unknown>),
     request<PagedResult<RecyclingOrderDto>>('GET', '/recycling-orders', {
       workerId,
-      statuses: 'ASSIGNED',
+      statuses: WORKER_PENDING_ACCEPT_STATUSES.join(','),
       page: 1,
       pageSize: 100,
     } as unknown as Record<string, unknown>),
@@ -183,8 +178,10 @@ export async function fetchWorkerOrders(
   statuses: string[],
   page: number,
   pageSize: number,
+  completedToday = false,
 ): Promise<{ items: WorkerOrderItem[]; total: number }> {
-  const statusParam = statuses.length > 0 ? statuses.join(',') : WORKER_VISIBLE_STATUSES;
+  const statusParam =
+    statuses.length > 0 ? statuses.join(',') : WORKER_VISIBLE_STATUSES.join(',');
   const path = orderType === 'cleaning' ? '/cleaning-orders' : '/recycling-orders';
 
   console.info('[worker-order] fetchWorkerOrders, type=', orderType, 'statuses=', statusParam, 'page=', page);
@@ -192,7 +189,13 @@ export async function fetchWorkerOrders(
   const result = await request<PagedResult<CleaningOrderDto | RecyclingOrderDto>>(
     'GET',
     path,
-    { workerId, statuses: statusParam, page, pageSize } as unknown as Record<string, unknown>,
+    {
+      workerId,
+      statuses: statusParam,
+      page,
+      pageSize,
+      ...(completedToday ? { completedToday: true } : {}),
+    } as unknown as Record<string, unknown>,
   );
 
   const items: WorkerOrderItem[] = (result?.items ?? []).map((o) => {
@@ -280,6 +283,7 @@ export interface OrderDetailDto {
   gpsRemark?: string | null;
   /** 作业照片 */
   workPhotos?: WorkPhoto[];
+  progress: ProgressNodeDto[];
 }
 
 /** GPS 签到结果（后端返回更新后的订单部分字段） */

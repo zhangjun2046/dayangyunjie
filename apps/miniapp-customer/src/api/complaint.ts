@@ -26,13 +26,19 @@ export const COMPLAINT_REASON_LABELS: Record<ComplaintReason, string> = {
   OTHER: '其他原因',
 };
 
+/** 将投诉原因 value 数组转为展示文案；查不到 label 则原样显示 value */
+export function formatComplaintReasons(values: string[] | undefined | null): string {
+  if (!values?.length) return '';
+  return values.map((v) => COMPLAINT_REASON_LABELS[v as ComplaintReason] ?? v).join('、');
+}
+
 export interface SubmitComplaintParams {
   /** 订单类型 */
   orderType: 'CLEANING' | 'RECYCLING' | 'CONSULT';
   /** 订单 ID */
   orderId: number;
-  /** 投诉原因 */
-  reason: ComplaintReason;
+  /** 投诉原因（可多选） */
+  reasons: ComplaintReason[];
   /** 投诉描述（必填，最长 1000 字符） */
   description: string;
   /** 凭证图片 URL 列表（可选） */
@@ -56,7 +62,7 @@ export interface ComplaintDto {
   cleaningOrderId: number | null;
   recyclingOrderId: number | null;
   consultOrderId: number | null;
-  reason: string;
+  reasons: string[];
   description: string;
   status: ComplaintStatus;
   evidenceImages?: string[] | null;

@@ -15,6 +15,10 @@ export interface WorkerListItem {
   status: 'IDLE' | 'BUSY';
   rating: number;
   totalOrders: number;
+  pendingOrders: number;
+  completedOrders: number;
+  acceptedOrders: number;
+  completionRate: number | null;
   todayOrders: number;
   nickname?: string;
   gender?: string;

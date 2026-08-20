@@ -1,5 +1,6 @@
 import request from './request';
 import type { ApiResponse } from './request';
+import type { ProgressNodeDto } from '@dayangyunjie/shared';
 
 // ─── 地址快照 ─────────────────────────────────────────────────────────────────
 
@@ -61,6 +62,7 @@ export interface RecyclingOrderItem {
 
 export interface RecyclingOrderDetail extends RecyclingOrderItem {
   workPhotos?: WorkPhotoDto[];
+  progress: ProgressNodeDto[];
 }
 
 // ─── 评价 DTO ─────────────────────────────────────────────────────────────────
@@ -147,6 +149,13 @@ export const assignRecyclingOrder = (id: number, workerId: number, operatorId?: 
   request.post<ApiResponse<RecyclingOrderDetail>>(`/recycling-orders/${id}/assign`, {
     workerId,
     operatorId: operatorId ?? 1,
+  });
+
+/** 改派：仅 ASSIGNED（员工尚未接单）订单可用 */
+export const reassignRecyclingOrder = (id: number, workerId: number, operatorId: number) =>
+  request.post<ApiResponse<RecyclingOrderDetail>>(`/recycling-orders/${id}/reassign`, {
+    workerId,
+    operatorId,
   });
 
 /** 查询订单评价（REVIEWED 状态详情页用） */

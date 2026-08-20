@@ -4,9 +4,19 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ConsultFollowUpDto, ConsultOrderDto, OrderSource } from '@dayangyunjie/shared';
+import {
+  ConsultFollowUpDto,
+  ConsultOrderDetailDto,
+  ConsultOrderDto,
+  OrderSource,
+} from '@dayangyunjie/shared';
 import { ConsultFollowUp, ConsultOrder, ConsultStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import {
+  OrderProgressService,
+  ProgressRole,
+  RequestIdentity,
+} from '../../common/order-progress/order-progress.service';
 import { CreateConsultFollowUpDto } from './dto/create-consult-follow-up.dto';
 import { CreateConsultOrderDto } from './dto/create-consult-order.dto';
 import { QueryConsultFollowUpDto } from './dto/query-consult-follow-up.dto';
@@ -29,10 +39,22 @@ const CONSULT_TRANSITION_RULES: Record<string, string[]> = {
 
 @Injectable()
 export class ConsultOrderService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly orderProgressService?: OrderProgressService,
+  ) {}
 
-  async create(dto: CreateConsultOrderDto): Promise<ConsultOrderDto> {
+  async create(
+    dto: CreateConsultOrderDto,
+    actor?: RequestIdentity | null,
+  ): Promise<ConsultOrderDto> {
     this.validateProxyFields(dto);
+    const createActor =
+      actor ??
+      (dto.residentId ? { id: dto.residentId, role: 'RESIDENT' as const } : null);
+    if (!createActor) {
+      throw new BadRequestException('创建咨询单缺少有效操作人');
+    }
 
     if (dto.residentId !== undefined) {
       const resident = await this.prismaService.resident.findUnique({
@@ -48,7 +70,7 @@ export class ConsultOrderService {
       try {
         const row = await this.prismaService.$transaction(async (tx) => {
           const orderNo = await this.generateOrderNo(tx);
-          return tx.consultOrder.create({
+          const order = await tx.consultOrder.create({
             data: {
               orderNo,
               serviceType: dto.serviceType,
@@ -64,6 +86,17 @@ export class ConsultOrderService {
               ...(dto.residentId !== undefined ? { residentId: dto.residentId } : {}),
             },
           });
+          await tx.orderStatusLog.create({
+            data: {
+              orderId: order.id,
+              orderType: 'CONSULT',
+              fromStatus: 'NONE',
+              toStatus: 'FOLLOW_UP',
+              operatorId: createActor.id,
+              operatorType: createActor.role,
+            },
+          });
+          return order;
         });
 
         console.info(`[ConsultOrder] created orderNo=${row.orderNo} residentId=${row.residentId ?? 'anonymous'}`);
@@ -115,9 +148,23 @@ export class ConsultOrderService {
     };
   }
 
-  async findOne(id: number): Promise<ConsultOrderDto> {
+  async findOne(
+    id: number,
+    role: ProgressRole = 'ADMIN',
+  ): Promise<ConsultOrderDetailDto> {
     const row = await this.findOneOrThrow(id);
-    return this.toDto(row);
+    return {
+      ...this.toDto(row),
+      progress: this.orderProgressService
+        ? await this.orderProgressService.assemble({
+            orderId: row.id,
+            orderType: 'CONSULT',
+            currentStatus: row.status,
+            createdAt: row.createdAt,
+            role,
+          })
+        : [],
+    };
   }
 
   /**
@@ -152,7 +199,7 @@ export class ConsultOrderService {
     });
 
     console.info(`[ConsultOrder] status updated id=${id} ${fromStatus} → ${toStatus} by admin=${operatorId}`);
-    return this.toDto(await this.findOneOrThrow(id));
+    return this.findOne(id, 'ADMIN');
   }
 
   /**

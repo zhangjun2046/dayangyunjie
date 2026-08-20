@@ -48,40 +48,13 @@ export class WorkerService {
       this.prismaService.worker.count({ where }),
     ]);
 
-    // 聚合今日订单数（保洁 + 废品合并）
-    const today = new Date();
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const todayEnd = new Date(todayStart.getTime() + 86_400_000);
     const workerIds = items.map((w) => w.id);
-
-    const [cleaningOrders, recyclingOrders] = await this.prismaService.$transaction([
-      this.prismaService.cleaningOrder.findMany({
-        where: {
-          workerId: { in: workerIds },
-          appointDate: { gte: todayStart, lt: todayEnd },
-        },
-        select: { workerId: true },
-      }),
-      this.prismaService.recyclingOrder.findMany({
-        where: {
-          workerId: { in: workerIds },
-          appointDate: { gte: todayStart, lt: todayEnd },
-        },
-        select: { workerId: true },
-      }),
-    ]);
-
-    const todayOrderMap = new Map<number, number>();
-    for (const o of [...cleaningOrders, ...recyclingOrders]) {
-      if (o.workerId !== null) {
-        todayOrderMap.set(o.workerId, (todayOrderMap.get(o.workerId) ?? 0) + 1);
-      }
-    }
+    const statsMap = await this.getStatsForWorkers(workerIds);
 
     return {
       items: items.map((item) => ({
         ...this.toPublicWorker(item),
-        todayOrders: todayOrderMap.get(item.id) ?? 0,
+        ...statsMap.get(item.id),
       })),
       total,
       page,
@@ -94,7 +67,11 @@ export class WorkerService {
     if (!worker) {
       throw new NotFoundException(`Worker ${id} not found`);
     }
-    return this.toPublicWorker(worker);
+    const stats = (await this.getStatsForWorkers([id])).get(id);
+    return {
+      ...this.toPublicWorker(worker),
+      ...stats,
+    };
   }
 
   async update(id: number, updateWorkerDto: UpdateWorkerDto) {
@@ -159,6 +136,86 @@ export class WorkerService {
   private toPublicWorker(worker: Worker) {
     const { passwordHash, ...rest } = worker;
     return rest;
+  }
+
+  private async getStatsForWorkers(workerIds: number[]) {
+    const result = new Map<
+      number,
+      {
+        todayOrders: number;
+        pendingOrders: number;
+        completedOrders: number;
+        acceptedOrders: number;
+        completionRate: number | null;
+      }
+    >();
+    for (const workerId of workerIds) {
+      result.set(workerId, {
+        todayOrders: 0,
+        pendingOrders: 0,
+        completedOrders: 0,
+        acceptedOrders: 0,
+        completionRate: null,
+      });
+    }
+    if (workerIds.length === 0) return result;
+
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart.getTime() + 86_400_000);
+    const [logs, cleaningOrders, recyclingOrders] = await this.prismaService.$transaction([
+      this.prismaService.orderStatusLog.findMany({
+        where: {
+          orderType: { in: ['CLEANING', 'RECYCLING'] },
+          toStatus: 'PENDING_REVIEW',
+          createdAt: { gte: todayStart, lt: todayEnd },
+        },
+        select: { orderId: true, orderType: true },
+      }),
+      this.prismaService.cleaningOrder.findMany({
+        where: { workerId: { in: workerIds } },
+        select: { id: true, workerId: true, status: true },
+      }),
+      this.prismaService.recyclingOrder.findMany({
+        where: { workerId: { in: workerIds } },
+        select: { id: true, workerId: true, status: true },
+      }),
+    ]);
+
+    const completedToday = new Set(
+      logs.map((log) => `${log.orderType}:${log.orderId}`),
+    );
+    const acceptedStatuses = new Set([
+      'ACCEPTED',
+      'IN_SERVICE',
+      'PENDING_REVIEW',
+      'REVIEWED',
+    ]);
+    const pendingStatuses = new Set(['ACCEPTED', 'IN_SERVICE']);
+    const completedStatuses = new Set(['PENDING_REVIEW', 'REVIEWED']);
+
+    for (const [orderType, orders] of [
+      ['CLEANING', cleaningOrders],
+      ['RECYCLING', recyclingOrders],
+    ] as const) {
+      for (const order of orders) {
+        if (!order.workerId) continue;
+        const stats = result.get(order.workerId);
+        if (!stats) continue;
+        if (acceptedStatuses.has(order.status)) stats.acceptedOrders += 1;
+        if (pendingStatuses.has(order.status)) stats.pendingOrders += 1;
+        if (completedStatuses.has(order.status)) stats.completedOrders += 1;
+        if (completedToday.has(`${orderType}:${order.id}`)) stats.todayOrders += 1;
+      }
+    }
+
+    for (const stats of result.values()) {
+      stats.completionRate =
+        stats.acceptedOrders === 0
+          ? null
+          : Math.round((stats.completedOrders / stats.acceptedOrders) * 100);
+    }
+    return result;
   }
 
   private handlePrismaError(error: unknown): never {

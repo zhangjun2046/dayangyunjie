@@ -13,7 +13,7 @@ export interface ComplaintItem {
   cleaningOrderId?: number | null;
   recyclingOrderId?: number | null;
   consultOrderId?: number | null;
-  reason: string;
+  reasons: string[];
   description: string;
   status: ComplaintStatus;
   evidenceImages?: string[] | null;

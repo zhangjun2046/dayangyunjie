@@ -56,6 +56,11 @@ export const COMPLAINT_REASON_LABELS: Record<ComplaintReason, string> = {
   OTHER: '其他原因',
 };
 
+/** 将投诉原因 value 数组转为展示文案；查不到 label 则原样显示 value */
+export function formatComplaintReasons(values: string[]): string {
+  return values.map((v) => COMPLAINT_REASON_LABELS[v as ComplaintReason] ?? v).join('、');
+}
+
 export const COMPLAINT_STATUS_LABELS: Record<ComplaintStatus, string> = {
   PENDING: '待处理',
   PROCESSING: '处理中',

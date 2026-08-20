@@ -5,7 +5,7 @@ import type { ComplaintReason } from '../enums';
 export interface CreateComplaintDto {
   orderType: OrderType;
   orderId: number;
-  reason: ComplaintReason;
+  reasons: ComplaintReason[];
   description: string;
   evidenceImages?: string[];
 }

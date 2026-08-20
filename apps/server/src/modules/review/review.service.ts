@@ -73,6 +73,24 @@ export class ReviewService {
         operatorType: 'RESIDENT',
       });
 
+      if (order.workerId) {
+        const ratingResult = await tx.review.aggregate({
+          where: {
+            OR: [
+              { cleaningOrder: { workerId: order.workerId } },
+              { recyclingOrder: { workerId: order.workerId } },
+            ],
+          },
+          _avg: { rating: true },
+        });
+        await tx.worker.update({
+          where: { id: order.workerId },
+          data: {
+            rating: Number((ratingResult._avg.rating ?? 5).toFixed(1)),
+          },
+        });
+      }
+
       return review;
     });
 
@@ -130,11 +148,11 @@ export class ReviewService {
   private async findOrderOrThrow(
     orderType: 'CLEANING' | 'RECYCLING',
     orderId: number,
-  ): Promise<{ id: number; status: string }> {
+  ): Promise<{ id: number; status: string; workerId: number | null }> {
     if (orderType === 'CLEANING') {
       const order = await this.prismaService.cleaningOrder.findUnique({
         where: { id: orderId },
-        select: { id: true, status: true },
+        select: { id: true, status: true, workerId: true },
       });
       if (!order) {
         throw new NotFoundException(`CleaningOrder ${orderId} not found`);
@@ -144,7 +162,7 @@ export class ReviewService {
 
     const order = await this.prismaService.recyclingOrder.findUnique({
       where: { id: orderId },
-      select: { id: true, status: true },
+      select: { id: true, status: true, workerId: true },
     });
     if (!order) {
       throw new NotFoundException(`RecyclingOrder ${orderId} not found`);

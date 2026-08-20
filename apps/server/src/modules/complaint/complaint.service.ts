@@ -103,7 +103,8 @@ export class ComplaintService {
    * 不限制订单状态，居民可随时投诉。
    */
   async create(dto: CreateComplaintDto): Promise<ComplaintDto> {
-    const { orderType, orderId, reason, description, evidenceImages, residentId } = dto;
+    const { orderType, orderId, reasons, description, evidenceImages, residentId } = dto;
+    const uniqueReasons = [...new Set(reasons)];
 
     // 验证订单存在
     await this.findOrderOrThrow(orderType, orderId);
@@ -114,7 +115,7 @@ export class ComplaintService {
       data: {
         complaintNo,
         orderType,
-        reason,
+        reasons: uniqueReasons as Prisma.InputJsonValue,
         description,
         ...(evidenceImages ? { evidenceImages: evidenceImages as Prisma.InputJsonValue } : {}),
         ...(residentId ? { residentId } : {}),
@@ -124,7 +125,7 @@ export class ComplaintService {
       },
     });
 
-    console.info(`[Complaint] created id=${row.id} orderType=${orderType} orderId=${orderId} reason=${reason}`);
+    console.info(`[Complaint] created id=${row.id} orderType=${orderType} orderId=${orderId} reasons=${JSON.stringify(uniqueReasons)}`);
     return this.toDto(row);
   }
 
@@ -326,7 +327,7 @@ export class ComplaintService {
       recyclingOrderId: row.recyclingOrderId ?? null,
       consultOrderId: row.consultOrderId ?? null,
       orderType: row.orderType as ComplaintDto['orderType'],
-      reason: row.reason as ComplaintDto['reason'],
+      reasons: parseComplaintReasons(row.reasons) as ComplaintDto['reasons'],
       description: row.description,
       evidenceImages: row.evidenceImages ? (row.evidenceImages as string[]) : null,
       status: row.status as ComplaintDto['status'],
@@ -384,4 +385,11 @@ export class ComplaintService {
       createdAt: row.createdAt.toISOString(),
     };
   }
+}
+
+function parseComplaintReasons(value: Prisma.JsonValue): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((v): v is string => typeof v === 'string');
+  }
+  return [];
 }

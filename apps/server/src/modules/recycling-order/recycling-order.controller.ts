@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Param,
   ParseIntPipe,
   Patch,
@@ -19,21 +20,31 @@ import { CompleteOrderDto } from './dto/complete-order.dto';
 import { CreateRecyclingOrderDto } from './dto/create-recycling-order.dto';
 import { GpsCheckinDto } from './dto/gps-checkin.dto';
 import { QueryRecyclingOrderDto } from './dto/query-recycling-order.dto';
+import { ReassignOrderDto } from './dto/reassign-order.dto';
 import { TransitionOrderDto } from './dto/transition-order.dto';
 import { UpdateRecyclingOrderDto } from './dto/update-recycling-order.dto';
+import { OrderProgressService } from '../../common/order-progress/order-progress.service';
 
 @ApiTags('RecyclingOrders')
 @Controller('recycling-orders')
 export class RecyclingOrderController {
-  constructor(private readonly recyclingOrderService: RecyclingOrderService) {}
+  constructor(
+    private readonly recyclingOrderService: RecyclingOrderService,
+    private readonly orderProgressService: OrderProgressService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: '创建废品回收订单' })
   @ApiOkResponse({ description: '创建成功' })
   async create(
     @Body() createRecyclingOrderDto: CreateRecyclingOrderDto,
+    @Headers('authorization') authorization?: string,
   ): Promise<ApiResponseDto<Awaited<ReturnType<RecyclingOrderService['create']>>>> {
-    const data = await this.recyclingOrderService.create(createRecyclingOrderDto);
+    const actor = await this.orderProgressService.resolveCreateActor(
+      authorization,
+      createRecyclingOrderDto.residentId,
+    );
+    const data = await this.recyclingOrderService.create(createRecyclingOrderDto, actor);
     return { code: 0, message: 'ok', data };
   }
 
@@ -52,8 +63,14 @@ export class RecyclingOrderController {
   @ApiOkResponse({ description: '查询成功' })
   async findOne(
     @Param('id', ParseIntPipe) id: number,
+    @Headers('authorization') authorization?: string,
   ): Promise<ApiResponseDto<Awaited<ReturnType<RecyclingOrderService['findOne']>>>> {
-    const data = await this.recyclingOrderService.findOne(id);
+    const identity = await this.orderProgressService.resolveIdentity(authorization);
+    const data = await this.recyclingOrderService.findOne(
+      id,
+      identity?.role ?? 'ADMIN',
+      identity?.id,
+    );
     return { code: 0, message: 'ok', data };
   }
 
@@ -97,6 +114,19 @@ export class RecyclingOrderController {
     @Body() assignOrderDto: AssignOrderDto,
   ): Promise<ApiResponseDto<Awaited<ReturnType<RecyclingOrderService['assignOrder']>>>> {
     const data = await this.recyclingOrderService.assignOrder(id, assignOrderDto);
+    return { code: 0, message: 'ok', data };
+  }
+
+  @Post(':id/reassign')
+  @ApiOperation({
+    summary: '改派（仅员工尚未接单的 ASSIGNED 订单）',
+  })
+  @ApiOkResponse({ description: '改派成功，返回最新订单详情' })
+  async reassignOrder(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() reassignOrderDto: ReassignOrderDto,
+  ): Promise<ApiResponseDto<Awaited<ReturnType<RecyclingOrderService['reassignOrder']>>>> {
+    const data = await this.recyclingOrderService.reassignOrder(id, reassignOrderDto);
     return { code: 0, message: 'ok', data };
   }
 

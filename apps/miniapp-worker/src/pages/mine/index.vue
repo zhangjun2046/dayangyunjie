@@ -21,10 +21,10 @@
 
     <!-- 统计双卡：今日订单 / 已完成 -->
     <view class="stats-row">
-      <view class="stat-card" @tap="onGoTasks">
+      <view class="stat-card">
         <view class="stat-text">
-          <text class="stat-label">今日订单</text>
-          <text class="stat-value">{{ todayCount }}</text>
+          <text class="stat-label">今日已完成</text>
+          <text class="stat-value">{{ detail?.todayOrders ?? 0 }}</text>
         </view>
         <image
           class="stat-icon"
@@ -32,10 +32,10 @@
           mode="aspectFit"
         />
       </view>
-      <view class="stat-card" @tap="onGoTasks">
+      <view class="stat-card">
         <view class="stat-text">
-          <text class="stat-label">已完成</text>
-          <text class="stat-value">{{ todayDoneCount }}</text>
+          <text class="stat-label">累计已完成</text>
+          <text class="stat-value">{{ detail?.totalOrders ?? 0 }}</text>
         </view>
         <image
           class="stat-icon"
@@ -90,17 +90,13 @@
 import { ref, computed, onMounted } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/store/auth';
+import { ensureAuthed } from '@/composables/useRouteGuard';
 import { fetchWorkerDetail, type WorkerDetailDto } from '@/api/worker';
-import { fetchWorkerOrders } from '@/api/order';
 
 const authStore = useAuthStore();
 
 /** 员工详情（从后端获取） */
 const detail = ref<WorkerDetailDto | null>(null);
-/** 今日订单数（保洁 + 废品，appointDate = 今天，任意可见状态） */
-const todayCount = ref<number>(0);
-/** 今日已完成数（保洁 + 废品，appointDate = 今天，status = REVIEWED） */
-const todayDoneCount = ref<number>(0);
 /** 加载中标志 */
 const loading = ref(false);
 
@@ -110,49 +106,16 @@ const displayRating = computed(() => {
   return r > 0 ? r.toFixed(1) : '暂无';
 });
 
-/** 获取今日 ISO 日期前缀 YYYY-MM-DD */
-function getTodayPrefix(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-/** 规范化 appointDate 为 YYYY-MM-DD 格式（兼容点分格式 2026.06.22） */
-function normalizeDate(dateStr: string): string {
-  return dateStr.replace(/\./g, '-').slice(0, 10);
-}
-
-/** 加载员工详情、今日订单数、今日已完成数 */
+/** 加载员工详情及服务统计 */
 async function loadData() {
   const workerId = authStore.worker?.id;
   if (!workerId) return;
   if (loading.value) return;
   loading.value = true;
   try {
-    // 后端 pageSize 最大 100；普通员工单日订单不超过此量级
-    const [workerDetail, cleaningResult, recyclingResult] = await Promise.all([
-      fetchWorkerDetail(workerId),
-      fetchWorkerOrders(workerId, 'cleaning', [], 1, 100),
-      fetchWorkerOrders(workerId, 'recycling', [], 1, 100),
-    ]);
+    const workerDetail = await fetchWorkerDetail(workerId);
     detail.value = workerDetail;
-
-    const todayPrefix = getTodayPrefix();
-    const allItems = [...cleaningResult.items, ...recyclingResult.items];
-
-    // 今日订单：appointDate = 今天（任意可见状态）
-    const todayItems = allItems.filter((o) => normalizeDate(o.appointDate) === todayPrefix);
-    todayCount.value = todayItems.length;
-
-    // 今日已完成：appointDate = 今天 且 status = REVIEWED
-    todayDoneCount.value = todayItems.filter((o) => o.status === 'REVIEWED').length;
-
-    console.info(
-      '[mine] loadData done, todayCount=', todayCount.value,
-      'todayDone=', todayDoneCount.value,
-    );
+    console.info('[mine] loadData done', workerDetail);
   } catch (err) {
     console.info('[mine] loadData error', err);
   } finally {
@@ -161,19 +124,15 @@ async function loadData() {
 }
 
 /** 每次页面显示时刷新数据 */
-onShow(() => {
+onShow(async () => {
+  const ok = await ensureAuthed();
+  if (!ok) return;
   loadData();
 });
 
 onMounted(() => {
   loadData();
 });
-
-/** 跳转任务列表 */
-function onGoTasks() {
-  uni.switchTab({ url: '/pages/tasks/index' });
-  console.info('[mine] go tasks tab');
-}
 
 /** 查看证书大图 */
 function onViewCert(type: 'health' | 'skill') {

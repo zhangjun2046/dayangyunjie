@@ -17,7 +17,7 @@
     <scroll-view class="filter-scroll" scroll-x>
       <view class="filter-row">
         <view
-          v-for="pill in statusPills"
+          v-for="pill in STATUS_PILLS"
           :key="pill.key"
           :class="['filter-pill', activePillKey === pill.key && 'filter-pill--active']"
           @tap="onPillChange(pill.key)"
@@ -26,7 +26,6 @@
         </view>
       </view>
     </scroll-view>
-
     <!-- 加载中占位 -->
     <view v-if="loading && orders.length === 0" class="status-wrap">
       <view class="loading-spinner" />
@@ -49,8 +48,8 @@
 				@click="handleViewDetail(item)"
       >
         <!-- 状态徽标 -->
-        <view :class="['status-badge', `status-badge--${item.status.toLowerCase()}`]">
-          <text class="status-badge-text">{{ statusLabel(item.status) }}</text>
+        <view :class="['status-badge', getOrderBadgeClass(item.status)]">
+          <text class="status-badge-text">{{ getOrderBadgeLabel(item.status) }}</text>
         </view>
 
         <!-- 卡片主信息区 -->
@@ -113,8 +112,14 @@
 import { ref, computed } from 'vue';
 import { onShow, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/store/auth';
+import { ensureAuthed } from '@/composables/useRouteGuard';
 import { fetchWorkerOrders, acceptOrder } from '@/api/order';
 import type { WorkerOrderItem } from '@/api/order';
+import {
+  STATUS_PILLS,
+  getOrderBadgeClass,
+  getOrderBadgeLabel,
+} from '@/constants/order-status';
 
 const authStore = useAuthStore();
 
@@ -125,17 +130,6 @@ const tabs = [
 ] as const;
 
 type TabValue = 'cleaning' | 'recycling';
-
-/** 状态筛选胶囊定义（无 PENDING_ASSIGN） */
-const statusPills = [
-  { key: 'all', label: '全部', statuses: [] as string[] },
-  { key: 'ASSIGNED', label: '已派单', statuses: ['ASSIGNED'] },
-  { key: 'ACCEPTED', label: '已接单', statuses: ['ACCEPTED'] },
-  { key: 'IN_SERVICE', label: '服务中', statuses: ['IN_SERVICE'] },
-  { key: 'PENDING_REVIEW', label: '待评价', statuses: ['PENDING_REVIEW'] },
-  { key: 'REVIEWED', label: '已评价', statuses: ['REVIEWED'] },
-  { key: 'CANCELLED', label: '已取消', statuses: ['CANCELLED'] },
-];
 
 const activeTab = ref<TabValue>('cleaning');
 const activePillKey = ref('all');
@@ -151,21 +145,8 @@ const noMore = computed(() => orders.value.length >= totalCount.value && orders.
 
 /** 当前激活胶囊对应的 statuses */
 function getActiveStatuses(): string[] {
-  const pill = statusPills.find((p) => p.key === activePillKey.value);
+  const pill = STATUS_PILLS.find((p) => p.key === activePillKey.value);
   return pill?.statuses ?? [];
-}
-
-/** 状态值映射为显示文字 */
-function statusLabel(status: string): string {
-  const map: Record<string, string> = {
-    ASSIGNED: '已派单',
-    ACCEPTED: '已接单',
-    IN_SERVICE: '服务中',
-    PENDING_REVIEW: '待评价',
-    REVIEWED: '已评价',
-    CANCELLED: '已取消',
-  };
-  return map[status] ?? status;
 }
 
 /**
@@ -228,7 +209,9 @@ function onPillChange(key: string): void {
 }
 
 /** 每次页面显示时刷新 */
-onShow(() => {
+onShow(async () => {
+  const ok = await ensureAuthed();
+  if (!ok) return;
   loadOrders(1, true);
 });
 
@@ -443,51 +426,35 @@ function handleViewDetail(item: WorkerOrderItem): void {
   font-size: 26rpx;
 }
 
-/* ASSIGNED 已派单：蓝 */
-.status-badge--assigned {
+/* 已派单 / 已接单：蓝 */
+.badge-blue {
   background: #e6f0ff;
 }
-.status-badge--assigned .status-badge-text {
+.badge-blue .status-badge-text {
   color: #236EFF;
 }
 
-/* ACCEPTED 已接单：蓝 */
-.status-badge--accepted {
-  background: #e6f0ff;
-}
-.status-badge--accepted .status-badge-text {
-  color: #236EFF;
-}
-
-/* IN_SERVICE 服务中：橙 */
-.status-badge--in_service {
+/* 服务中 / 待评价：橙 */
+.badge-orange {
   background: #fff3e0;
 }
-.status-badge--in_service .status-badge-text {
+.badge-orange .status-badge-text {
   color: #fa8c16;
 }
 
-/* PENDING_REVIEW 待评价：橙 */
-.status-badge--pending_review {
-  background: #fff3e0;
-}
-.status-badge--pending_review .status-badge-text {
-  color: #fa8c16;
-}
-
-/* REVIEWED 已评价：绿 */
-.status-badge--reviewed {
+/* 已评价：绿 */
+.badge-green {
   background: #f0fff0;
 }
-.status-badge--reviewed .status-badge-text {
+.badge-green .status-badge-text {
   color: #52c41a;
 }
 
-/* CANCELLED 已取消：灰 */
-.status-badge--cancelled {
+/* 已取消：灰 */
+.badge-grey {
   background: #f5f5f5;
 }
-.status-badge--cancelled .status-badge-text {
+.badge-grey .status-badge-text {
   color: #999;
 }
 

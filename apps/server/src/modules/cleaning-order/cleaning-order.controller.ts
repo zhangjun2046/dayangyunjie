@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Param,
   ParseIntPipe,
   Patch,
@@ -19,21 +20,31 @@ import { CompleteOrderDto } from './dto/complete-order.dto';
 import { CreateCleaningOrderDto } from './dto/create-cleaning-order.dto';
 import { GpsCheckinDto } from './dto/gps-checkin.dto';
 import { QueryCleaningOrderDto } from './dto/query-cleaning-order.dto';
+import { ReassignOrderDto } from './dto/reassign-order.dto';
 import { TransitionOrderDto } from './dto/transition-order.dto';
 import { UpdateCleaningOrderDto } from './dto/update-cleaning-order.dto';
+import { OrderProgressService } from '../../common/order-progress/order-progress.service';
 
 @ApiTags('CleaningOrders')
 @Controller('cleaning-orders')
 export class CleaningOrderController {
-  constructor(private readonly cleaningOrderService: CleaningOrderService) {}
+  constructor(
+    private readonly cleaningOrderService: CleaningOrderService,
+    private readonly orderProgressService: OrderProgressService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: '创建保洁订单' })
   @ApiOkResponse({ description: '创建成功' })
   async create(
     @Body() createCleaningOrderDto: CreateCleaningOrderDto,
+    @Headers('authorization') authorization?: string,
   ): Promise<ApiResponseDto<Awaited<ReturnType<CleaningOrderService['create']>>>> {
-    const data = await this.cleaningOrderService.create(createCleaningOrderDto);
+    const actor = await this.orderProgressService.resolveCreateActor(
+      authorization,
+      createCleaningOrderDto.residentId,
+    );
+    const data = await this.cleaningOrderService.create(createCleaningOrderDto, actor);
     return { code: 0, message: 'ok', data };
   }
 
@@ -52,8 +63,14 @@ export class CleaningOrderController {
   @ApiOkResponse({ description: '查询成功' })
   async findOne(
     @Param('id', ParseIntPipe) id: number,
+    @Headers('authorization') authorization?: string,
   ): Promise<ApiResponseDto<Awaited<ReturnType<CleaningOrderService['findOne']>>>> {
-    const data = await this.cleaningOrderService.findOne(id);
+    const identity = await this.orderProgressService.resolveIdentity(authorization);
+    const data = await this.cleaningOrderService.findOne(
+      id,
+      identity?.role ?? 'ADMIN',
+      identity?.id,
+    );
     return { code: 0, message: 'ok', data };
   }
 
@@ -97,6 +114,19 @@ export class CleaningOrderController {
     @Body() assignOrderDto: AssignOrderDto,
   ): Promise<ApiResponseDto<Awaited<ReturnType<CleaningOrderService['assignOrder']>>>> {
     const data = await this.cleaningOrderService.assignOrder(id, assignOrderDto);
+    return { code: 0, message: 'ok', data };
+  }
+
+  @Post(':id/reassign')
+  @ApiOperation({
+    summary: '改派（仅员工尚未接单的 ASSIGNED 订单）',
+  })
+  @ApiOkResponse({ description: '改派成功，返回最新订单详情' })
+  async reassignOrder(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() reassignOrderDto: ReassignOrderDto,
+  ): Promise<ApiResponseDto<Awaited<ReturnType<CleaningOrderService['reassignOrder']>>>> {
+    const data = await this.cleaningOrderService.reassignOrder(id, reassignOrderDto);
     return { code: 0, message: 'ok', data };
   }
 

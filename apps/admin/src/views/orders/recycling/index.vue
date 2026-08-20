@@ -132,6 +132,13 @@
               size="small"
               @click="openAssign(row)"
             >分配</el-button>
+            <el-button
+              v-if="row.status === 'ASSIGNED'"
+              link
+              type="warning"
+              size="small"
+              @click="openAssign(row)"
+            >改派</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -154,7 +161,7 @@
     <!-- ── 分配弹窗 ─────────────────────────────────────────────────────────── -->
     <el-dialog
       v-model="assignDialog.visible"
-      title="分配"
+      :title="assignDialog.mode === 'reassign' ? '改派服务人员' : '分配服务人员'"
       width="760px"
       :close-on-click-modal="false"
     >
@@ -189,12 +196,12 @@
         <el-table-column label="状态" width="80" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 'IDLE' ? 'success' : 'warning'" size="small">
-              {{ row.status === 'IDLE' ? '空闲' : '忙碌' }}
+              {{ row.status === 'IDLE' ? '空闲' : '服务中' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="今日订单" width="90" align="center">
-          <template #default>—</template>
+        <el-table-column label="今日完成" width="90" align="center">
+          <template #default="{ row }">{{ row.todayOrders ?? 0 }}</template>
         </el-table-column>
         <el-table-column label="评分" width="120">
           <template #default="{ row }">
@@ -438,15 +445,17 @@
           <template #header><span class="section-title">服务进度</span></template>
           <el-timeline>
             <el-timeline-item
-              v-for="node in timelineNodes"
+              v-for="node in detailDrawer.order.progress"
               :key="node.status"
-              :type="getNodeType(detailDrawer.order.status, node.status)"
-              :hollow="getNodeType(detailDrawer.order.status, node.status) === 'primary'"
+              :type="node.state === 'done' ? 'success' : node.state === 'current' ? 'primary' : 'info'"
+              :hollow="node.state === 'current'"
+              :timestamp="node.operatedAt ? formatProgressTime(node.operatedAt) : undefined"
               size="large"
             >
-              <div class="timeline-label" :class="{ 'timeline-active': isNodeActive(detailDrawer.order.status, node.status) }">
+              <div class="timeline-label" :class="{ 'timeline-active': node.state === 'current' }">
                 {{ node.label }}
               </div>
+              <div v-if="node.message" class="text-gray">{{ node.message }}</div>
             </el-timeline-item>
           </el-timeline>
         </el-card>
@@ -517,8 +526,10 @@
         </el-card>
 
         <!-- 详情抽屉操作按钮 -->
-        <div v-if="detailDrawer.order.status === 'PENDING_ASSIGN'" class="drawer-footer">
-          <el-button type="primary" @click="openAssignFromDetail">分配服务人员</el-button>
+        <div v-if="['PENDING_ASSIGN', 'ASSIGNED'].includes(detailDrawer.order.status)" class="drawer-footer">
+          <el-button type="primary" @click="openAssignFromDetail">
+            {{ detailDrawer.order.status === 'ASSIGNED' ? '改派服务人员' : '分配服务人员' }}
+          </el-button>
         </div>
       </template>
     </el-drawer>
@@ -536,6 +547,7 @@ import {
   fetchRecyclingOrderDetail,
   createRecyclingOrder,
   assignRecyclingOrder,
+  reassignRecyclingOrder,
   fetchOrderReview,
   type AddressSnapshot,
   type RecyclingOrderItem,
@@ -546,6 +558,7 @@ import {
 } from '@/api/recycling';
 import { fetchWorkers, type WorkerListItem } from '@/api/worker';
 import { fetchServiceCatalogs, type ServiceCatalogItem } from '@/api/service-catalog';
+import { useUserStore } from '@/store';
 
 // ─── 状态 Tab ─────────────────────────────────────────────────────────────────
 
@@ -565,29 +578,10 @@ const STATUS_TABS: { label: string; value: TabValue }[] = [
 // ─── 新增订单：服务时段（与居民端 TIME_SLOTS 完全一致） ────────────────────────
 const TIME_SLOTS = ['08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'];
 
-// ─── 时间轴节点定义 ───────────────────────────────────────────────────────────
-
-const timelineNodes: { status: RecyclingOrderStatus; label: string }[] = [
-  { status: 'PENDING_ASSIGN', label: '已预约' },
-  { status: 'ASSIGNED', label: '已派单' },
-  { status: 'ACCEPTED', label: '已接单' },
-  { status: 'IN_SERVICE', label: '服务中' },
-  { status: 'PENDING_REVIEW', label: '已完成' },
-  { status: 'REVIEWED', label: '已评价' },
-];
-
-const STATUS_ORDER: RecyclingOrderStatus[] = [
-  'PENDING_ASSIGN',
-  'ASSIGNED',
-  'ACCEPTED',
-  'IN_SERVICE',
-  'PENDING_REVIEW',
-  'REVIEWED',
-];
-
 // ─── 列表数据 ─────────────────────────────────────────────────────────────────
 
 const tableLoading = ref(false);
+const userStore = useUserStore();
 const orders = ref<RecyclingOrderItem[]>([]);
 const total = ref(0);
 const keyword = ref('');
@@ -749,26 +743,12 @@ const copyPhone = async (phone: string) => {
   }
 };
 
-// ─── 时间轴节点状态 ───────────────────────────────────────────────────────────
-
-const isNodeDone = (currentStatus: RecyclingOrderStatus, nodeStatus: RecyclingOrderStatus) => {
-  if (currentStatus === 'CANCELLED') return false;
-  const ci = STATUS_ORDER.indexOf(currentStatus);
-  const ni = STATUS_ORDER.indexOf(nodeStatus);
-  return ci > ni;
-};
-
-const isNodeActive = (currentStatus: RecyclingOrderStatus, nodeStatus: RecyclingOrderStatus) => {
-  return currentStatus === nodeStatus;
-};
-
-const getNodeType = (
-  currentStatus: RecyclingOrderStatus,
-  nodeStatus: RecyclingOrderStatus,
-): 'primary' | 'success' | 'info' => {
-  if (isNodeDone(currentStatus, nodeStatus)) return 'success';
-  if (isNodeActive(currentStatus, nodeStatus)) return 'primary';
-  return 'info';
+const formatProgressTime = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const beijing = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${beijing.getUTCFullYear()}-${pad(beijing.getUTCMonth() + 1)}-${pad(beijing.getUTCDate())} ${pad(beijing.getUTCHours())}:${pad(beijing.getUTCMinutes())}:${pad(beijing.getUTCSeconds())}`;
 };
 
 // ─── 照片分组 ─────────────────────────────────────────────────────────────────
@@ -784,18 +764,26 @@ const photoGroups = computed(() => {
 // ─── 分配弹窗 ─────────────────────────────────────────────────────────────────
 
 const allWorkers = ref<WorkerListItem[]>([]);
-const idleWorkers = computed(() => allWorkers.value.filter((w) => w.status === 'IDLE'));
+const idleWorkers = computed(() =>
+  allWorkers.value.filter(
+    (w) => w.status === 'IDLE' && w.id !== assignDialog.currentWorkerId,
+  ),
+);
 
 const assignDialog = reactive({
   visible: false,
   loading: false,
   submitting: false,
   orderId: 0,
+  mode: 'assign' as 'assign' | 'reassign',
+  currentWorkerId: null as number | null,
   selectedWorkerId: null as number | null,
 });
 
 const openAssign = async (row: RecyclingOrderItem) => {
   assignDialog.orderId = row.id;
+  assignDialog.mode = row.status === 'ASSIGNED' ? 'reassign' : 'assign';
+  assignDialog.currentWorkerId = row.worker?.id ?? null;
   assignDialog.selectedWorkerId = null;
   assignDialog.visible = true;
   if (allWorkers.value.length === 0) {
@@ -823,8 +811,21 @@ const submitAssign = async () => {
   }
   assignDialog.submitting = true;
   try {
-    await assignRecyclingOrder(assignDialog.orderId, assignDialog.selectedWorkerId);
-    ElMessage.success('派单成功');
+    if (assignDialog.mode === 'reassign') {
+      await reassignRecyclingOrder(
+        assignDialog.orderId,
+        assignDialog.selectedWorkerId,
+        userStore.adminId,
+      );
+      ElMessage.success('改派成功');
+    } else {
+      await assignRecyclingOrder(
+        assignDialog.orderId,
+        assignDialog.selectedWorkerId,
+        userStore.adminId,
+      );
+      ElMessage.success('派单成功');
+    }
     assignDialog.visible = false;
     loadOrders();
   } catch (e) {

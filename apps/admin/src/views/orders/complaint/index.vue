@@ -195,7 +195,12 @@
           <template #header><span class="section-title">投诉内容</span></template>
           <div class="complaint-reason">
             <span class="reason-label">投诉原因：</span>
-            <el-tag type="danger" size="small">{{ reasonLabel(detailDrawer.complaint.reason) }}</el-tag>
+            <el-tag
+              v-for="r in detailDrawer.complaint.reasons"
+              :key="r"
+              type="danger"
+              size="small"
+            >{{ reasonLabel(r) }}</el-tag>
           </div>
           <p class="complaint-description">{{ detailDrawer.complaint.description }}</p>
           <div v-if="detailDrawer.complaint.evidenceImages?.length" class="evidence-grid">
@@ -661,6 +666,7 @@ onMounted(() => {
 .complaint-reason {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 10px;
 

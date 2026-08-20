@@ -12,6 +12,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ComplaintStatus } from '@prisma/client';
 import { ComplaintService } from './complaint.service';
+import { CreateComplaintDto } from './dto/create-complaint.dto';
 
 // ─── Mock 工厂 ──────────────────────────────────────────────────────────────
 
@@ -27,7 +28,7 @@ function makeComplaintRow(overrides: Record<string, unknown> = {}) {
     residentId: null,
     serviceType: null,
     serviceAddress: null,
-    reason: 'NOT_CLEAN',
+    reasons: ['NOT_CLEAN'],
     description: '保洁不彻底',
     evidenceImages: null,
     status: ComplaintStatus.PENDING,
@@ -89,10 +90,10 @@ function makeService(prismaOverrides: Record<string, unknown> = {}) {
   return { svc, prisma };
 }
 
-const baseCreateDto = {
-  orderType: 'CLEANING' as const,
+const baseCreateDto: CreateComplaintDto = {
+  orderType: 'CLEANING',
   orderId: 1,
-  reason: 'NOT_CLEAN' as const,
+  reasons: ['NOT_CLEAN'],
   description: '保洁不彻底，地板还有灰尘',
 };
 
@@ -139,6 +140,25 @@ describe('ComplaintService — create（创建投诉）', () => {
     await svc.create({ ...baseCreateDto, evidenceImages: ['http://example.com/img.jpg'] });
     expect(prisma.complaint.create).toHaveBeenCalledTimes(1);
   });
+
+  it('多个原因：create 写入去重后的 JSON 数组', async () => {
+    const { svc, prisma } = makeService();
+    prisma.complaint.create = jest.fn().mockResolvedValue(
+      makeComplaintRow({ reasons: ['NOT_CLEAN', 'POOR_ATTITUDE'] }),
+    );
+    const result = await svc.create({
+      ...baseCreateDto,
+      reasons: ['NOT_CLEAN', 'POOR_ATTITUDE', 'NOT_CLEAN'],
+    });
+    expect(prisma.complaint.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          reasons: ['NOT_CLEAN', 'POOR_ATTITUDE'],
+        }),
+      }),
+    );
+    expect(result.reasons).toEqual(['NOT_CLEAN', 'POOR_ATTITUDE']);
+  });
 });
 
 // ─── 2. findAll ──────────────────────────────────────────────────────────────
@@ -155,16 +175,24 @@ describe('ComplaintService — findAll（列表查询）', () => {
     });
   });
 
-  it('按 status=PENDING 筛选：$transaction 被调用', async () => {
+  it('按 status=PENDING 筛选：findMany 带 status', async () => {
     const { svc, prisma } = makeService();
     await svc.findAll({ status: 'PENDING' });
-    expect(prisma.$transaction).toHaveBeenCalled();
+    expect(prisma.complaint.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ status: 'PENDING' }),
+      }),
+    );
   });
 
-  it('按 orderType=CLEANING 筛选：$transaction 被调用', async () => {
+  it('按 orderType=CLEANING 筛选：findMany 带 orderType', async () => {
     const { svc, prisma } = makeService();
     await svc.findAll({ orderType: 'CLEANING' });
-    expect(prisma.$transaction).toHaveBeenCalled();
+    expect(prisma.complaint.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ orderType: 'CLEANING' }),
+      }),
+    );
   });
 
   it('items 中的 DTO 结构正确', async () => {
@@ -173,7 +201,7 @@ describe('ComplaintService — findAll（列表查询）', () => {
     expect(result.items[0]).toMatchObject({
       id: expect.any(Number),
       status: expect.any(String),
-      reason: expect.any(String),
+      reasons: expect.any(Array),
       description: expect.any(String),
       createdAt: expect.any(String),
       updatedAt: expect.any(String),

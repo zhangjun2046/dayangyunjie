@@ -11,6 +11,7 @@
     <scroll-view v-else class="content-scroll" scroll-y>
       <!-- 状态卡片 -->
       <view class="status-card" :class="getStatusCardClass(complaint.status)">
+        <image class="status-bg" src="/static/images/icon_bj_n.png" mode="aspectFill" />
         <view class="status-header">
           <view class="status-badge">
             <text class="badge-text">{{ COMPLAINT_STATUS_LABELS[complaint.status] }}</text>
@@ -28,7 +29,7 @@
         <view class="info-row">
           <text class="info-label">投诉原因</text>
           <text class="info-value">
-            {{ COMPLAINT_REASON_LABELS[complaint.reason as ComplaintReason] || complaint.reason }}
+            {{ formatComplaintReasons(complaint.reasons) }}
           </text>
         </view>
         <view class="info-row">
@@ -51,12 +52,13 @@
           <text class="card-title">上传凭证</text>
         </view>
         <view class="image-grid">
-          <image
+          <RemoteImage
             v-for="(url, idx) in complaint.evidenceImages"
             :key="idx"
             class="evidence-img"
             :src="url"
             mode="aspectFill"
+            variant="evidence"
             @tap="onPreviewImage(idx)"
           />
         </view>
@@ -100,12 +102,13 @@ import { onLoad } from '@dcloudio/uni-app';
 import {
   getComplaintById,
   COMPLAINT_STATUS_LABELS,
-  COMPLAINT_REASON_LABELS,
+  formatComplaintReasons,
   type ComplaintDto,
   type ComplaintFollowUpDto,
-  type ComplaintReason,
   type ComplaintStatus,
 } from '@/api/complaint';
+import RemoteImage from '@/components/RemoteImage.vue';
+import { previewNetworkImages } from '@/utils/remote-image';
 
 type ComplaintDetail = ComplaintDto & { followUps: ComplaintFollowUpDto[] };
 
@@ -139,10 +142,7 @@ async function loadDetail() {
 
 function onPreviewImage(startIndex: number) {
   if (!complaint.value?.evidenceImages) return;
-  uni.previewImage({
-    current: startIndex,
-    urls: complaint.value.evidenceImages,
-  });
+  void previewNetworkImages(complaint.value.evidenceImages, startIndex);
 }
 
 function getStatusCardClass(status: ComplaintStatus): string {
@@ -172,8 +172,8 @@ function formatDateTime(dateStr: string | undefined): string {
 .page {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  background: #f5f5f5;
+  height: 100vh;
+  background: #f8faff;
 }
 
 .loading-wrap {
@@ -191,12 +191,25 @@ function formatDateTime(dateStr: string | undefined): string {
 
 .content-scroll {
   flex: 1;
+  height: 0;
 }
 
 /* 状态卡片 */
 .status-card {
-  padding: 40rpx 32rpx 32rpx;
-  margin-bottom: 20rpx;
+  position: relative;
+  min-height: 220rpx;
+  padding: 42rpx 38rpx 36rpx;
+  margin-bottom: 4rpx;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.status-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
 }
 
 .card-orange {
@@ -204,7 +217,7 @@ function formatDateTime(dateStr: string | undefined): string {
 }
 
 .card-blue {
-  background: #236EFF;
+  background: #236eff;
 }
 
 .card-green {
@@ -212,73 +225,93 @@ function formatDateTime(dateStr: string | undefined): string {
 }
 
 .status-header {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16rpx;
+  margin-bottom: 22rpx;
 }
 
 .status-badge {
-  padding: 8rpx 20rpx;
-  border-radius: 20rpx;
-  background: rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100rpx;
+  height: 52rpx;
+  padding: 0 22rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.9);
+  border-radius: 27rpx;
+  box-sizing: border-box;
 }
 
 .badge-text {
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #ffffff;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .complaint-no {
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 28rpx;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .status-desc {
-  font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.9);
-  line-height: 1.5;
+  position: relative;
+  z-index: 1;
+  display: block;
+  font-size: 30rpx;
+  color: #ffffff;
+  line-height: 1.6;
 }
 
 /* 信息卡片 */
 .info-card {
   background: #ffffff;
-  margin: 0 0 16rpx;
+  margin: 20rpx 24rpx;
   padding: 28rpx 32rpx;
+  border-radius: 32rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
 }
 
 .card-title-row {
   margin-bottom: 20rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid #efefef;
 }
 
 .card-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #222;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333333;
 }
 
 .info-row {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: flex-start;
-  margin-bottom: 16rpx;
+  margin-bottom: 22rpx;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
 }
 
 .info-label {
-  font-size: 26rpx;
-  color: #999;
-  width: 160rpx;
-  flex-shrink: 0;
+  font-size: 30rpx;
+  color: #4c5760;
   line-height: 1.6;
+  margin-bottom: 2rpx;
 }
 
 .info-value {
-  flex: 1;
-  font-size: 26rpx;
-  color: #333;
+  width: 100%;
+  font-size: 30rpx;
+  color: #333333;
   line-height: 1.6;
+  word-break: break-all;
 }
 
 /* 凭证图片 */
@@ -286,19 +319,19 @@ function formatDateTime(dateStr: string | undefined): string {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 16rpx;
+  gap: 12rpx;
 }
 
 .evidence-img {
-  width: 200rpx;
-  height: 200rpx;
-  border-radius: 8rpx;
-  background: #f0f0f0;
+  width: 196rpx;
+  height: 196rpx;
+  border-radius: 16rpx;
+  background: #f5f5f5;
 }
 
 /* 跟进时间轴 */
 .timeline {
-  padding-left: 12rpx;
+  padding: 4rpx 0 0 8rpx;
 }
 
 .timeline-item {
@@ -315,7 +348,7 @@ function formatDateTime(dateStr: string | undefined): string {
   top: 30rpx;
   bottom: 0;
   width: 2rpx;
-  background: #e8e8e8;
+  background: #dbe8ff;
 }
 
 .timeline-item-last::before {
@@ -326,7 +359,8 @@ function formatDateTime(dateStr: string | undefined): string {
   width: 20rpx;
   height: 20rpx;
   border-radius: 50%;
-  background: #236EFF;
+  background: #236eff;
+  box-shadow: 0 0 0 8rpx #eaf2ff;
   flex-shrink: 0;
   margin-top: 8rpx;
   margin-right: 20rpx;
@@ -347,36 +381,40 @@ function formatDateTime(dateStr: string | undefined): string {
 }
 
 .handler-name {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #333;
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333333;
 }
 
 .follow-time {
-  font-size: 22rpx;
-  color: #999;
+  font-size: 24rpx;
+  color: #999999;
 }
 
 .follow-content {
-  font-size: 26rpx;
-  color: #555;
+  display: block;
+  padding: 16rpx 20rpx;
+  border-radius: 16rpx;
+  background: #f8faff;
+  font-size: 28rpx;
+  color: #58636a;
   line-height: 1.6;
 }
 
 /* 无跟进记录 */
 .empty-follow {
-  padding: 24rpx 0;
+  padding: 36rpx 0;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .empty-text {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #999;
 }
 
 .bottom-placeholder {
-  height: 60rpx;
+  height: 40rpx;
 }
 </style>

@@ -9,8 +9,8 @@
             v-for="item in REASON_LIST"
             :key="item.value"
             class="reason-chip"
-            :class="selectedReason === item.value ? 'reason-chip-active' : ''"
-            @tap="onSelectReason(item.value)"
+            :class="selectedReasons.includes(item.value) ? 'reason-chip-active' : ''"
+            @tap="onToggleReason(item.value)"
           >
             <text class="reason-text">{{ item.label }}</text>
           </view>
@@ -64,7 +64,7 @@
     <view class="action-bar">
       <button
         class="btn-submit"
-        :disabled="submitting || !selectedReason || !description.trim() || uploadingCount > 0"
+        :disabled="submitting || selectedReasons.length === 0 || !description.trim() || uploadingCount > 0"
         @tap="onSubmit"
       >
         {{ submitting ? '提交中…' : '提交投诉' }}
@@ -95,7 +95,7 @@ const orderId = ref(0);
 const orderType = ref<'CLEANING' | 'RECYCLING' | 'CONSULT'>('CLEANING');
 const orderNo = ref('');
 
-const selectedReason = ref<ComplaintReason | ''>('');
+const selectedReasons = ref<ComplaintReason[]>([]);
 const description = ref('');
 const uploadedImageUrls = ref<string[]>([]);
 const previewImages = ref<string[]>([]);
@@ -111,8 +111,13 @@ onLoad((options) => {
   console.info(`[complaint] onLoad orderId=${orderId.value} type=${orderType.value}`);
 });
 
-function onSelectReason(val: ComplaintReason) {
-  selectedReason.value = val;
+function onToggleReason(val: ComplaintReason) {
+  const idx = selectedReasons.value.indexOf(val);
+  if (idx >= 0) {
+    selectedReasons.value.splice(idx, 1);
+  } else {
+    selectedReasons.value.push(val);
+  }
 }
 
 function onChooseImage() {
@@ -150,8 +155,8 @@ function onRemoveImage(idx: number) {
 }
 
 async function onSubmit() {
-  if (!selectedReason.value) {
-    uni.showToast({ title: '请选择投诉原因', icon: 'none' });
+  if (selectedReasons.value.length === 0) {
+    uni.showToast({ title: '请至少选择一项投诉原因', icon: 'none' });
     return;
   }
   if (!description.value.trim()) {
@@ -168,13 +173,13 @@ async function onSubmit() {
     await submitComplaint({
       orderType: orderType.value,
       orderId: orderId.value,
-      reason: selectedReason.value as ComplaintReason,
+      reasons: selectedReasons.value,
       description: description.value.trim(),
       evidenceImages: uploadedImageUrls.value.length ? uploadedImageUrls.value : undefined,
       residentId: authStore.resident?.id ?? undefined,
     });
     uni.showToast({ title: '投诉已提交', icon: 'success' });
-    console.info(`[complaint] submitted orderId=${orderId.value} reason=${selectedReason.value}`);
+    console.info(`[complaint] submitted orderId=${orderId.value} reasons=${JSON.stringify(selectedReasons.value)}`);
     setTimeout(() => uni.navigateBack(), 1500);
   } catch (e) {
     const msg = e instanceof Error ? e.message : '提交失败';

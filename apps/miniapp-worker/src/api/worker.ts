@@ -21,6 +21,14 @@ export interface WorkerDetailDto {
   totalOrders: number;
   /** 平均评分（0–5，保留1位小数） */
   rating: number;
+  /** 今日完成服务数（按完成服务日志时间） */
+  todayOrders: number;
+  /** 已接单且尚未完成 */
+  pendingOrders: number;
+  /** 累计已完成 */
+  completedOrders: number;
+  acceptedOrders: number;
+  completionRate: number | null;
   /** 健康证图片 URL */
   healthCertUrl?: string | null;
   healthCertExpiry?: string | null;

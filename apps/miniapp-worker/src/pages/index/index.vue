@@ -8,27 +8,17 @@
           src="/static/images/icon_bj_n.png"
           mode="aspectFill"
         />
-        <!-- 仅占位状态栏高度，不显示标题 -->
-        <uni-nav-bar
-          status-bar
-          title=""
-          background-color="transparent"
-          color="#ffffff"
-          :border="false"
-          left-icon=""
-          :left-width="0"
-          :right-width="0"
-        />
+        <view class="status-bar-spacer" :style="{ height: `${statusBarHeight}px` }" />
         <!-- 标题：导航栏底部偏左 -->
         <view class="header-title-row">
           <text class="header-title">大洋云洁·智享社区</text>
         </view>
       </view>
       <view class="stats-row">
-        <view class="stat-card" @tap="onGoTasks">
+        <view class="stat-card">
           <view class="stat-text">
-            <text class="stat-label">今日订单</text>
-            <text class="stat-value">{{ todayCount }}</text>
+            <text class="stat-label">待办</text>
+            <text class="stat-value">{{ pendingCount }}</text>
           </view>
           <!-- 待补充：今日订单图标 → /static/icons/icon_today_order_n.png -->
           <image
@@ -37,9 +27,9 @@
             mode="aspectFit"
           />
         </view>
-        <view class="stat-card" @tap="onGoTasks">
+        <view class="stat-card">
           <view class="stat-text">
-            <text class="stat-label">已完成</text>
+            <text class="stat-label">今日已完成</text>
             <text class="stat-value">{{ todayDone }}</text>
           </view>
           <!-- 待补充：已完成图标 → /static/icons/icon_today_done_n.png -->
@@ -121,46 +111,41 @@
 import { ref } from 'vue';
 import { onShow, onPullDownRefresh } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/store/auth';
-import { fetchAssignedOrders, acceptOrder, fetchWorkerOrders } from '@/api/order';
+import { ensureAuthed } from '@/composables/useRouteGuard';
+import { fetchAssignedOrders, acceptOrder } from '@/api/order';
 import type { AssignedOrderItem } from '@/api/order';
+import { fetchWorkerDetail } from '@/api/worker';
 
 const authStore = useAuthStore();
 const orders = ref<AssignedOrderItem[]>([]);
 const loading = ref(false);
 const acceptingOrderNo = ref<string | null>(null);
 
-/** 今日订单数（与 mine 页 todayCount 同源逻辑） */
-const todayCount = ref(0);
-/** 今日已完成数（与 mine 页 todayDoneCount 同源逻辑） */
+function readStatusBarHeight(): number {
+  try {
+    const info =
+      typeof uni.getWindowInfo === 'function' ? uni.getWindowInfo() : uni.getSystemInfoSync();
+    return Number(info?.statusBarHeight) || 20;
+  } catch {
+    return 20;
+  }
+}
+const statusBarHeight = ref(readStatusBarHeight());
+
+/** 已接单且尚未完成的待办数 */
+const pendingCount = ref(0);
+/** 今日已完成数（按完成服务日志时间） */
 const todayDone = ref(0);
 
-function getTodayPrefix(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-function normalizeDate(dateStr: string): string {
-  return dateStr.replace(/\./g, '-').slice(0, 10);
-}
-
-/** 加载今日统计（今日订单 / 已完成） */
+/** 加载待办 / 今日已完成统计 */
 async function loadTodayStats(): Promise<void> {
   const workerId = authStore.worker?.id;
   if (!workerId) return;
   try {
-    const [cleaningResult, recyclingResult] = await Promise.all([
-      fetchWorkerOrders(workerId, 'cleaning', [], 1, 100),
-      fetchWorkerOrders(workerId, 'recycling', [], 1, 100),
-    ]);
-    const todayPrefix = getTodayPrefix();
-    const allItems = [...cleaningResult.items, ...recyclingResult.items];
-    const todayItems = allItems.filter((o) => normalizeDate(o.appointDate) === todayPrefix);
-    todayCount.value = todayItems.length;
-    todayDone.value = todayItems.filter((o) => o.status === 'REVIEWED').length;
-    console.info('[home] todayStats, todayCount=', todayCount.value, 'todayDone=', todayDone.value);
+    const detail = await fetchWorkerDetail(workerId);
+    pendingCount.value = detail.pendingOrders ?? 0;
+    todayDone.value = detail.todayOrders ?? 0;
+    console.info('[home] stats, pending=', pendingCount.value, 'todayDone=', todayDone.value);
   } catch (err) {
     console.info('[home] loadTodayStats error', err);
   }
@@ -187,7 +172,9 @@ async function refreshPage(): Promise<void> {
   await Promise.all([loadOrders(), loadTodayStats()]);
 }
 
-onShow(() => {
+onShow(async () => {
+  const ok = await ensureAuthed();
+  if (!ok) return;
   refreshPage();
 });
 
@@ -195,10 +182,6 @@ onPullDownRefresh(async () => {
   await refreshPage();
   uni.stopPullDownRefresh();
 });
-
-function onGoTasks(): void {
-  uni.switchTab({ url: '/pages/tasks/index' });
-}
 
 async function handleAccept(item: AssignedOrderItem): Promise<void> {
   if (acceptingOrderNo.value) return;
@@ -260,9 +243,10 @@ function handleViewDetail(item: AssignedOrderItem): void {
   border-radius: 0 0 32rpx 32rpx;
 }
 
-.header-hero :deep(.uni-navbar) {
+.status-bar-spacer {
   position: relative;
   z-index: 1;
+  width: 100%;
 }
 
 /* 标题贴在导航栏底部偏左 */

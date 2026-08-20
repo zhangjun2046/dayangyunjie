@@ -38,7 +38,7 @@
             <view v-if="orderType !== 'consult'" class="order-no">服务时间：{{ appointTimeText }}</view>
           </view>
           <view class="status-badge">
-            <text class="badge-text">{{ getStatusLabel(order.status) }}</text>
+            <text class="badge-text">{{ getOrderBadgeLabel(order.status, orderType) }}</text>
           </view>
         </view>
       </view>
@@ -51,12 +51,18 @@
 			  <!-- 已分配服务人员 -->
 			  <template v-if="order.worker">
 					<view class="service-row">
-						<view class="info-row" style="flex-direction: row;align-items: center;">
-							<image style="width: 90rpx;height: 90rpx;margin-right: 20rpx;" src="/static/icons/icon_photo_n.png" mode="aspectFit"></image>
-						  <!-- <text class="info-label">姓名</text> -->
-						  <text class="info-value">{{ order.worker.name }}</text>
+						<view class="worker-main">
+							<image class="worker-avatar" src="/static/icons/icon_photo_n.png" mode="aspectFit" />
+							<view class="worker-meta">
+								<text class="worker-name">{{ order.worker.name }}</text>
+								<view class="worker-stats">
+									<image class="worker-star" src="/static/icons/star-lit.png" mode="aspectFit" />
+									<text class="worker-rating">{{ (order.worker.rating ?? 5).toFixed(1) }}</text>
+									<text class="worker-total">已服务{{ order.worker.totalOrders ?? 0 }}单</text>
+								</view>
+							</view>
 						</view>
-						<image style="width: 60rpx;height: 60rpx;margin-right: 20rpx;" src="/static/icons/icon_dianhua_n.png" mode="aspectFit" @click="onPhoneService(order.worker.phone)"></image>
+						<image class="worker-phone" src="/static/icons/icon_dianhua_n.png" mode="aspectFit" @click="onPhoneService(order.worker.phone)" />
 					</view>
 			    <!-- <view class="info-row">
 			      <text class="info-label">联系电话</text>
@@ -208,8 +214,7 @@
           <text class="card-title">服务进度</text>
         </view>
         <OrderStatusTimeline
-          :status="order.status"
-          :order-type="orderType === 'cleaning' ? 'CLEANING' : 'RECYCLING'"
+          :progress="order.progress ?? []"
         />
       </view>
 
@@ -218,7 +223,7 @@
         <view class="card-title-row">
           <text class="card-title">服务进度</text>
         </view>
-        <OrderStatusTimeline :status="order.status" order-type="CONSULT" />
+        <OrderStatusTimeline :progress="order.progress ?? []" />
       </view>
 
       <!-- 服务记录照片（服务前/服务后，员工端完成服务后上传） -->
@@ -229,12 +234,13 @@
         <view v-if="beforeWorkPhotos.length" class="photo-group">
           <text class="photo-group-label">服务前照片</text>
           <view class="photo-grid">
-            <image
+            <RemoteImage
               v-for="(photo, idx) in beforeWorkPhotos"
               :key="photo.id"
               class="work-photo-img"
               :src="photo.url"
               mode="aspectFill"
+              variant="thumbnail"
               @tap="onPreviewWorkPhoto(beforeWorkPhotos, idx)"
             />
           </view>
@@ -242,12 +248,13 @@
         <view v-if="afterWorkPhotos.length" class="photo-group">
           <text class="photo-group-label">服务后照片</text>
           <view class="photo-grid">
-            <image
+            <RemoteImage
               v-for="(photo, idx) in afterWorkPhotos"
               :key="photo.id"
               class="work-photo-img"
               :src="photo.url"
               mode="aspectFill"
+              variant="thumbnail"
               @tap="onPreviewWorkPhoto(afterWorkPhotos, idx)"
             />
           </view>
@@ -294,12 +301,13 @@
         <text v-if="review.content" class="review-content-text">{{ review.content }}</text>
         <!-- 评价图片 -->
         <view v-if="review.images && review.images.length" class="review-images-row">
-          <image
+          <RemoteImage
             v-for="(img, idx) in review.images"
             :key="idx"
             class="review-img"
             :src="img"
             mode="aspectFill"
+            variant="thumbnail"
             @tap="onPreviewReviewImage(idx)"
           />
         </view>
@@ -316,7 +324,7 @@
         <view class="info-row">
           <text class="info-label">投诉原因</text>
           <text class="info-value">
-            {{ COMPLAINT_REASON_LABELS[complaint.reason as ComplaintReason] || complaint.reason }}
+            {{ formatComplaintReasons(complaint.reasons) }}
           </text>
         </view>
         <view class="complaint-view-more">
@@ -340,7 +348,7 @@
     <view v-if="order && hasActionButton" class="action-bar">
       <!-- 待派单：取消订单 -->
       <button
-        v-if="order.status === 'PENDING_ASSIGN'"
+        v-if="canCancel"
         class="btn-cancel"
         @tap="onCancelOrder"
         :disabled="actionLoading"
@@ -390,14 +398,22 @@ import {
 import {
   getComplaints,
   COMPLAINT_STATUS_LABELS,
-  COMPLAINT_REASON_LABELS,
+  formatComplaintReasons,
   type ComplaintDto,
-  type ComplaintReason,
 } from '@/api/complaint';
 import { fetchReviewByOrder, type ReviewDto } from '@/api/review';
 import OrderStatusTimeline from '@/components/OrderStatusTimeline.vue';
 import ContactOperatorPicker from '@/components/ContactOperatorPicker.vue';
+import RemoteImage from '@/components/RemoteImage.vue';
 import { callContactOperator } from '@/utils/call-contact-operator';
+import { previewNetworkImages } from '@/utils/remote-image';
+import type { ProgressNodeDto } from '@dayangyunjie/shared';
+import {
+  canCancelOrder,
+  canComplaintOrder,
+  canReviewOrder,
+  getOrderBadgeLabel,
+} from '@/constants/order-status';
 
 type OrderType = 'cleaning' | 'recycling' | 'consult';
 type AnyOrder = (CleaningOrderDto | RecyclingOrderDto | ConsultOrderDto) & {
@@ -411,8 +427,15 @@ type AnyOrder = (CleaningOrderDto | RecyclingOrderDto | ConsultOrderDto) & {
   serviceContactPhone?: string | null;
   remark?: string | null;
   createdAt: string;
-  worker?: { id: number; name: string; phone: string } | null;
+  worker?: {
+    id: number;
+    name: string;
+    phone: string;
+    rating?: number;
+    totalOrders?: number;
+  } | null;
   workPhotos?: WorkPhotoDto[];
+  progress?: ProgressNodeDto[];
 };
 
 const authStore = useAuthStore();
@@ -532,10 +555,7 @@ async function loadReview() {
 /** 预览评价图片 */
 function onPreviewReviewImage(startIdx: number) {
   if (!review.value?.images?.length) return;
-  uni.previewImage({
-    current: startIdx,
-    urls: review.value.images as string[],
-  });
+  void previewNetworkImages(review.value.images as string[], startIdx);
 }
 
 /** 服务前照片（员工端完成服务时上传） */
@@ -561,10 +581,7 @@ const appointTimeText = computed<string>(() => {
 /** 预览服务记录照片 */
 function onPreviewWorkPhoto(photos: WorkPhotoDto[], startIdx: number) {
   if (!photos.length) return;
-  uni.previewImage({
-    current: startIdx,
-    urls: photos.map((p) => p.url),
-  });
+  void previewNetworkImages(photos.map((p) => p.url), startIdx);
   console.info('[order-detail] preview work photo, count=', photos.length);
 }
 
@@ -587,18 +604,22 @@ function onPhoneService(phone: string) {
 /** 是否有底部操作按钮 */
 const hasActionButton = computed(() => {
   if (!order.value) return false;
-  const s = order.value.status;
-  if (s === 'PENDING_ASSIGN') return true;
+  if (canCancel.value) return true;
   if (canReview.value) return true;
   if (canComplaint.value) return true;
   return false;
 });
 
+/** 是否可以取消（仅待派单的保洁/废品订单） */
+const canCancel = computed(() => {
+  if (!order.value) return false;
+  return canCancelOrder(order.value.status, orderType.value);
+});
+
 /** 是否可以评价（PENDING_REVIEW + 7天内）仅保洁/废品 */
 const canReview = computed(() => {
   if (!order.value) return false;
-  if (orderType.value === 'consult') return false;
-  if (order.value.status !== 'PENDING_REVIEW') return false;
+  if (!canReviewOrder(order.value.status, orderType.value)) return false;
   const updated = (order.value as CleaningOrderDto).updatedAt || order.value.createdAt;
   if (!updated) return true;
   const diff = Date.now() - new Date(updated).getTime();
@@ -608,9 +629,7 @@ const canReview = computed(() => {
 /** 是否可以投诉（ACCEPTED 及之后状态，仅保洁/废品） */
 const canComplaint = computed(() => {
   if (!order.value) return false;
-  if (orderType.value === 'consult') return false;
-  const complaintStatuses = ['ACCEPTED', 'IN_SERVICE', 'PENDING_REVIEW', 'REVIEWED'];
-  return complaintStatuses.includes(order.value.status);
+  return canComplaintOrder(order.value.status, orderType.value);
 });
 
 /** 取消订单 */
@@ -692,55 +711,6 @@ function getAddressText(): string {
 function formatDate(dateStr: string | undefined): string {
   if (!dateStr) return '';
   return dateStr.substring(0, 10);
-}
-
-function getStatusLabel(status: string): string {
-  if (orderType.value === 'consult') {
-    const map: Record<string, string> = {
-      FOLLOW_UP: '待跟进',
-      FOLLOWING: '跟进中',
-      COMPLETED: '已完成',
-    };
-    return map[status] || status;
-  }
-  const map: Record<string, string> = {
-    PENDING_ASSIGN: '待服务',
-    ASSIGNED: '待服务',
-    ACCEPTED: '待服务',
-    IN_SERVICE: '进行中',
-    PENDING_REVIEW: '待反馈',
-    REVIEWED: '已评价',
-    CANCELLED: '已取消',
-  };
-  return map[status] || status;
-}
-
-function getStatusClass(status: string): string {
-  const blue = ['PENDING_ASSIGN', 'ASSIGNED', 'ACCEPTED', 'FOLLOW_UP'];
-  const orange = ['IN_SERVICE', 'PENDING_REVIEW', 'FOLLOWING'];
-  const green = ['REVIEWED', 'COMPLETED'];
-  const grey = ['CANCELLED'];
-  if (blue.includes(status)) return 'badge-blue';
-  if (orange.includes(status)) return 'badge-orange';
-  if (green.includes(status)) return 'badge-green';
-  if (grey.includes(status)) return 'badge-grey';
-  return 'badge-blue';
-}
-
-function getStatusTip(status: string): string {
-  const tips: Record<string, string> = {
-    PENDING_ASSIGN: '订单已提交，等待平台安排服务人员',
-    ASSIGNED: '已为您分配服务人员，请等待上门',
-    ACCEPTED: '服务人员已确认接单，准备上门',
-    IN_SERVICE: '服务人员正在为您服务',
-    PENDING_REVIEW: '服务已完成，期待您的评价',
-    REVIEWED: '感谢您的评价',
-    CANCELLED: '订单已取消',
-    FOLLOW_UP: '咨询单已提交，等待跟进',
-    FOLLOWING: '运营人员正在跟进您的需求',
-    COMPLETED: '服务已完成',
-  };
-  return tips[status] || '';
 }
 
 function getComplaintStatusClass(status: string): string {
@@ -895,6 +865,65 @@ function getComplaintStatusClass(status: string): string {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+}
+
+.worker-main {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.worker-avatar {
+  width: 90rpx;
+  height: 90rpx;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+
+.worker-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.worker-name {
+  color: #222222;
+  font-size: 32rpx;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.worker-stats {
+  display: flex;
+  align-items: center;
+  margin-top: 6rpx;
+}
+
+.worker-star {
+  width: 28rpx;
+  height: 28rpx;
+  margin-right: 6rpx;
+  flex-shrink: 0;
+}
+
+.worker-rating,
+.worker-total {
+  color: #59636d;
+  font-size: 26rpx;
+  line-height: 1.4;
+}
+
+.worker-total {
+  margin-left: 14rpx;
+}
+
+.worker-phone {
+  width: 60rpx;
+  height: 60rpx;
+  margin-left: 20rpx;
+  margin-right: 20rpx;
+  flex-shrink: 0;
 }
 
 .info-row {
