@@ -32,8 +32,14 @@
         >
           <view class="card-left">
             <view class="card-icon-wrap">
-              <image v-if="itemIconSrc(item)" class="card-icon-img" :src="itemIconSrc(item)!" mode="aspectFit" />
-              <text v-else class="card-icon">{{ item.icon || '♻️' }}</text>
+              <image
+                v-if="itemIconSrc(item)"
+                class="card-icon-img"
+                :src="itemIconSrc(item)!"
+                mode="aspectFit"
+                @error="onItemIconError(item)"
+              />
+              <text v-else class="card-icon">{{ itemFallbackEmoji(item) }}</text>
             </view>
             <view class="card-text">
               <text class="card-name">{{ item.name }}</text>
@@ -289,6 +295,10 @@ import { fetchRecyclingCatalogs, type ServiceCatalogDto } from '@/api/service-ca
 import { fetchAddresses } from '@/api/address';
 import { createRecyclingOrder } from '@/api/recycling-order';
 import { getSolarToLunar } from '@/utils/lunar';
+import {
+  resolveServiceCatalogIcon,
+  serviceCatalogFallbackEmoji,
+} from '@/utils/service-catalog-icon';
 import BookingSuccessOverlay from '@/components/BookingSuccessOverlay.vue';
 
 const store = useBookingRecyclingStore();
@@ -309,16 +319,28 @@ const SERVICE_NOTICES = [
 // ───────────────────── Step 1 ─────────────────────
 const catalogs = ref<ServiceCatalogDto[]>([]);
 const catalogLoading = ref(false);
+const failedRemoteIconIds = ref<Set<number>>(new Set());
 
 const isLargeItem = computed(() =>
   store.selectedCatalog?.name?.includes('大件') ?? false,
 );
 
-/** 卡片图标：按名称匹配大件/小件专属图标，无匹配时回退 emoji */
+/** 后台图标优先，加载失败或未配置时回退现有本地图标。 */
 function itemIconSrc(item: ServiceCatalogDto): string | null {
-  if (item.name?.includes('大件')) return '/static/icons/icon_dajian_n.png';
-  if (item.name?.includes('小件')) return '/static/icons/icon_xiaojian_n.png';
-  return null;
+  return resolveServiceCatalogIcon(
+    item,
+    'RECYCLING',
+    failedRemoteIconIds.value.has(item.id),
+  );
+}
+
+function itemFallbackEmoji(item: ServiceCatalogDto): string {
+  return serviceCatalogFallbackEmoji(item, 'RECYCLING');
+}
+
+function onItemIconError(item: ServiceCatalogDto) {
+  if (!item.icon || failedRemoteIconIds.value.has(item.id)) return;
+  failedRemoteIconIds.value = new Set([...failedRemoteIconIds.value, item.id]);
 }
 
 async function loadCatalogs() {

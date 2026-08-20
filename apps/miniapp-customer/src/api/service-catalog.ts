@@ -10,7 +10,7 @@ export interface ServiceCatalogDto {
   bizType: string;
   name: string;
   subtitle: string;
-  icon: string;
+  icon: string | null;
   sortOrder: number;
   isEnabled: boolean;
 }

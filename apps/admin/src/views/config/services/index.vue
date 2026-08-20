@@ -152,12 +152,45 @@
             show-word-limit
           />
         </el-form-item>
-        <el-form-item label="图标 URL" prop="icon">
-          <el-input
-            v-model="form.icon"
-            placeholder="请输入图标地址（选填）"
-            maxlength="512"
-          />
+        <el-form-item label="服务图标" prop="icon">
+          <div class="icon-upload-row">
+            <button
+              type="button"
+              class="icon-upload-box"
+              :class="{ 'is-uploading': iconUploading }"
+              :disabled="iconUploading"
+              @click="triggerIconUpload"
+            >
+              <img
+                v-if="form.icon"
+                :src="form.icon"
+                class="icon-upload-preview"
+                alt="服务图标"
+              />
+              <template v-else>
+                <el-icon :size="24" color="#c0c4cc"><Plus /></el-icon>
+                <span>{{ iconUploading ? '上传中' : '选择图片' }}</span>
+              </template>
+            </button>
+            <input
+              ref="iconFileInput"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              class="hidden-input"
+              @change="onIconFileChange"
+            />
+            <div class="icon-upload-info">
+              <span>支持 jpg、png、webp，建议正方形，不超过 1MB</span>
+              <div v-if="form.icon" class="icon-upload-actions">
+                <el-button type="primary" link :disabled="iconUploading" @click="triggerIconUpload">
+                  重新上传
+                </el-button>
+                <el-button type="danger" link :disabled="iconUploading" @click="clearIcon">
+                  清除
+                </el-button>
+              </div>
+            </div>
+          </div>
         </el-form-item>
         <el-form-item label="排序" prop="sortOrder">
           <el-input-number
@@ -172,7 +205,14 @@
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitLoading" @click="onSubmit">确定</el-button>
+        <el-button
+          type="primary"
+          :loading="submitLoading"
+          :disabled="iconUploading"
+          @click="onSubmit"
+        >
+          确定
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -182,6 +222,7 @@
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
 import { Plus, Search } from '@element-plus/icons-vue';
+import request from '@/api/request';
 import {
   createServiceCatalog,
   deleteServiceCatalog,
@@ -191,6 +232,12 @@ import {
   type CreateServiceCatalogBody,
   type ServiceCatalogItem,
 } from '@/api/service-catalog';
+import {
+  buildCreateIconPayload,
+  buildUpdateIconPayload,
+  extractUploadedIconUrl,
+  validateServiceIconFile,
+} from './service-icon.utils';
 
 // ─── 业务类型映射 ─────────────────────────────────────────────────────────────
 
@@ -311,8 +358,10 @@ const onDelete = async (row: ServiceCatalogItem) => {
 const dialogVisible = ref(false);
 const isEdit = ref(false);
 const submitLoading = ref(false);
+const iconUploading = ref(false);
 const formRef = ref<FormInstance>();
 const editingId = ref<number | null>(null);
+const iconFileInput = ref<HTMLInputElement>();
 
 const FORM_DEFAULT: CreateServiceCatalogBody & { subtitle: string; icon: string } = {
   bizType: 'CLEANING',
@@ -356,9 +405,64 @@ const openEditDialog = (row: ServiceCatalogItem) => {
 const resetForm = () => {
   formRef.value?.clearValidate();
   Object.assign(form, FORM_DEFAULT);
+  if (iconFileInput.value) iconFileInput.value.value = '';
+};
+
+// ─── 服务图标上传 ─────────────────────────────────────────────────────────────
+
+const triggerIconUpload = () => {
+  if (!iconUploading.value) iconFileInput.value?.click();
+};
+
+const clearIcon = () => {
+  form.icon = '';
+  formRef.value?.clearValidate('icon');
+  if (iconFileInput.value) iconFileInput.value.value = '';
+};
+
+const onIconFileChange = async (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  const validation = validateServiceIconFile(file);
+  if (!validation.ok) {
+    ElMessage.error(validation.message);
+    input.value = '';
+    return;
+  }
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('file', file);
+  iconUploading.value = true;
+  try {
+    const res = await request.post<{ code: number; data: { url: string } }>(
+      '/upload/icon',
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    );
+    const uploadedUrl = extractUploadedIconUrl(res.data);
+    if (!uploadedUrl) {
+      ElMessage.error('上传接口未返回图标地址');
+      throw new Error('上传接口未返回图标地址');
+    }
+
+    form.icon = uploadedUrl;
+    await formRef.value?.validateField('icon');
+    ElMessage.success('图标上传成功');
+    console.info('[ServiceConfig] icon upload success url=%s', uploadedUrl);
+  } catch (error) {
+    console.error('[ServiceConfig] icon upload error', error);
+  } finally {
+    iconUploading.value = false;
+    input.value = '';
+  }
 };
 
 const onSubmit = async () => {
+  if (iconUploading.value) {
+    ElMessage.warning('请等待图标上传完成');
+    return;
+  }
   const valid = await formRef.value?.validate().catch(() => false);
   if (!valid) return;
 
@@ -368,12 +472,15 @@ const onSubmit = async () => {
       bizType: form.bizType,
       name: form.name,
       subtitle: form.subtitle || undefined,
-      icon: form.icon || undefined,
+      icon: buildCreateIconPayload(form.icon),
       sortOrder: form.sortOrder,
     };
 
     if (isEdit.value && editingId.value !== null) {
-      await updateServiceCatalog(editingId.value, payload);
+      await updateServiceCatalog(editingId.value, {
+        ...payload,
+        icon: buildUpdateIconPayload(form.icon),
+      });
       ElMessage.success('编辑成功');
       console.info('[ServiceConfig] update id=%d', editingId.value);
     } else {
@@ -457,5 +564,69 @@ onMounted(loadData);
   margin-left: 10px;
   font-size: 12px;
   color: #909399;
+}
+
+.icon-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.icon-upload-box {
+  width: 76px;
+  height: 76px;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: #909399;
+  font-size: 12px;
+  background: #fafafa;
+  border: 1px dashed #dcdfe6;
+  border-radius: 6px;
+  cursor: pointer;
+
+  &:hover {
+    color: #409eff;
+    border-color: #409eff;
+  }
+
+  &.is-uploading {
+    cursor: wait;
+    opacity: 0.65;
+  }
+}
+
+.icon-upload-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.icon-upload-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  color: #909399;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.icon-upload-actions {
+  display: flex;
+  margin-top: 4px;
+
+  :deep(.el-button) {
+    margin-left: 0;
+    margin-right: 12px;
+  }
 }
 </style>

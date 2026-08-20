@@ -36,7 +36,10 @@ export interface CreateServiceCatalogBody {
   sortOrder?: number;
 }
 
-export type UpdateServiceCatalogBody = Partial<CreateServiceCatalogBody>;
+export type UpdateServiceCatalogBody = Partial<Omit<CreateServiceCatalogBody, 'icon'>> & {
+  /** 传 null 表示清除已配置的图标。 */
+  icon?: string | null;
+};
 
 // ─── API 方法 ─────────────────────────────────────────────────────────────────
 

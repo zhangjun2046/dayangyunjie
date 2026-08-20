@@ -22,11 +22,11 @@ export class UpdateServiceCatalogDto {
   @MaxLength(128)
   subtitle?: string;
 
-  @ApiPropertyOptional({ description: '图标 URL' })
+  @ApiPropertyOptional({ description: '图标 URL；传 null 可清除图标', nullable: true })
   @IsOptional()
   @IsString()
   @MaxLength(512)
-  icon?: string;
+  icon?: string | null;
 
   @ApiPropertyOptional({ description: '排序权重', example: 0 })
   @IsOptional()
