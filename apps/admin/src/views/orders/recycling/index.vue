@@ -541,6 +541,7 @@ import {
 } from '@/api/recycling';
 import { fetchWorkers, type WorkerListItem } from '@/api/worker';
 import { fetchServiceCatalogs, type ServiceCatalogItem } from '@/api/service-catalog';
+import { filterAssignableWorkers, skillLabel } from '@/utils/worker-skill';
 
 // ─── 状态 Tab ─────────────────────────────────────────────────────────────────
 
@@ -779,20 +780,7 @@ const photoGroups = computed(() => {
 // ─── 分配弹窗 ─────────────────────────────────────────────────────────────────
 
 const allWorkers = ref<WorkerListItem[]>([]);
-const idleWorkers = computed(() =>
-  allWorkers.value.filter(
-    (worker) =>
-      worker.status === 'IDLE' &&
-      (worker.skillType === 'RECYCLING' || worker.skillType === 'BOTH'),
-  ),
-);
-
-function skillLabel(skillType?: string) {
-  if (skillType === 'CLEANING') return '保洁';
-  if (skillType === 'RECYCLING') return '收废品';
-  if (skillType === 'BOTH') return '保洁和收废品';
-  return skillType ?? '—';
-}
+const idleWorkers = computed(() => filterAssignableWorkers(allWorkers.value, 'RECYCLING'));
 
 const assignDialog = reactive({
   visible: false,
