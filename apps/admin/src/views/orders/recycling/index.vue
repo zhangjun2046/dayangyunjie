@@ -178,12 +178,7 @@
         <el-table-column label="员工" prop="name" width="100" />
         <el-table-column label="技能" width="120">
           <template #default="{ row }">
-            <el-tag
-              v-for="skill in (row.skills || []).slice(0, 2)"
-              :key="skill"
-              size="small"
-              style="margin-right: 4px"
-            >{{ skill }}</el-tag>
+            <el-tag size="small">{{ skillLabel(row.skillType) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="80" align="center">
@@ -784,7 +779,20 @@ const photoGroups = computed(() => {
 // ─── 分配弹窗 ─────────────────────────────────────────────────────────────────
 
 const allWorkers = ref<WorkerListItem[]>([]);
-const idleWorkers = computed(() => allWorkers.value.filter((w) => w.status === 'IDLE'));
+const idleWorkers = computed(() =>
+  allWorkers.value.filter(
+    (worker) =>
+      worker.status === 'IDLE' &&
+      (worker.skillType === 'RECYCLING' || worker.skillType === 'BOTH'),
+  ),
+);
+
+function skillLabel(skillType?: string) {
+  if (skillType === 'CLEANING') return '保洁';
+  if (skillType === 'RECYCLING') return '收废品';
+  if (skillType === 'BOTH') return '保洁和收废品';
+  return skillType ?? '—';
+}
 
 const assignDialog = reactive({
   visible: false,
