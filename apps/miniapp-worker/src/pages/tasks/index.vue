@@ -57,10 +57,15 @@
         <view class="card-main">
           <!-- 服务类型图标 -->
           <view :class="['service-icon', item.orderType === 'cleaning' ? 'icon-cleaning' : 'icon-recycling']">
+            <text v-if="getServiceEmoji(item)" class="icon-emoji">
+              {{ getServiceEmoji(item) }}
+            </text>
             <image
+              v-else
               class="icon-img"
-              :src="item.orderType === 'cleaning' ? '/static/icons/cleaning.png' : '/static/icons/recycling.png'"
+              :src="getServiceIcon(item)"
               mode="aspectFit"
+              @error="onServiceIconError(item)"
             />
           </view>
           <!-- 文字信息 -->
@@ -115,6 +120,13 @@ import { onShow, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/store/auth';
 import { fetchWorkerOrders, acceptOrder } from '@/api/order';
 import type { WorkerOrderItem } from '@/api/order';
+import { fetchWorkerServiceCatalogs } from '@/api/service-catalog';
+import type { ServiceCatalogDto } from '@/api/service-catalog';
+import {
+  resolveOrderRemoteIcon,
+  resolveOrderServiceEmoji,
+  resolveOrderServiceIcon,
+} from '@/utils/service-catalog-icon';
 
 const authStore = useAuthStore();
 
@@ -140,6 +152,8 @@ const statusPills = [
 const activeTab = ref<TabValue>('cleaning');
 const activePillKey = ref('all');
 const orders = ref<WorkerOrderItem[]>([]);
+const serviceCatalogs = ref<ServiceCatalogDto[]>([]);
+const failedRemoteIcons = ref<Set<string>>(new Set());
 const loading = ref(false);
 const loadingMore = ref(false);
 const currentPage = ref(1);
@@ -166,6 +180,34 @@ function statusLabel(status: string): string {
     CANCELLED: '已取消',
   };
   return map[status] ?? status;
+}
+
+/** 加载二级服务配置；失败时保留一级大类图标，不阻断任务列表。 */
+async function loadServiceCatalogs(): Promise<void> {
+  try {
+    serviceCatalogs.value = await fetchWorkerServiceCatalogs();
+    failedRemoteIcons.value = new Set();
+  } catch (err) {
+    console.info('[tasks] loadServiceCatalogs failed, use default icons', err);
+  }
+}
+
+/** 获取订单对应的二级服务配置图标。 */
+function getServiceIcon(item: WorkerOrderItem): string {
+  return resolveOrderServiceIcon(item, serviceCatalogs.value, failedRemoteIcons.value);
+}
+
+/** 获取订单对应的 Emoji 图标；图片地址返回 null。 */
+function getServiceEmoji(item: WorkerOrderItem): string | null {
+  return resolveOrderServiceEmoji(item, serviceCatalogs.value);
+}
+
+/** 远程配置图标加载失败后，记录地址并切换为一级大类兜底图标。 */
+function onServiceIconError(item: WorkerOrderItem): void {
+  const remoteIcon = resolveOrderRemoteIcon(item, serviceCatalogs.value);
+  if (!remoteIcon || failedRemoteIcons.value.has(remoteIcon)) return;
+  failedRemoteIcons.value = new Set([...failedRemoteIcons.value, remoteIcon]);
+  console.info('[tasks] service icon load failed, fallback=', remoteIcon);
 }
 
 /**
@@ -229,12 +271,12 @@ function onPillChange(key: string): void {
 
 /** 每次页面显示时刷新 */
 onShow(() => {
-  loadOrders(1, true);
+  Promise.all([loadOrders(1, true), loadServiceCatalogs()]);
 });
 
 /** 下拉刷新 */
 onPullDownRefresh(async () => {
-  await loadOrders(1, true);
+  await Promise.all([loadOrders(1, true), loadServiceCatalogs()]);
   uni.stopPullDownRefresh();
 });
 
@@ -519,6 +561,11 @@ function handleViewDetail(item: WorkerOrderItem): void {
 .icon-img {
   width: 100rpx;
   height: 100rpx;
+}
+
+.icon-emoji {
+  font-size: 56rpx;
+  line-height: 1;
 }
 
 .card-info {
