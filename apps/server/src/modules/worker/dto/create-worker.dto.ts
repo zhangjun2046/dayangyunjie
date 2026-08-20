@@ -1,10 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { WorkerStatus } from '@prisma/client';
 import {
+  ArrayMaxSize,
   IsEnum,
+  IsArray,
   IsNumber,
   IsOptional,
   IsString,
+  IsUrl,
   Length,
   Max,
   MaxLength,
@@ -121,6 +124,22 @@ export class CreateWorkerDto {
   @IsString()
   @MaxLength(512)
   skillCertUrl?: string;
+
+  @ApiPropertyOptional({
+    description: '技能证书图片 URL 列表，最多 9 张',
+    example: [
+      'https://example.com/skill-1.jpg',
+      'https://example.com/skill-2.jpg',
+    ],
+    type: [String],
+    maxItems: 9,
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(9)
+  @IsString({ each: true })
+  @IsUrl({ require_protocol: true, require_tld: false }, { each: true })
+  skillCertUrls?: string[];
 
   @ApiPropertyOptional({ description: '技能证书有效期（ISO 日期字符串）', example: '2027-01-01' })
   @IsOptional()

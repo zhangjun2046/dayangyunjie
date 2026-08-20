@@ -24,7 +24,9 @@ export interface WorkerListItem {
   emergencyPhone?: string;
   healthCertUrl?: string;
   healthCertExpiry?: string | null;
+  /** @deprecated 使用 skillCertUrls；旧字段仅用于兼容历史客户端 */
   skillCertUrl?: string;
+  skillCertUrls?: string[];
   skillCertExpiry?: string | null;
   avatar?: string;
   createdAt?: string;
@@ -49,7 +51,9 @@ export interface CreateWorkerPayload {
   emergencyPhone?: string;
   healthCertUrl?: string;
   healthCertExpiry?: string;
+  /** @deprecated 使用 skillCertUrls；旧字段仅用于兼容历史客户端 */
   skillCertUrl?: string;
+  skillCertUrls?: string[];
   skillCertExpiry?: string;
   status?: 'IDLE' | 'BUSY';
   rating?: number;

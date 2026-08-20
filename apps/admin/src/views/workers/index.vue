@@ -147,13 +147,20 @@
           </div>
           <div class="cert-item">
             <div class="cert-label">技能证书</div>
-            <el-image
-              v-if="currentWorker.skillCertUrl"
-              :src="currentWorker.skillCertUrl"
-              :preview-src-list="[currentWorker.skillCertUrl]"
-              fit="cover"
-              class="cert-img"
-            />
+            <div
+              v-if="getSkillCertUrls(currentWorker).length > 0"
+              class="cert-images"
+            >
+              <el-image
+                v-for="(url, index) in getSkillCertUrls(currentWorker)"
+                :key="url"
+                :src="url"
+                :preview-src-list="getSkillCertUrls(currentWorker)"
+                :initial-index="index"
+                fit="cover"
+                class="cert-img cert-img-multiple"
+              />
+            </div>
             <div v-else class="cert-empty">暂无图片</div>
             <div class="cert-expiry">
               有效期：{{ formatDate(currentWorker.skillCertExpiry) }}
@@ -321,13 +328,58 @@
               <input ref="healthInput" type="file" accept="image/*" style="display:none" @change="(e) => onFileChange(e, 'health')" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="技能证书">
-              <div class="upload-box" @click="triggerUpload('skill')">
-                <img v-if="form.skillCertUrl" :src="form.skillCertUrl" class="upload-preview" />
-                <div v-else class="upload-placeholder"><el-icon><Plus /></el-icon><span>上传图片</span></div>
+          <el-col :span="24">
+            <el-form-item label="技能证书" prop="skillCertUrls">
+              <div class="skill-cert-uploader">
+                <div class="skill-cert-list">
+                  <div
+                    v-for="(url, index) in form.skillCertUrls"
+                    :key="`${url}-${index}`"
+                    class="skill-cert-item"
+                  >
+                    <el-image
+                      :src="url"
+                      :preview-src-list="form.skillCertUrls"
+                      :initial-index="index"
+                      fit="cover"
+                      class="upload-preview"
+                    />
+                    <button
+                      type="button"
+                      class="skill-cert-remove"
+                      aria-label="删除技能证书"
+                      @click.stop="removeSkillCert(index)"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div
+                    v-if="form.skillCertUrls.length < MAX_SKILL_CERTS"
+                    class="upload-box"
+                    :class="{ 'is-uploading': skillUploading }"
+                    @click="triggerUpload('skill')"
+                  >
+                    <div class="upload-placeholder">
+                      <el-icon>
+                        <Loading v-if="skillUploading" class="is-loading" />
+                        <Plus v-else />
+                      </el-icon>
+                      <span>{{ skillUploading ? '上传中' : '继续上传' }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="skill-cert-count">
+                  已上传 {{ form.skillCertUrls.length }}/{{ MAX_SKILL_CERTS }} 张
+                </div>
               </div>
-              <input ref="skillCertInput" type="file" accept="image/*" style="display:none" @change="(e) => onFileChange(e, 'skill')" />
+              <input
+                ref="skillCertInput"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                style="display:none"
+                @change="(e) => onFileChange(e, 'skill')"
+              />
             </el-form-item>
           </el-col>
         </el-row>
@@ -335,7 +387,14 @@
 
       <template #footer>
         <el-button @click="formVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saveLoading" @click="onSave">保存</el-button>
+        <el-button
+          type="primary"
+          :loading="saveLoading"
+          :disabled="skillUploading"
+          @click="onSave"
+        >
+          保存
+        </el-button>
       </template>
     </el-dialog>
 
@@ -496,6 +555,11 @@ const formVisible = ref(false);
 const isEdit = ref(false);
 const saveLoading = ref(false);
 const formRef = ref<FormInstance>();
+const MAX_SKILL_CERTS = 9;
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const skillUploadCount = ref(0);
+const skillUploading = computed(() => skillUploadCount.value > 0);
 
 const EMPTY_FORM = () => ({
   id: 0,
@@ -513,7 +577,7 @@ const EMPTY_FORM = () => ({
   idFrontUrl: '',
   idBackUrl: '',
   healthCertUrl: '',
-  skillCertUrl: '',
+  skillCertUrls: [] as string[],
 });
 
 const form = reactive(EMPTY_FORM());
@@ -526,6 +590,16 @@ const formRules: FormRules = {
   ],
   employeeNo: [{ required: true, message: '请输入员工编号', trigger: 'blur' }],
   skillType: [{ required: true, message: '请选择技能', trigger: 'change' }],
+  skillCertUrls: [{
+    validator: (_rule, value: string[], callback) => {
+      if (value.length > MAX_SKILL_CERTS) {
+        callback(new Error(`技能证书最多上传 ${MAX_SKILL_CERTS} 张`));
+        return;
+      }
+      callback();
+    },
+    trigger: 'change',
+  }],
 };
 
 function openCreateDialog() {
@@ -554,12 +628,16 @@ function openEditDialog(row: WorkerListItem) {
     idFrontUrl: '',
     idBackUrl: '',
     healthCertUrl: row.healthCertUrl ?? '',
-    skillCertUrl: row.skillCertUrl ?? '',
+    skillCertUrls: getSkillCertUrls(row),
   });
   formVisible.value = true;
 }
 
 async function onSave() {
+  if (skillUploading.value) {
+    ElMessage.warning('技能证书仍在上传，请稍候');
+    return;
+  }
   const valid = await formRef.value?.validate().catch(() => false);
   if (!valid) return;
 
@@ -577,7 +655,7 @@ async function onSave() {
         emergencyContact: form.emergencyContact || undefined,
         emergencyPhone: form.emergencyPhone || undefined,
         healthCertUrl: form.healthCertUrl || undefined,
-        skillCertUrl: form.skillCertUrl || undefined,
+        skillCertUrls: [...form.skillCertUrls],
       };
       await updateWorker(form.id, payload);
       ElMessage.success('员工信息已更新');
@@ -597,7 +675,7 @@ async function onSave() {
         emergencyContact: form.emergencyContact || undefined,
         emergencyPhone: form.emergencyPhone || undefined,
         healthCertUrl: form.healthCertUrl || undefined,
-        skillCertUrl: form.skillCertUrl || undefined,
+        skillCertUrls: [...form.skillCertUrls],
       };
       await createWorker(payload);
       ElMessage.success('员工已新增，初始密码为手机号');
@@ -623,6 +701,12 @@ const skillCertInput = ref<HTMLInputElement>();
 type UploadTarget = 'idFront' | 'idBack' | 'health' | 'skill';
 
 function triggerUpload(target: UploadTarget) {
+  if (
+    target === 'skill'
+    && (skillUploading.value || form.skillCertUrls.length >= MAX_SKILL_CERTS)
+  ) {
+    return;
+  }
   const map: Record<UploadTarget, HTMLInputElement | undefined> = {
     idFront: idFrontInput.value,
     idBack: idBackInput.value,
@@ -632,33 +716,94 @@ function triggerUpload(target: UploadTarget) {
   map[target]?.click();
 }
 
-async function onFileChange(event: Event, target: UploadTarget) {
-  const input = event.target as HTMLInputElement;
-  const file = input.files?.[0];
-  if (!file) return;
-
+/** 上传单张图片并返回服务端 URL。 */
+async function uploadImage(file: File): Promise<string> {
   const fd = new FormData();
   fd.append('file', file);
+  const res = await request.post<{ code: number; data: { url: string } }>(
+    '/upload/image',
+    fd,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  );
+  return res.data.data?.url ?? '';
+}
+
+/** 校验与后端上传接口一致的格式和 10MB 大小限制。 */
+function isValidImage(file: File): boolean {
+  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+    ElMessage.warning(`${file.name} 格式不支持，仅允许 JPEG、PNG、WebP`);
+    return false;
+  }
+  if (file.size > MAX_IMAGE_SIZE) {
+    ElMessage.warning(`${file.name} 超过 10MB，无法上传`);
+    return false;
+  }
+  return true;
+}
+
+async function onFileChange(event: Event, target: UploadTarget) {
+  const input = event.target as HTMLInputElement;
+  const selectedFiles = Array.from(input.files ?? []);
+  if (selectedFiles.length === 0) return;
+
   try {
-    const res = await request.post<{ code: number; data: { url: string } }>('/upload/image', fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    const url = res.data.data?.url ?? '';
+    if (target === 'skill') {
+      const remaining = MAX_SKILL_CERTS - form.skillCertUrls.length;
+      const files = selectedFiles.slice(0, remaining).filter(isValidImage);
+      if (selectedFiles.length > remaining) {
+        ElMessage.warning(`最多上传 ${MAX_SKILL_CERTS} 张，已忽略超出部分`);
+      }
+      if (files.length === 0) return;
+
+      skillUploadCount.value += files.length;
+      const results = await Promise.allSettled(files.map(uploadImage));
+      const uploadedUrls = results
+        .filter((result): result is PromiseFulfilledResult<string> =>
+          result.status === 'fulfilled' && Boolean(result.value))
+        .map((result) => result.value);
+      form.skillCertUrls.push(...uploadedUrls);
+      await formRef.value?.validateField('skillCertUrls');
+
+      const failedCount = files.length - uploadedUrls.length;
+      if (failedCount > 0) {
+        ElMessage.warning(`成功上传 ${uploadedUrls.length} 张，失败 ${failedCount} 张`);
+      } else {
+        ElMessage.success(`成功上传 ${uploadedUrls.length} 张技能证书`);
+      }
+      console.info(
+        '[Workers] skill certificates uploaded, success=',
+        uploadedUrls.length,
+        'failed=',
+        failedCount,
+      );
+      return;
+    }
+
+    const file = selectedFiles[0];
+    if (!file || !isValidImage(file)) return;
+    const url = await uploadImage(file);
     if (target === 'idFront') form.idFrontUrl = url;
     else if (target === 'idBack') form.idBackUrl = url;
-    else if (target === 'health') {
+    else {
       form.healthCertUrl = url;
       await formRef.value?.validateField('healthCertUrl');
-    } else {
-      form.skillCertUrl = url;
-      await formRef.value?.validateField('skillCertUrl');
     }
     console.info('[Workers] upload success target=', target, 'url=', url);
   } catch {
     ElMessage.error('图片上传失败');
   } finally {
+    if (target === 'skill') {
+      skillUploadCount.value = 0;
+    }
     input.value = '';
   }
+}
+
+/** 删除一张待保存的技能证书。 */
+function removeSkillCert(index: number) {
+  form.skillCertUrls.splice(index, 1);
+  formRef.value?.validateField('skillCertUrls');
+  console.info('[Workers] skill certificate removed, index=', index);
 }
 
 // ─── 重置密码 ─────────────────────────────────────────────────────────────────
@@ -688,6 +833,15 @@ async function onConfirmReset() {
 }
 
 // ─── 辅助函数 ─────────────────────────────────────────────────────────────────
+
+/** 优先读取多图字段，并兼容历史单图数据。 */
+function getSkillCertUrls(worker: WorkerListItem): string[] {
+  const urls = worker.skillCertUrls?.filter(Boolean) ?? [];
+  if (urls.length > 0) {
+    return urls;
+  }
+  return worker.skillCertUrl ? [worker.skillCertUrl] : [];
+}
 
 function skillLabel(skillType?: string) {
   if (skillType === 'CLEANING') return '保洁';
@@ -821,6 +975,17 @@ function orderTypeLabel(type: string) {
   cursor: pointer;
 }
 
+.cert-images {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cert-img-multiple {
+  width: 100%;
+  height: 76px;
+}
+
 .cert-empty {
   width: 100%;
   height: 120px;
@@ -919,10 +1084,60 @@ function orderTypeLabel(type: string) {
   border-color: #409eff;
 }
 
+.upload-box.is-uploading {
+  cursor: wait;
+  opacity: 0.7;
+}
+
 .upload-preview {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.skill-cert-uploader {
+  width: 100%;
+}
+
+.skill-cert-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.skill-cert-item {
+  position: relative;
+  width: 120px;
+  height: 90px;
+  overflow: hidden;
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+}
+
+.skill-cert-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: rgb(0 0 0 / 55%);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 20px;
+}
+
+.skill-cert-remove:hover {
+  background: #f56c6c;
+}
+
+.skill-cert-count {
+  margin-top: 6px;
+  color: #909399;
+  font-size: 12px;
 }
 
 .upload-placeholder {

@@ -7,11 +7,14 @@
     "dev": "nest start --watch",
     "start": "nest start",
     "start:prod": "node dist/main",
+    "test": "jest --runInBand",
+    "test:worker": "jest worker.spec.ts --runInBand --no-coverage",
     "lint": "echo 'TODO: eslint setup'",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
+    "prisma:backfill-skill-certs": "ts-node prisma/backfill-skill-cert-urls.ts",
     "prisma:seed": "prisma db seed"
   },
   "dependencies": {
@@ -46,6 +49,7 @@
     "@types/node": "^22.0.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/sharp": "^0.31.1",
+    "jest": "^29.7.0",
     "prisma": "^6.5.0",
     "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",

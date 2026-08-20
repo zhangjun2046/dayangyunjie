@@ -16,12 +16,25 @@ export class WorkerService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async create(createWorkerDto: CreateWorkerDto) {
-    const { password, ...rest } = createWorkerDto;
+    const { password, skillCertUrls, skillCertUrl, ...rest } = createWorkerDto;
     const passwordHash = await bcrypt.hash(password, 10);
+    const normalizedSkillCertUrls = this.normalizeSkillCertUrls(
+      skillCertUrls,
+      skillCertUrl,
+    );
 
     try {
       const worker = await this.prismaService.worker.create({
-        data: { ...rest, passwordHash },
+        data: {
+          ...rest,
+          passwordHash,
+          ...(normalizedSkillCertUrls !== undefined
+            ? {
+                skillCertUrls: normalizedSkillCertUrls as Prisma.InputJsonValue,
+                skillCertUrl: normalizedSkillCertUrls[0] ?? null,
+              }
+            : {}),
+        },
       });
       return this.toPublicWorker(worker);
     } catch (error) {
@@ -99,8 +112,18 @@ export class WorkerService {
 
   async update(id: number, updateWorkerDto: UpdateWorkerDto) {
     await this.findOne(id);
-    const { password, ...rest } = updateWorkerDto;
+    const { password, skillCertUrls, skillCertUrl, ...rest } = updateWorkerDto;
     const data: Prisma.WorkerUpdateInput = { ...rest };
+    const normalizedSkillCertUrls = this.normalizeSkillCertUrls(
+      skillCertUrls,
+      skillCertUrl,
+    );
+
+    if (normalizedSkillCertUrls !== undefined) {
+      data.skillCertUrls = normalizedSkillCertUrls as Prisma.InputJsonValue;
+      // 同步首张到旧字段，保障尚未升级的客户端仍可展示技能证书。
+      data.skillCertUrl = normalizedSkillCertUrls[0] ?? null;
+    }
 
     if (password) {
       data.passwordHash = await bcrypt.hash(password, 10);
@@ -158,7 +181,40 @@ export class WorkerService {
 
   private toPublicWorker(worker: Worker) {
     const { passwordHash, ...rest } = worker;
-    return rest;
+    return {
+      ...rest,
+      skillCertUrls: this.normalizeSkillCertUrls(
+        this.toStringArray(worker.skillCertUrls),
+        worker.skillCertUrl,
+      ) ?? [],
+    };
+  }
+
+  /**
+   * 统一新旧技能证书字段。
+   * 数组字段优先；未传数组时回退到旧单图字段，空字符串按无证书处理。
+   */
+  private normalizeSkillCertUrls(
+    skillCertUrls?: string[],
+    legacySkillCertUrl?: string | null,
+  ): string[] | undefined {
+    if (skillCertUrls !== undefined) {
+      return skillCertUrls.filter((url) => url.trim().length > 0);
+    }
+    if (legacySkillCertUrl?.trim()) {
+      return [legacySkillCertUrl];
+    }
+    return legacySkillCertUrl === null || legacySkillCertUrl === ''
+      ? []
+      : undefined;
+  }
+
+  /** Prisma JsonValue 安全转换为字符串数组，忽略异常历史值。 */
+  private toStringArray(value: Prisma.JsonValue | null): string[] | undefined {
+    if (!Array.isArray(value)) {
+      return undefined;
+    }
+    return value.filter((item): item is string => typeof item === 'string');
   }
 
   private handlePrismaError(error: unknown): never {

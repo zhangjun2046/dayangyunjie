@@ -114,6 +114,7 @@ model Worker {
   healthCertUrl    String?      @map("health_cert_url") @db.VarChar(512)
   healthCertExpiry DateTime?    @map("health_cert_expiry")
   skillCertUrl     String?      @map("skill_cert_url") @db.VarChar(512)
+  skillCertUrls    Json?        @map("skill_cert_urls")
   skillCertExpiry  DateTime?    @map("skill_cert_expiry")
   createdAt        DateTime     @default(now()) @map("created_at")
   updatedAt        DateTime     @updatedAt @map("updated_at")
