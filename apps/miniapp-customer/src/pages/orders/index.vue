@@ -45,13 +45,13 @@
 
       <!-- 未登录提示 -->
       <view v-else-if="notLoggedIn" class="empty-wrap">
-        <image class="empty-icon" src="/static/icons/add-photo.png" mode="aspectFit" />
+        <image class="empty-icon" src="/static/icons/icon_empty.png" mode="aspectFit" />
         <text class="empty-text">请先登录后查看订单</text>
       </view>
 
       <!-- 空状态 -->
       <view v-else-if="!loading && orders.length === 0" class="empty-wrap">
-        <image class="empty-icon" src="/static/icons/add-photo.png" mode="aspectFit" />
+        <image class="empty-icon" src="/static/icons/icon_empty.png" mode="aspectFit" />
         <text class="empty-text">暂无订单</text>
       </view>
 
@@ -466,9 +466,9 @@ function getOrderIcon(order: AnyOrder): string {
 }
 
 .empty-icon {
-  width: 160rpx;
-  height: 160rpx;
-  margin-bottom: 24rpx;
+  width: 320rpx;
+  height: 320rpx;
+  margin-bottom: 8rpx;
 }
 
 .empty-text {

@@ -4,6 +4,7 @@
  */
 
 import { request } from './request';
+import type { ProgressNodeDto } from '@dayangyunjie/shared';
 
 export interface CreateConsultOrderParams {
   serviceType: string;
@@ -34,6 +35,10 @@ export interface ConsultOrderDto {
   remark?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ConsultOrderDetailDto extends ConsultOrderDto {
+  progress: ProgressNodeDto[];
 }
 
 export interface OrderListResult<T> {
@@ -81,6 +86,6 @@ export function fetchConsultOrderList(
  * 查询家政咨询单详情
  * GET /consult-orders/:id
  */
-export function fetchConsultOrderDetail(id: number): Promise<ConsultOrderDto> {
-  return request<ConsultOrderDto>('GET', `/consult-orders/${id}`);
+export function fetchConsultOrderDetail(id: number): Promise<ConsultOrderDetailDto> {
+  return request<ConsultOrderDetailDto>('GET', `/consult-orders/${id}`);
 }

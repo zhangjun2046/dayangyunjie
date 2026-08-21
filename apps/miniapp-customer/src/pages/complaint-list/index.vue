@@ -21,7 +21,7 @@
 
     <!-- 空状态 -->
     <view v-else-if="!loading && items.length === 0" class="state-wrap">
-      <image class="state-icon" src="/static/icons/add-photo.png" mode="aspectFit" />
+      <image class="state-icon" src="/static/icons/icon_empty.png" mode="aspectFit" />
       <text class="state-text">暂无投诉记录</text>
     </view>
 
@@ -237,14 +237,14 @@ function formatDate(dateStr: string): string {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* justify-content: center; */
   padding: 120rpx 0;
   gap: 24rpx;
 }
 
 .state-icon {
-  width: 160rpx;
-  height: 160rpx;
+  width: 320rpx;
+  height: 320rpx;
 }
 
 .state-text {

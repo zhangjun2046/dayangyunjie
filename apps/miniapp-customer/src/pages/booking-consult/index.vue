@@ -223,16 +223,16 @@ const catalogLoading = ref(false);
 /** 为没有图标的条目提供默认 emoji */
 function defaultIcon(item: ServiceCatalogDto): string {
   const iconMap: Record<string, string> = {
-    保姆: '��',
-    月嫂: '��',
-    育儿嫂: '��',
-    陪诊: '��',
-    代买菜: '��',
-    老人陪护: '��',
-    家电维修: '��',
-    搬家: '��',
+    保姆: '🏠',
+    月嫂: '👶',
+    育儿嫂: '🧒',
+    陪诊: '🏥',
+    代买菜: '🥬',
+    老人陪护: '🧓',
+    家电维修: '🔧',
+    搬家: '📦',
   };
-  return iconMap[item.name] ?? '��';
+  return iconMap[item.name] ?? '🏠';
 }
 
 function itemIconSrc(item: ServiceCatalogDto): string | null {

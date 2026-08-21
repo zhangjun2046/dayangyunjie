@@ -1,6 +1,7 @@
 <template>
   <view class="page">
     <view v-if="!loading && addresses.length === 0" class="empty-wrap">
+      <image class="empty-icon" src="/static/icons/icon_empty.png" mode="aspectFit" />
       <text class="empty-text">暂无地址，请添加新地址</text>
     </view>
 
@@ -105,11 +106,7 @@ function maskPhone(phone: string): string {
 }
 
 function formatAddress(addr: AddressDto): string {
-  const parts = [addr.province, addr.city, addr.district, addr.detail].filter(Boolean);
-  if (parts.length >= 2 && parts[0] === parts[1]) {
-    return [parts[0], ...parts.slice(2)].join(' ');
-  }
-  return parts.join(' ');
+  return [addr.province, addr.city, addr.district, addr.detail].filter(Boolean).join(' ');
 }
 
 function onOpenAdd() {
@@ -122,16 +119,24 @@ function onOpenAdd() {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #f5f5f5;
+	background: #F8FAFF;
   position: relative;
 }
 
 .empty-wrap {
   flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* justify-content: center; */
+	padding-top: 120rpx;
   padding-bottom: 160rpx;
+}
+
+.empty-icon {
+  width: 320rpx;
+  height: 320rpx;
+  margin-bottom: 8rpx;
 }
 
 .empty-text {

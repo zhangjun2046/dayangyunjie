@@ -68,7 +68,7 @@
             </view>
           </view>
           <view class="arrow-btn blue-btn">
-            <text class="arrow-icon">›</text>
+            <uni-icons type="arrow-right" color="#ffffff" size="18" />
           </view>
         </view>
 
@@ -83,7 +83,7 @@
             </view>
           </view>
           <view class="arrow-btn green-btn">
-            <text class="arrow-icon">›</text>
+            <uni-icons type="arrow-right" color="#ffffff" size="18" />
           </view>
         </view>
       </view>
@@ -101,7 +101,7 @@
             </view>
           </view>
           <view class="arrow-btn orange-btn">
-            <text class="arrow-icon">›</text>
+            <uni-icons type="arrow-right" color="#ffffff" size="18" />
           </view>
         </view>
       </view>
@@ -574,6 +574,10 @@ function onCallService() {
   width: 58rpx;
   height: 58rpx;
   border-radius: 50%;
+  overflow: hidden;
+  box-sizing: border-box;
+  /* 补偿 iconfont 字形基线偏高，使箭头视觉居中 */
+  padding-top: 4rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -595,12 +599,6 @@ function onCallService() {
 
 .arrow-btn.orange-btn {
 	background: linear-gradient( 135deg, #FF6A24 0%, #FF931A 100%);
-}
-
-.arrow-icon {
-  color: #ffffff;
-  font-size: 36rpx;
-  font-weight: 700;
 }
 
 /* ── 底部客服条 ── */

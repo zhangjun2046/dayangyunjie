@@ -3,7 +3,7 @@
     <!-- 顶部蓝色状态区 -->
     <view class="status-header">
       <text class="status-title">服务已完成</text>
-      <text class="status-subtitle">请核对清洁情况并对阿姨的服务打分</text>
+      <text class="status-subtitle">请核对清洁情况并对服务人员的服务打分</text>
     </view>
 
     <scroll-view class="content-scroll" scroll-y>
@@ -42,7 +42,7 @@
         <textarea
           class="review-textarea"
           v-model="content"
-          placeholder="清洁得非常干净，细节处理也很到位，下次还会预约这位阿姨……"
+          placeholder="清洁得非常干净，细节处理也很到位，下次还会预约这位服务人员……"
           placeholder-class="textarea-placeholder"
           :maxlength="1000"
           auto-height
@@ -214,7 +214,7 @@ async function onSubmit() {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #f5f5f5;
+	background: #F8FAFF;	
 }
 
 /* 顶部蓝色标题 */
@@ -409,19 +409,20 @@ async function onSubmit() {
 
 /* 底部操作栏 */
 .action-bar {
-  padding: 24rpx 32rpx;
+	padding: 20rpx 32rpx;
+	padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+	border-top: 1rpx solid #f0f0f0;	
   background: #ffffff;
-  border-top: 1rpx solid #f0f0f0;
 }
 
 .btn-submit {
   width: 100%;
   height: 88rpx;
-  background: #236EFF;
+  background: linear-gradient( 135deg, #246BFF 0%, #1AA1FF 100%);
   color: #ffffff;
   font-size: 32rpx;
   font-weight: 600;
-  border-radius: 44rpx;
+	border-radius: 20rpx;
   border: none;
   display: flex;
   align-items: center;
@@ -429,6 +430,6 @@ async function onSubmit() {
 }
 
 .btn-submit[disabled] {
-  background: #b0c9f5;
+  opacity: 0.5;
 }
 </style>

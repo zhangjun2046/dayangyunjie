@@ -52,7 +52,11 @@
 			  <template v-if="order.worker">
 					<view class="service-row">
 						<view class="worker-main">
-							<image class="worker-avatar" src="/static/icons/icon_photo_n.png" mode="aspectFit" />
+							<image
+								class="worker-avatar"
+								:src="getWorkerAvatar(order.worker.gender)"
+								mode="aspectFit"
+							/>
 							<view class="worker-meta">
 								<text class="worker-name">{{ order.worker.name }}</text>
 								<view class="worker-stats">
@@ -431,6 +435,7 @@ type AnyOrder = (CleaningOrderDto | RecyclingOrderDto | ConsultOrderDto) & {
     id: number;
     name: string;
     phone: string;
+    gender?: string | null;
     rating?: number;
     totalOrders?: number;
   } | null;
@@ -452,6 +457,13 @@ const navDark = ref(false);
 const heroThreshold = ref(80);
 const navColor = computed(() => (navDark.value ? '#000000' : '#ffffff'));
 const navBgColor = computed(() => (navDark.value ? '#ffffff' : 'transparent'));
+
+/** 服务人员头像：女 icon_photo_n，男 icon_photo_p；未知性别沿用默认头像 */
+function getWorkerAvatar(gender?: string | null): string {
+  return gender === 'MALE'
+    ? '/static/icons/icon_photo_p.png'
+    : '/static/icons/icon_photo_n.png';
+}
 
 // uni-app 页面参数必须通过 onLoad 获取，onMounted 在 mp-weixin 无法读到路由参数
 onLoad((options) => {

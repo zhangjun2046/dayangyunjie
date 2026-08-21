@@ -3,6 +3,7 @@
  */
 
 import { request } from './request';
+import type { ProgressNodeDto } from '@dayangyunjie/shared';
 
 export interface CreateRecyclingOrderParams {
   residentId: number;
@@ -45,12 +46,23 @@ export interface RecyclingOrderDto {
   serviceContactPhone?: string | null;
   workerId?: number | null;
   /** 已派单时携带服务人员基本信息；详情含 gender */
-  worker?: { id: number; name: string; phone: string; gender?: string | null } | null;
+  worker?: {
+    id: number;
+    name: string;
+    phone: string;
+    gender?: string | null;
+    rating?: number;
+    totalOrders?: number;
+  } | null;
   remark?: string | null;
   /** 服务前/服务后照片（完成服务后由员工端上传） */
   workPhotos?: WorkPhotoDto[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface RecyclingOrderDetailDto extends RecyclingOrderDto {
+  progress: ProgressNodeDto[];
 }
 
 export interface OrderListResult<T> {
@@ -102,8 +114,8 @@ export function fetchRecyclingOrderList(
  * 查询废品回收订单详情
  * GET /recycling-orders/:id
  */
-export function fetchRecyclingOrderDetail(id: number): Promise<RecyclingOrderDto> {
-  return request<RecyclingOrderDto>('GET', `/recycling-orders/${id}`);
+export function fetchRecyclingOrderDetail(id: number): Promise<RecyclingOrderDetailDto> {
+  return request<RecyclingOrderDetailDto>('GET', `/recycling-orders/${id}`);
 }
 
 /**

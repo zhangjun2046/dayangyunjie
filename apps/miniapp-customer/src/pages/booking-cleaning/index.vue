@@ -33,7 +33,7 @@
           <view class="card-left">
             <view class="card-icon-wrap">
               <image v-if="itemIconSrc(item)" class="card-icon-img" :src="itemIconSrc(item)!" mode="aspectFit" />
-              <text v-else class="card-icon">{{ item.icon || '��' }}</text>
+              <text v-else class="card-icon">{{ item.icon || '🧹' }}</text>
             </view>
             <view class="card-text">
               <text class="card-name">{{ item.name }}</text>

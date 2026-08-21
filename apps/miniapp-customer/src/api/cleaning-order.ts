@@ -3,6 +3,7 @@
  */
 
 import { request } from './request';
+import type { ProgressNodeDto } from '@dayangyunjie/shared';
 
 export interface CreateCleaningOrderParams {
   residentId: number;
@@ -45,12 +46,23 @@ export interface CleaningOrderDto {
   serviceContactPhone?: string | null;
   workerId?: number | null;
   /** 已派单时携带服务人员基本信息；详情含 gender */
-  worker?: { id: number; name: string; phone: string; gender?: string | null } | null;
+  worker?: {
+    id: number;
+    name: string;
+    phone: string;
+    gender?: string | null;
+    rating?: number;
+    totalOrders?: number;
+  } | null;
   remark?: string | null;
   /** 服务前/服务后照片（完成服务后由员工端上传） */
   workPhotos?: WorkPhotoDto[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CleaningOrderDetailDto extends CleaningOrderDto {
+  progress: ProgressNodeDto[];
 }
 
 export interface OrderListResult<T> {
@@ -100,8 +112,8 @@ export function fetchCleaningOrderList(
  * 查询保洁订单详情
  * GET /cleaning-orders/:id
  */
-export function fetchCleaningOrderDetail(id: number): Promise<CleaningOrderDto> {
-  return request<CleaningOrderDto>('GET', `/cleaning-orders/${id}`);
+export function fetchCleaningOrderDetail(id: number): Promise<CleaningOrderDetailDto> {
+  return request<CleaningOrderDetailDto>('GET', `/cleaning-orders/${id}`);
 }
 
 /**

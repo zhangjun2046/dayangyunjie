@@ -195,7 +195,7 @@ async function onSubmit() {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #f5f5f5;
+	background: #F8FAFF;	
 }
 
 .content-scroll {
@@ -334,9 +334,10 @@ async function onSubmit() {
 
 /* 底部操作栏 */
 .action-bar {
-  padding: 24rpx 32rpx;
-  background: #ffffff;
-  border-top: 1rpx solid #f0f0f0;
+	padding: 20rpx 32rpx;
+	padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
+	border-top: 1rpx solid #f0f0f0;	
+	background: #ffffff;
 }
 
 .btn-submit {

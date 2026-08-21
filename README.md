@@ -109,6 +109,7 @@ npx prisma migrate dev
 - 2026-08-21 Banner 跳转：居民端新增 `webview`（外链）与 `cleaning-ad-detail`（海报详情，支持 `img` 参数与默认兜底图）；`decodeQueryUrl` 避免对 query 二次 decode 破坏 URL 编码
 - 2026-08-21 居民端手机号绑定：「我的」改为 `button` + `open-type="getPhoneNumber"` 走微信官方取号窗，成功后调 `decrypt-phone` 写库；菜单露出「我的投诉」入口；`.env.example` 补充 `WECHAT_CUSTOMER_APPID`/`SECRET` 说明
 - 2026-08-21 改派进度展示：管理端服务进度将每次改派拆成独立「已改派」节点（`eventKey`），首次派单文案固定；居民/员工端仅刷新派单时间；管理端保洁/废品详情时间轴按 `eventKey` 渲染避免同状态 key 冲突
-- 2026-08-21 员工「今日完成」查询：保洁/废品列表 DTO 增加 `completedToday` 布尔筛选（兼容 `true`/`'true'`），配套单测更新
+- 2026-08-21 员工「今日完成」查询：保洁/废品列表 DTO 增加 `completedToday` 布尔筛选（兼容 `true`/`'true'`），与列表服务已有今日完成过滤对齐
 - 2026-08-21 员工端登录白屏：登录页移出 `pages.json` 首页位；`App.onLaunch` 只装路由守卫、不再立即 `switchTab`；tab 页用 `ensureAuthed` 渲染后再 `reLaunch` 登录；无本地会话时直接展示登录表单并清空预填账号
 - 2026-08-21 员工端作业区引导：接单/开始服务前点击灰显上传入口改为 toast 提示（「请先接单」/「请先开始服务」），不再用 `pointer-events: none` 吞掉点击
+- 2026-08-21 居民端体验细节：地址区划收窄为北京朝阳、新增地址预填手机号；订单/投诉空状态换 `icon_empty`；订单详情按性别切换服务人员头像；评价文案去「阿姨」、按钮与安全区样式统一；首页服务卡片箭头改 `uni-icons`

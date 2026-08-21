@@ -108,15 +108,8 @@ const REGION_DATA: RegionProvince[] = [
     cities: [
       {
         name: '北京市',
-        districts: ['东城区', '西城区', '朝阳区', '海淀区', '丰台区'],
+        districts: ['朝阳区'],
       },
-    ],
-  },
-  {
-    name: '广东省',
-    cities: [
-      { name: '深圳市', districts: ['南山区', '福田区', '罗湖区'] },
-      { name: '广州市', districts: ['天河区', '越秀区'] },
     ],
   },
 ];
@@ -163,6 +156,9 @@ onLoad(async (query) => {
     await loadForEdit(id);
   } else {
     uni.setNavigationBarTitle({ title: '新增收货地址' });
+    form.contactPhone = authStore.resident?.phone ?? '';
+    pickerIndex.value = [0, 0, 0];
+    applyRegionFromIndex(pickerIndex.value);
   }
 });
 
@@ -294,7 +290,7 @@ async function onConfirm() {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #f5f5f5;
+	background: #F8FAFF;	
 }
 
 .content-scroll {
@@ -449,13 +445,6 @@ async function onConfirm() {
 	background: #FFF;
 	padding-left: 48rpx;
 	padding-right: 48rpx;
-	/* 
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 24rpx 32rpx calc(24rpx + env(safe-area-inset-bottom));
-  background: #f5f5f5; */
 }
 
 .btn-confirm {
