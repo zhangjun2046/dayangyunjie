@@ -15,7 +15,22 @@ function isProtected(url: string): boolean {
 }
 
 function handleBlock() {
-  uni.redirectTo({ url: '/pages/login/index' });
+  uni.reLaunch({ url: '/pages/login/index' });
+}
+
+/**
+ * 供 tabBar 页在 onShow 里调用。未登录则等本页先渲染出来再去登录页，
+ * 避免 App.onLaunch 里立即跳转导致模拟器白屏。
+ */
+export async function ensureAuthed(): Promise<boolean> {
+  const authStore = useAuthStore();
+  const ok = await authStore.ensureSession();
+  if (ok) return true;
+  console.info('[worker-route-guard] not logged in, reLaunch login after paint');
+  setTimeout(() => {
+    uni.reLaunch({ url: '/pages/login/index' });
+  }, 50);
+  return false;
 }
 
 export function useRouteGuard() {

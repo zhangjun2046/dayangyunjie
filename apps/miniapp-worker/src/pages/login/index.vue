@@ -73,20 +73,33 @@
 import { ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { workerLogin } from '@/api/auth';
-import { useAuthStore } from '@/store/auth';
+import { useAuthStore, STORAGE_KEY } from '@/store/auth';
 import ContactOperatorPicker from '@/components/ContactOperatorPicker.vue';
 import { callContactOperator } from '@/utils/call-contact-operator';
 
-const phone = ref('15610203040');
-const password = ref('123456');
+function hasPersistedSession(): boolean {
+  try {
+    return !!uni.getStorageSync(STORAGE_KEY);
+  } catch {
+    return false;
+  }
+}
+
+const phone = ref('');
+const password = ref('');
 const agreed = ref(true);
 const loading = ref(false);
-const checkingSession = ref(true);
+// 无本地会话时直接展示登录表单，避免模拟器先看到一块空白
+const checkingSession = ref(hasPersistedSession());
 const contactPickerRef = ref<InstanceType<typeof ContactOperatorPicker> | null>(null);
 
 const authStore = useAuthStore();
 
 onShow(async () => {
+  if (!hasPersistedSession() && !authStore.isLoggedIn) {
+    checkingSession.value = false;
+    return;
+  }
   checkingSession.value = true;
   try {
     const ok = await authStore.ensureSession();
@@ -162,7 +175,8 @@ async function onLogin() {
 
 <style scoped>
 .page {
-  height: 100vh;
+  min-height: 100vh;
+  height: 100%;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -171,7 +185,7 @@ async function onLogin() {
 
 .checking-wrap {
   flex: 1;
-  height: 100vh;
+  min-height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -188,7 +202,7 @@ async function onLogin() {
   top: 0;
   left: 0;
   width: 100%;
-  height: 100vh;
+	min-height: 100vh; 
   z-index: 0;
 }
 
