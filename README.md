@@ -105,3 +105,5 @@ npx prisma migrate dev
 - 2026-08-20 订单计划第 1 步（状态文案统一）：居民端、员工端订单状态角标和筛选统一使用共享常量；员工详情明确区分「已派单 / 已接单」，消除页面内重复状态映射和文案不一致
 - 2026-08-20 订单计划第 2 步（服务进度）：保洁、废品、家政创建订单时写入首条 `order_status_logs`；订单详情接口返回按居民/员工/管理员角色组装的 `progress`；居民端、员工端和管理端详情统一消费后端进度数据，时间按北京时间显示到秒
 - 2026-08-20 订单计划第 3 步（员工统计与改派）：统一待办、今日完成、累计完成和管理端完成率口径；完成服务回写 `Worker.totalOrders`，评价后重算 `Worker.rating`；管理端仅允许 `ASSIGNED` 未接单订单改派，`ACCEPTED` 及以后禁止，改派记录在管理端进度中展示且旧员工无法继续查看或操作订单
+- 2026-08-21 远程图片展示：新增 `RemoteImage` 与 `resolveDisplayImage`，体验版/真机对 `http://IP` 图改走 `uni.request` 落本地再给 `<image>`；后端增加 `GET /upload/file/:filename`，与 API 同前缀读上传图，避免 Nginx 未转发 `/uploads` 导致 404；首页 Banner、「我的」头像等改用该组件
+- 2026-08-21 Banner 跳转：居民端新增 `webview`（外链）与 `cleaning-ad-detail`（海报详情，支持 `img` 参数与默认兜底图）；`decodeQueryUrl` 避免对 query 二次 decode 破坏 URL 编码

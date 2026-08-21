@@ -103,6 +103,18 @@
         "navigationBarTextStyle": "black",
         "backgroundColor": "#F8FAFF"
       }
+    },
+    {
+      "path": "pages/webview/index",
+      "style": {
+        "navigationBarTitleText": "详情"
+      }
+    },
+    {
+      "path": "pages/cleaning-ad-detail/index",
+      "style": {
+        "navigationBarTitleText": "详情"
+      }
     }
   ],
   "globalStyle": {

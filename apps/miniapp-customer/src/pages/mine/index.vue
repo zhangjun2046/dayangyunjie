@@ -9,10 +9,11 @@
         background-color="transparent"
       />
       <view class="user-card" @tap="onTapUserCard">
-        <image
+        <RemoteImage
           class="avatar"
           :src="resident?.avatar || defaultAvatar"
           mode="aspectFill"
+          variant="avatar"
         />
         <view class="user-info">
           <text class="phone-number">{{ displayPhone }}</text>
@@ -115,6 +116,7 @@ import { ref, computed } from 'vue';
 import { useAuthStore } from '@/store/auth';
 import ProfileCompleteModal from '@/components/ProfileCompleteModal.vue';
 import ContactOperatorPicker from '@/components/ContactOperatorPicker.vue';
+import RemoteImage from '@/components/RemoteImage.vue';
 import { callContactOperator } from '@/utils/call-contact-operator';
 import {
   getWechatPrivacySetting,

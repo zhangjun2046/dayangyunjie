@@ -1,10 +1,17 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import {
   BadRequestException,
   Controller,
+  Get,
+  Header,
   Inject,
   Logger,
+  NotFoundException,
+  Param,
   Post,
   Query,
+  StreamableFile,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -141,5 +148,36 @@ export class UploadController {
       message: 'ok',
       data: { url, filename },
     };
+  }
+
+  /**
+   * 通过 API 路径读取已上传图片。
+   * 小程序 request 合法域名通常只配了 /api，Nginx 可能未转发 /uploads，
+   * 用这条接口与 JSON API 走同一前缀，避免图片 404。
+   */
+  @Get('file/:filename')
+  @Header('Cache-Control', 'public, max-age=86400')
+  @ApiOperation({ summary: '读取已上传图片' })
+  serveFile(@Param('filename') filename: string): StreamableFile {
+    if (!/^[A-Za-z0-9._-]+$/.test(filename)) {
+      throw new BadRequestException('非法文件名');
+    }
+    const filePath = path.join(process.cwd(), 'uploads', filename);
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundException('文件不存在');
+    }
+    const ext = path.extname(filename).toLowerCase();
+    const mime =
+      ext === '.png'
+        ? 'image/png'
+        : ext === '.webp'
+          ? 'image/webp'
+          : ext === '.gif'
+            ? 'image/gif'
+            : 'image/jpeg';
+    return new StreamableFile(fs.createReadStream(filePath), {
+      type: mime,
+      disposition: `inline; filename="${filename}"`,
+    });
   }
 }

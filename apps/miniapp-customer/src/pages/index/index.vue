@@ -14,10 +14,11 @@
       <template v-if="banners.length > 0">
         <swiper-item v-for="banner in banners" :key="banner.id">
           <view class="banner-img-card" @tap="onBannerTap(banner)">
-            <image
+            <RemoteImage
               class="banner-img"
               :src="banner.imageUrl"
               mode="aspectFill"
+              variant="banner"
             />
             <!-- <view v-if="banner.title" class="banner-img-overlay">
               <text class="banner-img-title">{{ banner.title }}</text>
@@ -138,6 +139,7 @@
 import { ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/store/auth';
+import RemoteImage from '@/components/RemoteImage.vue';
 import ProfileCompleteModal from '@/components/ProfileCompleteModal.vue';
 import PrivacyModal from '@/components/PrivacyModal.vue';
 import ContactOperatorPicker from '@/components/ContactOperatorPicker.vue';
