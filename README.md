@@ -109,3 +109,4 @@ npx prisma migrate dev
 - 2026-08-21 Banner 跳转：居民端新增 `webview`（外链）与 `cleaning-ad-detail`（海报详情，支持 `img` 参数与默认兜底图）；`decodeQueryUrl` 避免对 query 二次 decode 破坏 URL 编码
 - 2026-08-21 居民端手机号绑定：「我的」改为 `button` + `open-type="getPhoneNumber"` 走微信官方取号窗，成功后调 `decrypt-phone` 写库；菜单露出「我的投诉」入口；`.env.example` 补充 `WECHAT_CUSTOMER_APPID`/`SECRET` 说明
 - 2026-08-21 改派进度展示：管理端服务进度将每次改派拆成独立「已改派」节点（`eventKey`），首次派单文案固定；居民/员工端仅刷新派单时间；管理端保洁/废品详情时间轴按 `eventKey` 渲染避免同状态 key 冲突
+- 2026-08-21 员工「今日完成」查询：保洁/废品列表 DTO 增加 `completedToday` 布尔筛选（兼容 `true`/`'true'`），配套单测更新

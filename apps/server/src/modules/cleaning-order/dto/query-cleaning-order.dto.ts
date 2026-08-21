@@ -1,8 +1,9 @@
 import { OrderStatus } from '@dayangyunjie/shared';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsDateString,
+  IsBoolean,
   IsIn,
   IsInt,
   IsOptional,
@@ -13,6 +14,12 @@ import {
 } from 'class-validator';
 
 export class QueryCleaningOrderDto {
+  @ApiPropertyOptional({ description: '仅返回今天完成服务的订单', example: true })
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsOptional()
+  @IsBoolean()
+  completedToday?: boolean;
+
   @ApiPropertyOptional({ description: '页码', example: 1, default: 1 })
   @Type(() => Number)
   @IsOptional()
