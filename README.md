@@ -111,3 +111,4 @@ npx prisma migrate dev
 - 2026-08-21 改派进度展示：管理端服务进度将每次改派拆成独立「已改派」节点（`eventKey`），首次派单文案固定；居民/员工端仅刷新派单时间；管理端保洁/废品详情时间轴按 `eventKey` 渲染避免同状态 key 冲突
 - 2026-08-21 员工「今日完成」查询：保洁/废品列表 DTO 增加 `completedToday` 布尔筛选（兼容 `true`/`'true'`），配套单测更新
 - 2026-08-21 员工端登录白屏：登录页移出 `pages.json` 首页位；`App.onLaunch` 只装路由守卫、不再立即 `switchTab`；tab 页用 `ensureAuthed` 渲染后再 `reLaunch` 登录；无本地会话时直接展示登录表单并清空预填账号
+- 2026-08-21 员工端作业区引导：接单/开始服务前点击灰显上传入口改为 toast 提示（「请先接单」/「请先开始服务」），不再用 `pointer-events: none` 吞掉点击

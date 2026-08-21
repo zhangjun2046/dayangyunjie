@@ -192,7 +192,7 @@
           <text class="section-title-text">作业记录</text>
         </view>
 
-        <!-- ── 禁用态（ASSIGNED / ACCEPTED）：灰色占位 ── -->
+        <!-- ── 禁用态（ASSIGNED / ACCEPTED）：灰色占位，点击 toast 引导 ── -->
         <template v-if="workAreaState === 'disabled'">
           <view class="photo-group">
             <view class="photo-group-header">
@@ -201,7 +201,7 @@
               </view>
               <text class="photo-group-label">上传服务前照片</text>
             </view>
-            <view class="photo-upload-wrap photo-upload-wrap--disabled">
+            <view class="photo-upload-wrap photo-upload-wrap--disabled" @tap="handleDisabledPhotoTap">
               <image class="photo-upload-area" src="/static/icons/add-photo.png" mode="aspectFit" />
               <text class="photo-disabled-tip">开始服务后可上传</text>
             </view>
@@ -213,7 +213,7 @@
               </view>
               <text class="photo-group-label">上传服务后照片</text>
             </view>
-            <view class="photo-upload-wrap photo-upload-wrap--disabled">
+            <view class="photo-upload-wrap photo-upload-wrap--disabled" @tap="handleDisabledPhotoTap">
               <image class="photo-upload-area" src="/static/icons/add-photo.png" mode="aspectFit" />
               <text class="photo-disabled-tip">开始服务后可上传</text>
             </view>
@@ -600,7 +600,7 @@ const addressText = computed<string>(() => {
 
 /**
  * 作业记录区展示模式
- * disabled  — ASSIGNED / ACCEPTED：灰色占位，不可操作
+ * disabled  — ASSIGNED / ACCEPTED：灰色占位，点击 toast 引导去接单/开始服务
  * active    — IN_SERVICE：可上传编辑
  * readonly  — PENDING_REVIEW / REVIEWED：展示后端 workPhotos，不可修改
  */
@@ -741,6 +741,18 @@ function handleNavigate(): void {
 }
 
 // ===== 作业照片操作 =====
+
+/**
+ * 开始服务前点击上传入口：灰显仍可点，toast 引导到底部按钮
+ */
+function handleDisabledPhotoTap(): void {
+  const status = order.value?.status;
+  const title =
+    status === 'ASSIGNED'
+      ? '请先接单，开始服务后可上传照片'
+      : '请先点击底部「开始服务」，再上传照片';
+  uni.showToast({ title, icon: 'none', duration: 2000 });
+}
 
 /**
  * 删除已上传的照片
@@ -1379,7 +1391,6 @@ async function handleStartService(): Promise<void> {
 
 .photo-upload-wrap--disabled {
   opacity: 0.7;
-  pointer-events: none;
 }
 
 .photo-upload-area {
