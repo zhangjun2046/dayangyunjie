@@ -3,6 +3,8 @@ import type { ConsultStatus, OrderSource, OrderStatus, PaymentStatus } from '../
 import type { WorkPhotoDto } from './work-photo';
 
 export interface ProgressNodeDto {
+  /** 同一状态包含多条事件时使用的稳定渲染键 */
+  eventKey?: string;
   status: string;
   label: string;
   state: 'done' | 'current' | 'pending';

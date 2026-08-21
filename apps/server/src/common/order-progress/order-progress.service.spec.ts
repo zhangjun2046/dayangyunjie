@@ -115,8 +115,9 @@ describe('OrderProgressService', () => {
     ).resolves.toEqual([]);
   });
 
-  it('改派记录只覆盖管理端已派单信息，居民和员工仍使用普通文案', async () => {
+  it('改派后各端使用最新派单时间，仅管理端展示改派详情', async () => {
     const reassignedAt = new Date('2026-08-20T02:30:00.000Z');
+    const reassignedAgainAt = new Date('2026-08-20T02:45:00.000Z');
     const logs = [
       { id: 1, fromStatus: 'PENDING_ASSIGN', toStatus: 'ASSIGNED', createdAt: assignedAt },
       {
@@ -126,24 +127,57 @@ describe('OrderProgressService', () => {
         createdAt: reassignedAt,
         remark: '服务人员由张师傅变更为李师傅（管理员改派）',
       },
+      {
+        id: 3,
+        fromStatus: 'ASSIGNED',
+        toStatus: 'ASSIGNED',
+        createdAt: reassignedAgainAt,
+        remark: '服务人员由李师傅变更为王师傅（管理员改派）',
+      },
     ];
     const base = {
       orderId: 1,
       orderType: 'CLEANING' as const,
       currentStatus: 'ASSIGNED',
       createdAt,
-      workerName: '李师傅',
+      workerName: '王师傅',
     };
 
     const admin = await makeService(logs).service.assemble({ ...base, role: 'ADMIN' });
+    const resident = await makeService(logs).service.assemble({ ...base, role: 'RESIDENT' });
     const worker = await makeService(logs).service.assemble({ ...base, role: 'WORKER' });
 
     expect(admin[1]).toMatchObject({
+      label: '已派单',
+      state: 'done',
+      message: '订单已完成首次派单',
+      operatedAt: assignedAt.toISOString(),
+    });
+    expect(admin[2]).toMatchObject({
+      eventKey: 'reassign-2',
+      label: '已改派',
+      state: 'done',
       message: '服务人员由张师傅变更为李师傅（管理员改派）',
       operatedAt: reassignedAt.toISOString(),
     });
-    expect(worker[1].message).toBe('系统派单给了您');
-    expect(worker[1].operatedAt).toBe(assignedAt.toISOString());
+    expect(admin[3]).toMatchObject({
+      eventKey: 'reassign-3',
+      label: '已改派',
+      state: 'current',
+      message: '服务人员由李师傅变更为王师傅（管理员改派）',
+      operatedAt: reassignedAgainAt.toISOString(),
+    });
+    expect(admin).toHaveLength(8);
+    expect(resident[1]).toMatchObject({
+      message: '系统派单给「王师傅」',
+      operatedAt: reassignedAgainAt.toISOString(),
+    });
+    expect(worker[1]).toMatchObject({
+      message: '系统派单给了您',
+      operatedAt: reassignedAgainAt.toISOString(),
+    });
+    expect(resident).toHaveLength(6);
+    expect(worker).toHaveLength(6);
   });
 
   it('从已有访问令牌中解析观看角色', async () => {

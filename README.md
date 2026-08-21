@@ -108,3 +108,4 @@ npx prisma migrate dev
 - 2026-08-21 远程图片展示：新增 `RemoteImage` 与 `resolveDisplayImage`，体验版/真机对 `http://IP` 图改走 `uni.request` 落本地再给 `<image>`；后端增加 `GET /upload/file/:filename`，与 API 同前缀读上传图，避免 Nginx 未转发 `/uploads` 导致 404；首页 Banner、「我的」头像等改用该组件
 - 2026-08-21 Banner 跳转：居民端新增 `webview`（外链）与 `cleaning-ad-detail`（海报详情，支持 `img` 参数与默认兜底图）；`decodeQueryUrl` 避免对 query 二次 decode 破坏 URL 编码
 - 2026-08-21 居民端手机号绑定：「我的」改为 `button` + `open-type="getPhoneNumber"` 走微信官方取号窗，成功后调 `decrypt-phone` 写库；菜单露出「我的投诉」入口；`.env.example` 补充 `WECHAT_CUSTOMER_APPID`/`SECRET` 说明
+- 2026-08-21 改派进度展示：管理端服务进度将每次改派拆成独立「已改派」节点（`eventKey`），首次派单文案固定；居民/员工端仅刷新派单时间；管理端保洁/废品详情时间轴按 `eventKey` 渲染避免同状态 key 冲突

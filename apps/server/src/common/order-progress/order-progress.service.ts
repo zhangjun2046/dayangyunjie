@@ -182,14 +182,32 @@ export class OrderProgressService {
       MAIN_LABELS,
       messageFor,
     );
-    if (params.role === 'ADMIN') {
-      const reassignLog = [...logs]
-        .reverse()
-        .find((log) => log.fromStatus === 'ASSIGNED' && log.toStatus === 'ASSIGNED');
-      const assignedNode = nodes.find((node) => node.status === 'ASSIGNED');
-      if (reassignLog && assignedNode && assignedNode.state !== 'pending') {
-        assignedNode.message = reassignLog.remark || assignedNode.message;
-        assignedNode.operatedAt = reassignLog.createdAt.toISOString();
+    const reassignLogs = logs.filter(
+      (log) => log.fromStatus === 'ASSIGNED' && log.toStatus === 'ASSIGNED',
+    );
+    const assignedNode = nodes.find((node) => node.status === 'ASSIGNED');
+    if (reassignLogs.length > 0 && assignedNode && assignedNode.state !== 'pending') {
+      if (params.role === 'ADMIN') {
+        const assignedIndex = nodes.indexOf(assignedNode);
+        const assignedWasCurrent = assignedNode.state === 'current';
+        assignedNode.message = '订单已完成首次派单';
+        if (assignedWasCurrent) assignedNode.state = 'done';
+
+        const reassignNodes: ProgressNodeDto[] = reassignLogs.map((log, index) => ({
+          eventKey: `reassign-${log.id}`,
+          status: 'ASSIGNED',
+          label: '已改派',
+          state:
+            assignedWasCurrent && index === reassignLogs.length - 1
+              ? 'current'
+              : 'done',
+          message: log.remark || '管理员已改派服务人员',
+          operatedAt: log.createdAt.toISOString(),
+        }));
+        nodes.splice(assignedIndex + 1, 0, ...reassignNodes);
+      } else {
+        const latestReassignLog = reassignLogs[reassignLogs.length - 1];
+        assignedNode.operatedAt = latestReassignLog.createdAt.toISOString();
       }
     }
     return nodes;

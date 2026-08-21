@@ -432,7 +432,7 @@
           <el-timeline>
             <el-timeline-item
               v-for="node in detailDrawer.order.progress"
-              :key="node.status"
+              :key="node.eventKey ?? node.status"
               :type="node.state === 'done' ? 'success' : node.state === 'current' ? 'primary' : 'info'"
               :hollow="node.state === 'current'"
               :timestamp="node.operatedAt ? formatProgressTime(node.operatedAt) : undefined"
