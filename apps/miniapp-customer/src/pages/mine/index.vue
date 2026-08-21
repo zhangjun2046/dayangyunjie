@@ -8,7 +8,7 @@
         :border="false"
         background-color="transparent"
       />
-      <view class="user-card" @tap="onTapUserCard">
+      <view class="user-card">
         <RemoteImage
           class="avatar"
           :src="resident?.avatar || defaultAvatar"
@@ -17,7 +17,16 @@
         />
         <view class="user-info">
           <text class="phone-number">{{ displayPhone }}</text>
-          <text v-if="!resident?.phone && isLoggedIn" class="phone-hint">点击绑定完整手机号</text>
+          <!-- 必须用 button + getPhoneNumber，点击才会出微信官方取号窗 -->
+          <button
+            v-if="!resident?.phone && isLoggedIn"
+            class="phone-bind-btn"
+            hover-class="none"
+            open-type="getPhoneNumber"
+            @getphonenumber="onGetPhoneNumber"
+          >
+            点击绑定完整手机号
+          </button>
         </view>
       </view>
     </view>
@@ -31,6 +40,14 @@
         </view>
         <text class="menu-arrow">›</text>
       </view>
+			<view class="menu-item" @tap="onGoComplaintList">
+			  <view class="menu-left">
+          <image class="menu-icon" src="/static/icons/icon_tousu_n.png" mode="aspectFit" />
+			    <text class="menu-label">我的投诉</text>
+			  </view>
+			  <text class="menu-arrow">›</text>
+			</view>
+			
 			<view class="menu-item" @tap="onCallService">
 			  <view class="menu-left">
 			    <image class="menu-icon" src="/static/icons/customer-service.png" mode="aspectFit" />
@@ -57,7 +74,7 @@
       </view> -->
       <!-- <view class="menu-item" @tap="onGoComplaintList">
         <view class="menu-left">
-          <text class="menu-icon-emoji">��</text>
+          <text class="menu-icon-emoji">📢</text>
           <text class="menu-label">我的投诉</text>
         </view>
         <text class="menu-arrow">›</text>
@@ -82,7 +99,7 @@
       </view>
       <view class="menu-item" @tap="onServiceAgreement">
         <view class="menu-left">
-          <text class="menu-icon-emoji">��</text>
+          <text class="menu-icon-emoji">📄</text>
           <text class="menu-label">服务协议</text>
         </view>
         <text class="menu-arrow">›</text>
@@ -104,9 +121,6 @@
       <button class="btn-logout" @tap="onLogout">退出登录</button>
     </view>
 
-    <!-- 手机号绑定弹窗（phone 缺失时可重新绑定） -->
-    <ProfileCompleteModal ref="profileModalRef" @completed="onPhoneCompleted" />
-
     <ContactOperatorPicker ref="contactPickerRef" />
   </view>
 </template>
@@ -114,7 +128,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useAuthStore } from '@/store/auth';
-import ProfileCompleteModal from '@/components/ProfileCompleteModal.vue';
+import { decryptPhone } from '@/api/auth';
 import ContactOperatorPicker from '@/components/ContactOperatorPicker.vue';
 import RemoteImage from '@/components/RemoteImage.vue';
 import { callContactOperator } from '@/utils/call-contact-operator';
@@ -124,8 +138,8 @@ import {
 } from '@/utils/wechat-privacy';
 
 const authStore = useAuthStore();
-const profileModalRef = ref<InstanceType<typeof ProfileCompleteModal> | null>(null);
 const contactPickerRef = ref<InstanceType<typeof ContactOperatorPicker> | null>(null);
+const bindingPhone = ref(false);
 
 const resident = computed(() => authStore.resident);
 const isLoggedIn = computed(() => authStore.isLoggedIn);
@@ -138,17 +152,76 @@ const displayPhone = computed(() => {
   return resident.value?.nickname || '居民用户';
 });
 
-/** 点击用户卡片：若 phone 未绑定则弹出授权弹窗 */
-function onTapUserCard() {
-  if (!isLoggedIn.value) return;
-  if (!resident.value?.phone) {
-    profileModalRef.value?.show();
-    console.info('[mine] phone not bound, showing profile modal');
+/** 解密前确保本地已有 accessToken（decrypt-phone 需 JWT） */
+async function ensureAccessToken(): Promise<boolean> {
+  if (authStore.isLoggedIn) return true;
+  try {
+    let code: string;
+    // #ifdef MP-WEIXIN
+    code = await new Promise<string>((resolve, reject) => {
+      wx.login({
+        success: (res: { code: string }) => resolve(res.code),
+        fail: (err: { errMsg: string }) => reject(new Error(String(err.errMsg))),
+      });
+    });
+    // #endif
+    // #ifndef MP-WEIXIN
+    code = `mock_h5_${Date.now()}`;
+    // #endif
+    await authStore.wechatLogin(code);
+    return authStore.isLoggedIn;
+  } catch (err) {
+    console.info('[mine] ensure login failed', String(err));
+    return false;
   }
 }
 
-function onPhoneCompleted(payload: { phone: string }) {
-  console.info('[mine] phone bound, phone=', payload.phone.slice(0, 3) + '****');
+function bindPhoneLocally(phone: string) {
+  authStore.setPhone(phone);
+  console.info('[mine] phone bound, phone=', phone.slice(0, 3) + '****');
+}
+
+/** 微信官方取号回调：成功则 decrypt-phone 写库并刷新本地 */
+async function onGetPhoneNumber(e: { detail?: { phoneNumber?: string; code?: string; errMsg?: string } }) {
+  const detail = e?.detail ?? {};
+  console.info('[mine] getPhoneNumber detail', {
+    hasPhoneNumber: !!detail.phoneNumber,
+    hasCode: !!detail.code,
+    errMsg: detail.errMsg,
+  });
+
+  if (bindingPhone.value) return;
+
+  if (detail.phoneNumber) {
+    bindPhoneLocally(detail.phoneNumber);
+    uni.showToast({ title: '绑定成功', icon: 'success' });
+    return;
+  }
+
+  if (detail.errMsg && String(detail.errMsg).includes('ok') && detail.code) {
+    bindingPhone.value = true;
+    try {
+      uni.showLoading({ title: '获取中...' });
+      const ready = await ensureAccessToken();
+      if (!ready) {
+        uni.showToast({ title: '请先登录后再授权', icon: 'none' });
+        return;
+      }
+      const result = await decryptPhone(detail.code);
+      bindPhoneLocally(result.phone);
+      uni.showToast({ title: '绑定成功', icon: 'success' });
+    } catch (err) {
+      console.info('[mine] decryptPhone failed', String(err));
+      uni.showToast({ title: '获取手机号失败，请重试', icon: 'none' });
+    } finally {
+      bindingPhone.value = false;
+      uni.hideLoading();
+    }
+    return;
+  }
+
+  console.info('[mine] getPhoneNumber not ok, errMsg=', detail.errMsg);
+  uni.showToast({ title: '授权失败', icon: 'none' });
 }
 
 function onGoAddress() {
@@ -319,10 +392,20 @@ function onLogout() {
   letter-spacing: 2rpx;
 }
 
-.phone-hint {
+.phone-bind-btn {
+  margin: 6rpx 0 0;
+  padding: 0;
+  width: auto;
+  background: transparent;
+  border: none;
+  line-height: 1.4;
   font-size: 24rpx;
   color: #236EFF;
-  margin-top: 6rpx;
+  text-align: left;
+}
+
+.phone-bind-btn::after {
+  border: none;
 }
 
 /* 菜单组 */

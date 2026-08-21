@@ -107,3 +107,4 @@ npx prisma migrate dev
 - 2026-08-20 订单计划第 3 步（员工统计与改派）：统一待办、今日完成、累计完成和管理端完成率口径；完成服务回写 `Worker.totalOrders`，评价后重算 `Worker.rating`；管理端仅允许 `ASSIGNED` 未接单订单改派，`ACCEPTED` 及以后禁止，改派记录在管理端进度中展示且旧员工无法继续查看或操作订单
 - 2026-08-21 远程图片展示：新增 `RemoteImage` 与 `resolveDisplayImage`，体验版/真机对 `http://IP` 图改走 `uni.request` 落本地再给 `<image>`；后端增加 `GET /upload/file/:filename`，与 API 同前缀读上传图，避免 Nginx 未转发 `/uploads` 导致 404；首页 Banner、「我的」头像等改用该组件
 - 2026-08-21 Banner 跳转：居民端新增 `webview`（外链）与 `cleaning-ad-detail`（海报详情，支持 `img` 参数与默认兜底图）；`decodeQueryUrl` 避免对 query 二次 decode 破坏 URL 编码
+- 2026-08-21 居民端手机号绑定：「我的」改为 `button` + `open-type="getPhoneNumber"` 走微信官方取号窗，成功后调 `decrypt-phone` 写库；菜单露出「我的投诉」入口；`.env.example` 补充 `WECHAT_CUSTOMER_APPID`/`SECRET` 说明
