@@ -201,11 +201,12 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { onLoad, onShow } from '@dcloudio/uni-app';
+import { onLoad, onShow, onUnload } from '@dcloudio/uni-app';
 import { useBookingConsultStore } from '@/store/booking-consult';
 import { useAuthStore } from '@/store/auth';
 import { fetchConsultCatalogs, type ServiceCatalogDto } from '@/api/service-catalog';
 import { createConsultOrder } from '@/api/consult-order';
+import { openCreatedOrderDetail } from '@/utils/order-navigation';
 import {
   resolveServiceCatalogIcon,
   serviceCatalogFallbackEmoji,
@@ -288,8 +289,10 @@ function prevStep() {
 
 // ───────────────────── 提交咨询单 ─────────────────────
 const submitting = ref(false);
+let navigationTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function submitOrder() {
+  if (submitting.value) return;
   if (!store.requirementDesc.trim()) {
     uni.showToast({ title: '请填写核心诉求', icon: 'none' });
     return;
@@ -314,6 +317,7 @@ async function submitOrder() {
   }
 
   submitting.value = true;
+  let orderCreated = false;
   try {
     const result = await createConsultOrder({
       serviceType: store.selectedCatalog!.name,
@@ -329,19 +333,22 @@ async function submitOrder() {
     });
 
     console.info('[booking-consult] order created, orderNo=', result.orderNo);
+    orderCreated = true;
     store.reset();
 
     successOverlayRef.value?.show({ title: '提交成功', orderNo: result.orderNo });
 
-    setTimeout(() => {
-      uni.switchTab({ url: '/pages/orders/index' });
+    navigationTimer = setTimeout(() => {
+      navigationTimer = null;
+      openCreatedOrderDetail(result.id, 'consult');
     }, 2000);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : '提交失败，请重试';
     uni.showToast({ title: msg, icon: 'none' });
     console.info('[booking-consult] submit failed', e);
   } finally {
-    submitting.value = false;
+    // 咨询单创建成功后保持锁定，直至页面跳转，避免成功弹层期间重复提交。
+    if (!orderCreated) submitting.value = false;
   }
 }
 
@@ -354,6 +361,13 @@ onLoad(() => {
 
 onShow(() => {
   console.info('[booking-consult] page shown, step=', store.step);
+});
+
+onUnload(() => {
+  if (navigationTimer) {
+    clearTimeout(navigationTimer);
+    navigationTimer = null;
+  }
 });
 </script>
 

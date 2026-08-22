@@ -282,14 +282,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { onLoad, onShow } from '@dcloudio/uni-app';
+import { ref, computed } from 'vue';
+import { onLoad, onShow, onUnload } from '@dcloudio/uni-app';
 import { useBookingCleaningStore } from '@/store/booking-cleaning';
 import { useAuthStore } from '@/store/auth';
 import { fetchCleaningCatalogs, type ServiceCatalogDto } from '@/api/service-catalog';
 import { fetchAddresses } from '@/api/address';
 import { createCleaningOrder } from '@/api/cleaning-order';
 import { getSolarToLunar } from '@/utils/lunar';
+import { openCreatedOrderDetail } from '@/utils/order-navigation';
 import {
   resolveServiceCatalogIcon,
   serviceCatalogFallbackEmoji,
@@ -491,8 +492,10 @@ function prevStep() {
 
 // ───────────────────── 提交订单 ─────────────────────
 const submitting = ref(false);
+let navigationTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function submitOrder() {
+  if (submitting.value) return;
   if (!authStore.resident?.id) {
     uni.showToast({ title: '请先登录', icon: 'none' });
     return;
@@ -509,6 +512,7 @@ async function submitOrder() {
   }
 
   submitting.value = true;
+  let orderCreated = false;
   try {
     const addr = store.selectedAddress!;
     const result = await createCleaningOrder({
@@ -528,19 +532,22 @@ async function submitOrder() {
     });
 
     console.info('[booking-cleaning] order created, orderNo=', result.orderNo);
+    orderCreated = true;
     store.reset();
 
     successOverlayRef.value?.show({ title: '预约成功', orderNo: result.orderNo });
 
-    setTimeout(() => {
-      uni.switchTab({ url: '/pages/orders/index' });
+    navigationTimer = setTimeout(() => {
+      navigationTimer = null;
+      openCreatedOrderDetail(result.id, 'cleaning');
     }, 2000);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : '提交失败，请重试';
     uni.showToast({ title: msg, icon: 'none' });
     console.info('[booking-cleaning] submit failed', e);
   } finally {
-    submitting.value = false;
+    // 订单创建成功后保持锁定，直至页面跳转，避免成功弹层期间重复下单。
+    if (!orderCreated) submitting.value = false;
   }
 }
 
@@ -554,6 +561,13 @@ onLoad(() => {
 // 从地址选择页返回后，store.selectedAddress 已被更新，无需额外处理
 onShow(() => {
   console.info('[booking-cleaning] page shown, step=', store.step);
+});
+
+onUnload(() => {
+  if (navigationTimer) {
+    clearTimeout(navigationTimer);
+    navigationTimer = null;
+  }
 });
 </script>
 
