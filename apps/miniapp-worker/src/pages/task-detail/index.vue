@@ -930,10 +930,9 @@ async function handleCompleteService(): Promise<void> {
 
 /**
  * 开始服务：
- * 1. 获取 GPS 位置
- * 2. 若状态为 ASSIGNED，先接单（ASSIGNED→ACCEPTED）
+ * 1. 员工确认已到达客户地址附近
+ * 2. 获取真实 GPS 位置
  * 3. GPS 签到（ACCEPTED→IN_SERVICE）
- * 4. 超距时弹警告提示（不阻断）
  */
 async function handleStartService(): Promise<void> {
   if (startingService.value) return;
@@ -943,93 +942,48 @@ async function handleStartService(): Promise<void> {
     return;
   }
 
-  startingService.value = true;
-  console.info('[task-detail] handleStartService, orderId=', orderId.value);
+  uni.showModal({
+    title: '开始服务确认',
+    content: '请确认您已到达客户地址附近（建议200米以内）后再开始服务',
+    confirmText: '确认',
+    cancelText: '取消',
+    success: (modalResult) => {
+      if (!modalResult.confirm) return;
 
-  uni.getLocation({
-    type: 'gcj02',
-    success: async (res) => {
-      try {
-        // GPS 签到
-        const checkinResult = await gpsCheckin(
-          orderType.value,
-          orderId.value,
-          res.latitude,
-          res.longitude,
-          workerId,
-        );
+      startingService.value = true;
+      console.info('[task-detail] handleStartService confirmed, orderId=', orderId.value);
 
-        // 超距提示（后端不阻断，仅前端提示）
-        if (checkinResult.gpsRemark) {
+      uni.getLocation({
+        type: 'gcj02',
+        success: async (locationResult) => {
+          try {
+            const checkinResult = await gpsCheckin(
+              orderType.value,
+              orderId.value,
+              locationResult.latitude,
+              locationResult.longitude,
+              workerId,
+            );
+
+            console.info('[task-detail] gpsCheckin success, distance=', checkinResult.gpsDistance);
+            await loadDetail();
+            uni.showToast({ title: '已开始服务', icon: 'success' });
+          } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : '操作失败';
+            uni.showToast({ title: msg, icon: 'none' });
+            console.info('[task-detail] handleStartService failed, err=', msg);
+          } finally {
+            startingService.value = false;
+          }
+        },
+        fail: (err) => {
+          startingService.value = false;
+          console.info('[task-detail] getLocation failed, err=', JSON.stringify(err));
           uni.showModal({
-            title: 'GPS 距离提醒',
-            content: `当前位置距服务地址较远（${checkinResult.gpsDistance ?? ''}m），已记录备注，请确认服务地址后继续。`,
+            title: '无法获取位置',
+            content: '请授权位置权限后重试。',
             showCancel: false,
           });
-        } else {
-          uni.showToast({ title: '已开始服务', icon: 'success' });
-        }
-
-        console.info('[task-detail] gpsCheckin success, distance=', checkinResult.gpsDistance);
-        await loadDetail();
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : '操作失败';
-        uni.showToast({ title: msg, icon: 'none' });
-        console.info('[task-detail] handleStartService failed, err=', msg);
-      } finally {
-        startingService.value = false;
-      }
-    },
-    fail: (err) => {
-      startingService.value = false;
-      console.info('[task-detail] getLocation failed, err=', JSON.stringify(err));
-
-      // 开发/模拟环境：提供模拟坐标继续完成签到流程
-      // 模拟坐标：北京市朝阳区（与测试订单地址同区）
-      const MOCK_LAT = 39.9219;
-      const MOCK_LNG = 116.4434;
-
-      uni.showModal({
-        title: '无法获取位置',
-        content: '请授权位置权限后重试。\n\n如在微信开发者工具模拟器中测试，可点「模拟签到」使用北京朝阳区坐标继续流程。',
-        confirmText: '模拟签到',
-        cancelText: '取消',
-        success: (res) => {
-          if (res.confirm) {
-            console.info('[task-detail] using mock location for dev testing, lat=', MOCK_LAT, 'lng=', MOCK_LNG);
-            startingService.value = true;
-            const wid = authStore.worker?.id;
-            if (!wid) return;
-
-            (async () => {
-              try {
-                const checkinResult = await gpsCheckin(
-                  orderType.value,
-                  orderId.value,
-                  MOCK_LAT,
-                  MOCK_LNG,
-                  wid,
-                );
-                if (checkinResult.gpsRemark) {
-                  uni.showModal({
-                    title: 'GPS 距离提醒',
-                    content: `当前位置距服务地址较远（${checkinResult.gpsDistance ?? ''}m），已记录备注，请确认服务地址后继续。`,
-                    showCancel: false,
-                  });
-                } else {
-                  uni.showToast({ title: '已开始服务（模拟）', icon: 'success' });
-                }
-                console.info('[task-detail] mock gpsCheckin success');
-                await loadDetail();
-              } catch (e: unknown) {
-                const msg = e instanceof Error ? e.message : '操作失败';
-                uni.showToast({ title: msg, icon: 'none' });
-                console.info('[task-detail] mock gpsCheckin failed, err=', msg);
-              } finally {
-                startingService.value = false;
-              }
-            })();
-          }
         },
       });
     },
