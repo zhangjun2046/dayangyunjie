@@ -1,11 +1,10 @@
 import type { OrderType } from '../constants';
-import type { ComplaintReason } from '../enums';
 
 /** 提交投诉 */
 export interface CreateComplaintDto {
   orderType: OrderType;
   orderId: number;
-  reason: ComplaintReason;
+  reasonConfigId: number;
   description: string;
   evidenceImages?: string[];
 }

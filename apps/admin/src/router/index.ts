@@ -72,7 +72,7 @@ const routes: RouteRecordRaw[] = [
         path: 'config/review-keywords',
         name: 'ConfigReviewKeywords',
         component: () => import('@/views/config/review-keywords/index.vue'),
-        meta: { title: '评价关键词配置', menuKey: 'config.review-keywords' },
+        meta: { title: '关键词配置', menuKey: 'config.review-keywords' },
       },
       {
         path: 'config/operators',

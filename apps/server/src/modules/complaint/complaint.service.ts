@@ -103,28 +103,52 @@ export class ComplaintService {
    * 不限制订单状态，居民可随时投诉。
    */
   async create(dto: CreateComplaintDto): Promise<ComplaintDto> {
-    const { orderType, orderId, reason, description, evidenceImages, residentId } = dto;
+    const { orderType, orderId, reasonConfigId, description, evidenceImages, residentId } = dto;
 
     // 验证订单存在
     await this.findOrderOrThrow(orderType, orderId);
-
     const complaintNo = await this.generateComplaintNo();
 
-    const row = await this.prismaService.complaint.create({
-      data: {
-        complaintNo,
-        orderType,
-        reason,
-        description,
-        ...(evidenceImages ? { evidenceImages: evidenceImages as Prisma.InputJsonValue } : {}),
-        ...(residentId ? { residentId } : {}),
-        ...(orderType === 'CLEANING' ? { cleaningOrderId: orderId } : {}),
-        ...(orderType === 'RECYCLING' ? { recyclingOrderId: orderId } : {}),
-        ...(orderType === 'CONSULT' ? { consultOrderId: orderId } : {}),
-      },
-    });
+    // 配置读取与投诉快照写入必须处于同一事务，避免并发删除或修改造成文案不一致。
+    let row: Complaint;
+    try {
+      row = await this.prismaService.$transaction(async (transaction) => {
+        const reasonConfig = await transaction.complaintReasonConfig.findUnique({
+          where: { id: reasonConfigId },
+          select: { id: true, label: true, isEnabled: true },
+        });
+        if (!reasonConfig) {
+          throw this.complaintReasonNotFound(reasonConfigId);
+        }
+        if (!reasonConfig.isEnabled) {
+          throw new BadRequestException('该投诉原因当前已停用，请选择其他原因');
+        }
 
-    console.info(`[Complaint] created id=${row.id} orderType=${orderType} orderId=${orderId} reason=${reason}`);
+        return transaction.complaint.create({
+          data: {
+            complaintNo,
+            orderType,
+            reasonConfigId: reasonConfig.id,
+            reasonLabel: reasonConfig.label,
+            description,
+            ...(evidenceImages ? { evidenceImages: evidenceImages as Prisma.InputJsonValue } : {}),
+            ...(residentId ? { residentId } : {}),
+            ...(orderType === 'CLEANING' ? { cleaningOrderId: orderId } : {}),
+            ...(orderType === 'RECYCLING' ? { recyclingOrderId: orderId } : {}),
+            ...(orderType === 'CONSULT' ? { consultOrderId: orderId } : {}),
+          },
+        });
+      });
+    } catch (error) {
+      if (this.isComplaintReasonForeignKeyError(error)) {
+        throw this.complaintReasonNotFound(reasonConfigId);
+      }
+      throw error;
+    }
+
+    console.info(
+      `[Complaint] created id=${row.id} orderType=${orderType} orderId=${orderId} reasonConfigId=${reasonConfigId}`,
+    );
     return this.toDto(row);
   }
 
@@ -246,6 +270,37 @@ export class ComplaintService {
 
   // ─── 私有方法 ─────────────────────────────────────────────────────────────
 
+  private complaintReasonNotFound(id: number): NotFoundException {
+    return new NotFoundException(`投诉原因（ID: ${id}）不存在`);
+  }
+
+  /** 仅识别投诉原因配置外键，避免将居民或订单外键错误误报为投诉原因不存在。 */
+  private isComplaintReasonForeignKeyError(error: unknown): boolean {
+    if (!error || typeof error !== 'object') {
+      return false;
+    }
+    const prismaError = error as {
+      code?: string;
+      meta?: { field_name?: unknown; constraint?: unknown };
+    };
+    if (prismaError.code !== 'P2003' || !prismaError.meta) {
+      return false;
+    }
+
+    return [prismaError.meta.field_name, prismaError.meta.constraint].some((value) => {
+      if (typeof value !== 'string') {
+        return false;
+      }
+      const normalized = value.trim().replaceAll('`', '').toLowerCase();
+      return (
+        normalized === 'reason_config_id' ||
+        normalized === 'reasonconfigid' ||
+        normalized === 'complaints_reason_config_id_fkey' ||
+        normalized === 'complaints_reason_config_id_fkey (index)'
+      );
+    });
+  }
+
   /**
    * 校验投诉状态转移是否合法。
    * @throws BadRequestException 转移非法或已为终态时抛出
@@ -326,7 +381,8 @@ export class ComplaintService {
       recyclingOrderId: row.recyclingOrderId ?? null,
       consultOrderId: row.consultOrderId ?? null,
       orderType: row.orderType as ComplaintDto['orderType'],
-      reason: row.reason as ComplaintDto['reason'],
+      reasonConfigId: row.reasonConfigId ?? null,
+      reasonLabel: row.reasonLabel,
       description: row.description,
       evidenceImages: row.evidenceImages ? (row.evidenceImages as string[]) : null,
       status: row.status as ComplaintDto['status'],

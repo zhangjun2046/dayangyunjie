@@ -45,7 +45,7 @@
         <!-- 投诉原因 -->
         <view class="card-row">
           <text class="card-label">投诉原因</text>
-          <text class="card-value">{{ COMPLAINT_REASON_LABELS[item.reason as ComplaintReason] || item.reason }}</text>
+          <text class="card-value">{{ item.reasonLabel }}</text>
         </view>
 
         <!-- 投诉描述（最多2行） -->
@@ -73,10 +73,8 @@ import { onLoad, onShow } from '@dcloudio/uni-app';
 import {
   getComplaints,
   COMPLAINT_STATUS_LABELS,
-  COMPLAINT_REASON_LABELS,
   type ComplaintDto,
   type ComplaintStatus,
-  type ComplaintReason,
 } from '@/api/complaint';
 import { useAuthStore } from '@/store/auth';
 

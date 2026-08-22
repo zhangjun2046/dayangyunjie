@@ -7,32 +7,13 @@
 
 import { request } from './request';
 
-/** 投诉原因枚举（与后端 ComplaintReason 对应） */
-export type ComplaintReason =
-  | 'POOR_ATTITUDE'
-  | 'NOT_CLEAN'
-  | 'NOT_ON_TIME'
-  | 'ITEM_DAMAGED'
-  | 'EXTRA_CHARGE'
-  | 'OTHER';
-
-/** 投诉原因展示文案 */
-export const COMPLAINT_REASON_LABELS: Record<ComplaintReason, string> = {
-  POOR_ATTITUDE: '服务态度差',
-  NOT_CLEAN: '打扫不干净',
-  NOT_ON_TIME: '未按约定时间到达',
-  ITEM_DAMAGED: '物品损坏/丢失',
-  EXTRA_CHARGE: '额外收费',
-  OTHER: '其他原因',
-};
-
 export interface SubmitComplaintParams {
   /** 订单类型 */
   orderType: 'CLEANING' | 'RECYCLING' | 'CONSULT';
   /** 订单 ID */
   orderId: number;
   /** 投诉原因 */
-  reason: ComplaintReason;
+  reasonConfigId: number;
   /** 投诉描述（必填，最长 1000 字符） */
   description: string;
   /** 凭证图片 URL 列表（可选） */
@@ -56,7 +37,8 @@ export interface ComplaintDto {
   cleaningOrderId: number | null;
   recyclingOrderId: number | null;
   consultOrderId: number | null;
-  reason: string;
+  reasonConfigId?: number | null;
+  reasonLabel: string;
   description: string;
   status: ComplaintStatus;
   evidenceImages?: string[] | null;

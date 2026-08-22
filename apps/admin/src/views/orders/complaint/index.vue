@@ -92,6 +92,12 @@
           </template>
         </el-table-column>
 
+        <el-table-column label="投诉原因" min-width="140" show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ row.reasonLabel }}
+          </template>
+        </el-table-column>
+
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
             <el-tag :type="statusTagType(row.status)" size="small">
@@ -195,7 +201,7 @@
           <template #header><span class="section-title">投诉内容</span></template>
           <div class="complaint-reason">
             <span class="reason-label">投诉原因：</span>
-            <el-tag type="danger" size="small">{{ reasonLabel(detailDrawer.complaint.reason) }}</el-tag>
+            <el-tag type="danger" size="small">{{ detailDrawer.complaint.reasonLabel }}</el-tag>
           </div>
           <p class="complaint-description">{{ detailDrawer.complaint.description }}</p>
           <div v-if="detailDrawer.complaint.evidenceImages?.length" class="evidence-grid">
@@ -402,17 +408,6 @@ const statusTagType = (s: ComplaintStatus): '' | 'success' | 'warning' | 'danger
   return map[s] ?? '';
 };
 
-const REASON_LABEL_MAP: Record<string, string> = {
-  POOR_ATTITUDE: '服务态度差',
-  NOT_CLEAN: '清洁不达标',
-  NOT_ON_TIME: '未按时到达',
-  ITEM_DAMAGED: '物品损坏',
-  EXTRA_CHARGE: '乱收费',
-  OTHER: '其他',
-};
-
-const reasonLabel = (r: string): string => REASON_LABEL_MAP[r] ?? r;
-
 const formatOrderSource = (source: string | null | undefined): string => {
   if (!source) return '—';
   if (source === 'PHONE') return '电话预约';
@@ -561,7 +556,7 @@ onMounted(() => {
   if (statusFromQuery) {
     queryParams.status = statusFromQuery as TabValue;
   }
-  loadComplaints();
+  void loadComplaints();
 });
 </script>
 

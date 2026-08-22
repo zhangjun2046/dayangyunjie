@@ -19,6 +19,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { BannerModule } from './modules/banner/banner.module';
 import { OperatorModule } from './modules/operator/operator.module';
 import { ReviewKeywordModule } from './modules/review-keyword/review-keyword.module';
+import { ComplaintReasonConfigModule } from './modules/complaint-reason-config/complaint-reason-config.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ReviewKeywordModule } from './modules/review-keyword/review-keyword.mod
     BannerModule,
     OperatorModule,
     ReviewKeywordModule,
+    ComplaintReasonConfigModule,
   ],
   controllers: [AppController],
   providers: [AppService],

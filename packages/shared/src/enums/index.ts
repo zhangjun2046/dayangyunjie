@@ -47,17 +47,6 @@ export const PhotoType = {
 } as const;
 export type PhotoType = (typeof PhotoType)[keyof typeof PhotoType];
 
-/** 投诉原因 */
-export const ComplaintReason = {
-  POOR_ATTITUDE: 'POOR_ATTITUDE',
-  NOT_CLEAN: 'NOT_CLEAN',
-  NOT_ON_TIME: 'NOT_ON_TIME',
-  ITEM_DAMAGED: 'ITEM_DAMAGED',
-  EXTRA_CHARGE: 'EXTRA_CHARGE',
-  OTHER: 'OTHER',
-} as const;
-export type ComplaintReason = (typeof ComplaintReason)[keyof typeof ComplaintReason];
-
 /** 投诉处理状态 */
 export const ComplaintStatus = {
   PENDING: 'PENDING',

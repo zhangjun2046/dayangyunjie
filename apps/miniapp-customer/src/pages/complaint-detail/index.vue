@@ -28,7 +28,7 @@
         <view class="info-row">
           <text class="info-label">投诉原因</text>
           <text class="info-value">
-            {{ COMPLAINT_REASON_LABELS[complaint.reason as ComplaintReason] || complaint.reason }}
+            {{ complaint.reasonLabel }}
           </text>
         </view>
         <view class="info-row">
@@ -100,10 +100,8 @@ import { onLoad } from '@dcloudio/uni-app';
 import {
   getComplaintById,
   COMPLAINT_STATUS_LABELS,
-  COMPLAINT_REASON_LABELS,
   type ComplaintDto,
   type ComplaintFollowUpDto,
-  type ComplaintReason,
   type ComplaintStatus,
 } from '@/api/complaint';
 

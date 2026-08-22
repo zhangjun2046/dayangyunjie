@@ -93,6 +93,16 @@ const reviewKeywordSeed = ['准时到达', '打扫干净', '态度好', '专业�
     })),
 );
 
+/** 默认投诉原因；仅在配置表为空时整体初始化 */
+const complaintReasonConfigSeed = [
+  { label: '服务态度差', sortOrder: 1, isEnabled: true },
+  { label: '打扫不干净', sortOrder: 2, isEnabled: true },
+  { label: '未按约定时间到达', sortOrder: 3, isEnabled: true },
+  { label: '物品损坏/丢失', sortOrder: 4, isEnabled: true },
+  { label: '额外收费', sortOrder: 5, isEnabled: true },
+  { label: '其他原因', sortOrder: 6, isEnabled: true },
+] as const;
+
 async function main() {
   console.info('[seed] Starting database seed...');
 
@@ -136,6 +146,21 @@ async function main() {
     });
   }
   console.info(`[seed] ReviewKeyword upserted: ${reviewKeywordSeed.length} rows`);
+
+  // ─── ComplaintReasonConfig ─────────────────────────────────────────────────
+  const existingComplaintReasonCount = await prisma.complaintReasonConfig.count();
+  if (existingComplaintReasonCount === 0) {
+    await prisma.complaintReasonConfig.createMany({
+      data: complaintReasonConfigSeed.map((row) => ({ ...row })),
+    });
+    console.info(
+      `[seed] ComplaintReasonConfig created: ${complaintReasonConfigSeed.length} rows`,
+    );
+  } else {
+    console.info(
+      `[seed] ComplaintReasonConfig skipped (${existingComplaintReasonCount} rows already exist)`,
+    );
+  }
 
   // ─── Operator（至少一条接单运营人员，居民端首页客服电话兜底） ──────────────
   const existingOperatorCount = await prisma.operator.count();

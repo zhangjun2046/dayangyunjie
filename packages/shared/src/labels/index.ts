@@ -1,5 +1,4 @@
 import type {
-  ComplaintReason,
   ComplaintStatus,
   ConsultStatus,
   OrderSource,
@@ -45,15 +44,6 @@ export const PHOTO_TYPE_LABELS: Record<PhotoType, string> = {
   BEFORE: '打扫前',
   AFTER: '打扫后',
   RECYCLING_SITE: '回收现场',
-};
-
-export const COMPLAINT_REASON_LABELS: Record<ComplaintReason, string> = {
-  POOR_ATTITUDE: '服务态度差',
-  NOT_CLEAN: '打扫不干净',
-  NOT_ON_TIME: '未按约定时间到达',
-  ITEM_DAMAGED: '物品损坏/丢失',
-  EXTRA_CHARGE: '额外收费',
-  OTHER: '其他原因',
 };
 
 export const COMPLAINT_STATUS_LABELS: Record<ComplaintStatus, string> = {

@@ -193,7 +193,7 @@
             </div>
             <div class="complaint-body">
               <span class="complaint-type">{{ orderTypeLabel(c.orderType) }}</span>
-              <span class="complaint-reason">{{ c.reason }}</span>
+              <span class="complaint-reason">{{ c.reasonLabel }}</span>
             </div>
             <div class="complaint-time">{{ formatDate(c.createdAt) }}</div>
           </div>

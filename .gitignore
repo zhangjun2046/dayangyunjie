@@ -33,6 +33,10 @@ apps/server/prisma/migrations/
 apps/server/prisma/migrations/*
 !apps/server/prisma/migrations/20260820073000_add_review_keywords/
 !apps/server/prisma/migrations/20260820073000_add_review_keywords/migration.sql
+!apps/server/prisma/migrations/20260820130000_add_complaint_reason_configs/
+!apps/server/prisma/migrations/20260820130000_add_complaint_reason_configs/migration.sql
+!apps/server/prisma/migrations/20260821160000_refactor_complaint_reason_relation/
+!apps/server/prisma/migrations/20260821160000_refactor_complaint_reason_relation/migration.sql
 
 # Uploads (local dev)
 uploads/

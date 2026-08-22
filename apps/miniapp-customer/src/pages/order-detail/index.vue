@@ -316,7 +316,7 @@
         <view class="info-row">
           <text class="info-label">投诉原因</text>
           <text class="info-value">
-            {{ COMPLAINT_REASON_LABELS[complaint.reason as ComplaintReason] || complaint.reason }}
+            {{ complaint.reasonLabel }}
           </text>
         </view>
         <view class="complaint-view-more">
@@ -390,9 +390,7 @@ import {
 import {
   getComplaints,
   COMPLAINT_STATUS_LABELS,
-  COMPLAINT_REASON_LABELS,
   type ComplaintDto,
-  type ComplaintReason,
 } from '@/api/complaint';
 import { fetchReviewByOrder, type ReviewDto } from '@/api/review';
 import OrderStatusTimeline from '@/components/OrderStatusTimeline.vue';

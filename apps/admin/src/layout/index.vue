@@ -82,7 +82,7 @@
             index="/config/review-keywords"
           >
             <el-icon><ChatDotRound /></el-icon>
-            <span>评价关键词配置</span>
+            <span>关键词配置</span>
           </el-menu-item>
           <el-menu-item v-if="userStore.hasMenu('config.operators')" index="/config/operators">
             <el-icon><Phone /></el-icon>
