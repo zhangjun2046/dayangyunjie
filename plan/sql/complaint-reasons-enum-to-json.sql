@@ -1,3 +1,5 @@
+-- 【已失效】请改用 plan/sql/merge-mac-jun-upgrade.sql
+-- 本文件只把 reason ENUM 转成字符串数组，与合并后的 [{configId,label}] 快照不兼容。
 -- 投诉原因多选：complaints.reason (ENUM) → complaints.reasons (JSON 数组)
 -- 来源：plan/complaint-reasons-multi-select.md §3
 -- 执行前请备份 complaints 表
