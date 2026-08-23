@@ -92,6 +92,12 @@
           </template>
         </el-table-column>
 
+        <el-table-column label="投诉原因" min-width="140" show-overflow-tooltip>
+          <template #default="{ row }">
+            {{ formatReasons(row.reasons) }}
+          </template>
+        </el-table-column>
+
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
             <el-tag :type="statusTagType(row.status)" size="small">
@@ -197,10 +203,10 @@
             <span class="reason-label">投诉原因：</span>
             <el-tag
               v-for="r in detailDrawer.complaint.reasons"
-              :key="r"
+              :key="r.configId"
               type="danger"
               size="small"
-            >{{ reasonLabel(r) }}</el-tag>
+            >{{ r.label }}</el-tag>
           </div>
           <p class="complaint-description">{{ detailDrawer.complaint.description }}</p>
           <div v-if="detailDrawer.complaint.evidenceImages?.length" class="evidence-grid">
@@ -320,7 +326,12 @@ import {
   type ComplaintStatus,
   type ComplaintItem,
   type ComplaintDetail,
+  type ComplaintReasonSnapshot,
 } from '@/api/complaint';
+
+/** 列表列展示多个原因快照文案 */
+const formatReasons = (reasons: ComplaintReasonSnapshot[] | undefined | null): string =>
+  (reasons ?? []).map((r) => r.label).filter(Boolean).join('、');
 
 // ─── 状态 Tab ─────────────────────────────────────────────────────────────────
 
@@ -406,17 +417,6 @@ const statusTagType = (s: ComplaintStatus): '' | 'success' | 'warning' | 'danger
   };
   return map[s] ?? '';
 };
-
-const REASON_LABEL_MAP: Record<string, string> = {
-  POOR_ATTITUDE: '服务态度差',
-  NOT_CLEAN: '清洁不达标',
-  NOT_ON_TIME: '未按时到达',
-  ITEM_DAMAGED: '物品损坏',
-  EXTRA_CHARGE: '乱收费',
-  OTHER: '其他',
-};
-
-const reasonLabel = (r: string): string => REASON_LABEL_MAP[r] ?? r;
 
 const formatOrderSource = (source: string | null | undefined): string => {
   if (!source) return '—';
@@ -566,7 +566,7 @@ onMounted(() => {
   if (statusFromQuery) {
     queryParams.status = statusFromQuery as TabValue;
   }
-  loadComplaints();
+  void loadComplaints();
 });
 </script>
 

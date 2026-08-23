@@ -32,8 +32,10 @@ export interface WorkerDetailDto {
   /** 健康证图片 URL */
   healthCertUrl?: string | null;
   healthCertExpiry?: string | null;
-  /** 技能证书图片 URL */
+  /** @deprecated 使用 skillCertUrls；旧字段仅用于兼容历史数据 */
   skillCertUrl?: string | null;
+  /** 技能证书图片 URL 列表 */
+  skillCertUrls?: string[];
   skillCertExpiry?: string | null;
   createdAt?: string;
   updatedAt?: string;

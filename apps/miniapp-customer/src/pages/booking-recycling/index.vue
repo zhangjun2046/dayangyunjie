@@ -32,8 +32,14 @@
         >
           <view class="card-left">
             <view class="card-icon-wrap">
-              <image v-if="itemIconSrc(item)" class="card-icon-img" :src="itemIconSrc(item)!" mode="aspectFit" />
-              <text v-else class="card-icon">{{ item.icon || '♻️' }}</text>
+              <image
+                v-if="itemIconSrc(item)"
+                class="card-icon-img"
+                :src="itemIconSrc(item)!"
+                mode="aspectFit"
+                @error="onItemIconError(item)"
+              />
+              <text v-else class="card-icon">{{ itemFallbackEmoji(item) }}</text>
             </view>
             <view class="card-text">
               <text class="card-name">{{ item.name }}</text>
@@ -281,14 +287,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { onLoad, onShow } from '@dcloudio/uni-app';
+import { ref, computed } from 'vue';
+import { onLoad, onShow, onUnload } from '@dcloudio/uni-app';
 import { useBookingRecyclingStore } from '@/store/booking-recycling';
 import { useAuthStore } from '@/store/auth';
 import { fetchRecyclingCatalogs, type ServiceCatalogDto } from '@/api/service-catalog';
 import { fetchAddresses } from '@/api/address';
 import { createRecyclingOrder } from '@/api/recycling-order';
 import { getSolarToLunar } from '@/utils/lunar';
+import { openCreatedOrderDetail } from '@/utils/order-navigation';
+import {
+  resolveServiceCatalogIcon,
+  serviceCatalogFallbackEmoji,
+} from '@/utils/service-catalog-icon';
 import BookingSuccessOverlay from '@/components/BookingSuccessOverlay.vue';
 
 const store = useBookingRecyclingStore();
@@ -309,16 +320,28 @@ const SERVICE_NOTICES = [
 // ───────────────────── Step 1 ─────────────────────
 const catalogs = ref<ServiceCatalogDto[]>([]);
 const catalogLoading = ref(false);
+const failedRemoteIconIds = ref<Set<number>>(new Set());
 
 const isLargeItem = computed(() =>
   store.selectedCatalog?.name?.includes('大件') ?? false,
 );
 
-/** 卡片图标：按名称匹配大件/小件专属图标，无匹配时回退 emoji */
+/** 后台图标优先，加载失败或未配置时回退现有本地图标。 */
 function itemIconSrc(item: ServiceCatalogDto): string | null {
-  if (item.name?.includes('大件')) return '/static/icons/icon_dajian_n.png';
-  if (item.name?.includes('小件')) return '/static/icons/icon_xiaojian_n.png';
-  return null;
+  return resolveServiceCatalogIcon(
+    item,
+    'RECYCLING',
+    failedRemoteIconIds.value.has(item.id),
+  );
+}
+
+function itemFallbackEmoji(item: ServiceCatalogDto): string {
+  return serviceCatalogFallbackEmoji(item, 'RECYCLING');
+}
+
+function onItemIconError(item: ServiceCatalogDto) {
+  if (!item.icon || failedRemoteIconIds.value.has(item.id)) return;
+  failedRemoteIconIds.value = new Set([...failedRemoteIconIds.value, item.id]);
 }
 
 async function loadCatalogs() {
@@ -476,8 +499,10 @@ function prevStep() {
 
 // ───────────────────── 提交订单 ─────────────────────
 const submitting = ref(false);
+let navigationTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function submitOrder() {
+  if (submitting.value) return;
   if (!authStore.resident?.id) {
     uni.showToast({ title: '请先登录', icon: 'none' });
     return;
@@ -494,6 +519,7 @@ async function submitOrder() {
   }
 
   submitting.value = true;
+  let orderCreated = false;
   try {
     const addr = store.selectedAddress!;
     const result = await createRecyclingOrder({
@@ -513,19 +539,22 @@ async function submitOrder() {
     });
 
     console.info('[booking-recycling] order created, orderNo=', result.orderNo);
+    orderCreated = true;
     store.reset();
 
     successOverlayRef.value?.show({ title: '预约成功', orderNo: result.orderNo });
 
-    setTimeout(() => {
-      uni.switchTab({ url: '/pages/orders/index' });
+    navigationTimer = setTimeout(() => {
+      navigationTimer = null;
+      openCreatedOrderDetail(result.id, 'recycling');
     }, 2000);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : '提交失败，请重试';
     uni.showToast({ title: msg, icon: 'none' });
     console.info('[booking-recycling] submit failed', e);
   } finally {
-    submitting.value = false;
+    // 订单创建成功后保持锁定，直至页面跳转，避免成功弹层期间重复下单。
+    if (!orderCreated) submitting.value = false;
   }
 }
 
@@ -538,6 +567,13 @@ onLoad(() => {
 
 onShow(() => {
   console.info('[booking-recycling] page shown, step=', store.step);
+});
+
+onUnload(() => {
+  if (navigationTimer) {
+    clearTimeout(navigationTimer);
+    navigationTimer = null;
+  }
 });
 </script>
 

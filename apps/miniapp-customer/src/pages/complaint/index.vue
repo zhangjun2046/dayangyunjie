@@ -6,14 +6,18 @@
         <text class="card-title">投诉原因</text>
         <view class="reason-grid">
           <view
-            v-for="item in REASON_LIST"
+            v-for="item in reasonOptions"
             :key="item.value"
             class="reason-chip"
-            :class="selectedReasons.includes(item.value) ? 'reason-chip-active' : ''"
+            :class="selectedReasonConfigIds.includes(item.value) ? 'reason-chip-active' : ''"
             @tap="onToggleReason(item.value)"
           >
             <text class="reason-text">{{ item.label }}</text>
           </view>
+          <text v-if="reasonsLoading" class="reason-empty">投诉原因加载中…</text>
+          <text v-else-if="reasonOptions.length === 0" class="reason-empty">
+            {{ reasonSource === 'unavailable' ? '投诉原因加载失败，请稍后重试' : '暂无可用投诉原因' }}
+          </text>
         </view>
       </view>
 
@@ -64,7 +68,7 @@
     <view class="action-bar">
       <button
         class="btn-submit"
-        :disabled="submitting || selectedReasons.length === 0 || !description.trim() || uploadingCount > 0"
+        :disabled="!isSubmitAvailable"
         @tap="onSubmit"
       >
         {{ submitting ? '提交中…' : '提交投诉' }}
@@ -74,33 +78,48 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
-import {
-  submitComplaint,
-  COMPLAINT_REASON_LABELS,
-  type ComplaintReason,
-} from '@/api/complaint';
+import { submitComplaint } from '@/api/complaint';
 import { uploadImage } from '@/api/upload';
+import { useComplaintReasons } from '@/composables/use-complaint-reasons';
 import { useAuthStore } from '@/store/auth';
-
-const REASON_LIST = (
-  Object.entries(COMPLAINT_REASON_LABELS) as [ComplaintReason, string][]
-).map(([value, label]) => ({ value, label }));
+import {
+  canSubmitComplaint,
+  recoverUnavailableComplaintReasons,
+  retainAvailableComplaintReasons,
+  toggleComplaintReason,
+} from './complaint-form';
 
 const MAX_IMAGES = 5;
 const authStore = useAuthStore();
+const {
+  options: reasonOptions,
+  source: reasonSource,
+  loading: reasonsLoading,
+  load: loadComplaintReasons,
+  isAvailable: isReasonAvailable,
+} = useComplaintReasons();
 
 const orderId = ref(0);
 const orderType = ref<'CLEANING' | 'RECYCLING' | 'CONSULT'>('CLEANING');
 const orderNo = ref('');
 
-const selectedReasons = ref<ComplaintReason[]>([]);
+const selectedReasonConfigIds = ref<number[]>([]);
 const description = ref('');
 const uploadedImageUrls = ref<string[]>([]);
 const previewImages = ref<string[]>([]);
 const uploadingCount = ref(0);
 const submitting = ref(false);
+const isSubmitAvailable = computed(() =>
+  canSubmitComplaint({
+    selectedReasonConfigIds: selectedReasonConfigIds.value,
+    description: description.value,
+    uploadingCount: uploadingCount.value,
+    availableReasonCount: reasonOptions.value.length,
+    submitting: submitting.value,
+  }),
+);
 
 onLoad((options) => {
   const opts = options as Record<string, string>;
@@ -109,15 +128,18 @@ onLoad((options) => {
     (opts?.orderType?.toUpperCase() as 'CLEANING' | 'RECYCLING' | 'CONSULT') || 'CLEANING';
   orderNo.value = opts?.orderNo || '';
   console.info(`[complaint] onLoad orderId=${orderId.value} type=${orderType.value}`);
+  void loadComplaintReasons().then(retainSelectedReasons);
 });
 
-function onToggleReason(val: ComplaintReason) {
-  const idx = selectedReasons.value.indexOf(val);
-  if (idx >= 0) {
-    selectedReasons.value.splice(idx, 1);
-  } else {
-    selectedReasons.value.push(val);
-  }
+function retainSelectedReasons() {
+  selectedReasonConfigIds.value = retainAvailableComplaintReasons(
+    selectedReasonConfigIds.value,
+    isReasonAvailable,
+  );
+}
+
+function onToggleReason(id: number) {
+  selectedReasonConfigIds.value = toggleComplaintReason(selectedReasonConfigIds.value, id);
 }
 
 function onChooseImage() {
@@ -155,7 +177,7 @@ function onRemoveImage(idx: number) {
 }
 
 async function onSubmit() {
-  if (selectedReasons.value.length === 0) {
+  if (selectedReasonConfigIds.value.length === 0) {
     uni.showToast({ title: '请至少选择一项投诉原因', icon: 'none' });
     return;
   }
@@ -173,15 +195,26 @@ async function onSubmit() {
     await submitComplaint({
       orderType: orderType.value,
       orderId: orderId.value,
-      reasons: selectedReasons.value,
+      reasonConfigIds: selectedReasonConfigIds.value,
       description: description.value.trim(),
       evidenceImages: uploadedImageUrls.value.length ? uploadedImageUrls.value : undefined,
       residentId: authStore.resident?.id ?? undefined,
     });
     uni.showToast({ title: '投诉已提交', icon: 'success' });
-    console.info(`[complaint] submitted orderId=${orderId.value} reasons=${JSON.stringify(selectedReasons.value)}`);
+    console.info(
+      `[complaint] submitted orderId=${orderId.value} reasonConfigIds=${JSON.stringify(selectedReasonConfigIds.value)}`,
+    );
     setTimeout(() => uni.navigateBack(), 1500);
   } catch (e) {
+    const recovered = await recoverUnavailableComplaintReasons(e, selectedReasonConfigIds.value, {
+      reload: loadComplaintReasons,
+      retainSelection: retainSelectedReasons,
+    });
+    if (recovered) {
+      uni.showToast({ title: '部分投诉原因已不可用，请重新选择', icon: 'none' });
+      console.info('[complaint] unavailable reason refreshed');
+      return;
+    }
     const msg = e instanceof Error ? e.message : '提交失败';
     uni.showToast({ title: msg, icon: 'none' });
   } finally {
@@ -244,6 +277,11 @@ async function onSubmit() {
 .reason-chip-active .reason-text {
   color: #ffffff;
   font-weight: 600;
+}
+
+.reason-empty {
+  font-size: 26rpx;
+  color: #999;
 }
 
 /* 描述文字框 */

@@ -115,6 +115,28 @@ describe('ServiceCatalogService', () => {
       expect(result.name).toBe('深度保洁');
       expect(result.sortOrder).toBe(1);
     });
+
+    it('创建时可写入 icon URL', async () => {
+      const icon = 'https://cdn.example.com/uploads/ICON_1.webp';
+      prisma.serviceCatalog.create.mockResolvedValue(makeRow({ icon }));
+
+      const result = await service.create({
+        bizType: 'CLEANING',
+        name: '日常清扫',
+        icon,
+      });
+
+      expect(prisma.serviceCatalog.create).toHaveBeenCalledWith({
+        data: {
+          bizType: 'CLEANING',
+          name: '日常清扫',
+          subtitle: undefined,
+          icon,
+          sortOrder: 0,
+        },
+      });
+      expect(result.icon).toBe(icon);
+    });
   });
 
   // ── update ─────────────────────────────────────────────────────────────────
@@ -128,6 +150,18 @@ describe('ServiceCatalogService', () => {
       const result = await service.update(1, { name: '精品保洁' });
 
       expect(result.name).toBe('精品保洁');
+    });
+
+    it('传入 null 时清除已配置的图标', async () => {
+      prisma.serviceCatalog.count.mockResolvedValue(1);
+      prisma.serviceCatalog.update.mockResolvedValue(makeRow({ icon: null }));
+
+      await service.update(1, { icon: null });
+
+      expect(prisma.serviceCatalog.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { icon: null },
+      });
     });
 
     it('不存在时抛出 NotFoundException', async () => {

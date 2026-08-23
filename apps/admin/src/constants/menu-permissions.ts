@@ -1,5 +1,5 @@
 /**
- * P5.8b 功能授权：页面级权限节点字典（对应 requirement_v2.0.md §5.0 导航二级菜单末级节点，共 11 个）。
+ * P5.8b 功能授权：页面级权限节点字典（对应管理端导航二级菜单末级节点）。
  * 前端硬编码维护，与后端 apps/server/src/modules/admin-permission/constants/menu-keys.constant.ts 保持一致。
  */
 
@@ -45,6 +45,7 @@ export const MENU_TREE: MenuGroupNode[] = [
     label: '配置管理',
     children: [
       { key: 'config.services', label: '服务配置' },
+      { key: 'config.review-keywords', label: '关键词配置' },
       { key: 'config.operators', label: '运营人员配置' },
       { key: 'config.banners', label: '轮播图管理' },
     ],

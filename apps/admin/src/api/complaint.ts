@@ -6,6 +6,12 @@ import type { PagedResponse } from './cleaning';
 
 export type ComplaintStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED';
 
+/** 投诉原因快照（提交时记录配置 id 与当时文案，配置删除不影响历史展示） */
+export interface ComplaintReasonSnapshot {
+  configId: number;
+  label: string;
+}
+
 export interface ComplaintItem {
   id: number;
   complaintNo: string;
@@ -13,7 +19,7 @@ export interface ComplaintItem {
   cleaningOrderId?: number | null;
   recyclingOrderId?: number | null;
   consultOrderId?: number | null;
-  reasons: string[];
+  reasons: ComplaintReasonSnapshot[];
   description: string;
   status: ComplaintStatus;
   evidenceImages?: string[] | null;

@@ -180,12 +180,7 @@
         <el-table-column label="员工" prop="name" width="100" />
         <el-table-column label="技能" width="120">
           <template #default="{ row }">
-            <el-tag
-              v-for="skill in (row.skills || []).slice(0, 2)"
-              :key="skill"
-              size="small"
-              style="margin-right: 4px"
-            >{{ skill }}</el-tag>
+            <el-tag size="small">{{ skillLabel(row.skillType) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="80" align="center">
@@ -545,6 +540,7 @@ import {
 import { fetchWorkers, type WorkerListItem } from '@/api/worker';
 import { fetchServiceCatalogs, type ServiceCatalogItem } from '@/api/service-catalog';
 import { useUserStore } from '@/store';
+import { filterAssignableWorkers, skillLabel } from '@/utils/worker-skill';
 
 // ─── 状态 Tab ─────────────────────────────────────────────────────────────────
 
@@ -740,9 +736,10 @@ const photoGroups = computed(() => {
 // ─── 分配弹窗 ─────────────────────────────────────────────────────────────────
 
 const allWorkers = ref<WorkerListItem[]>([]);
+// 技能匹配 + 空闲，改派时再排除当前服务人员
 const idleWorkers = computed(() =>
-  allWorkers.value.filter(
-    (w) => w.status === 'IDLE' && w.id !== assignDialog.currentWorkerId,
+  filterAssignableWorkers(allWorkers.value, 'CLEANING').filter(
+    (w) => w.id !== assignDialog.currentWorkerId,
   ),
 );
 

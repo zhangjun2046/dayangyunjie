@@ -136,15 +136,26 @@ onMounted(() => {
 
 /** 查看证书大图 */
 function onViewCert(type: 'health' | 'skill') {
-  const url = type === 'health' ? detail.value?.healthCertUrl : detail.value?.skillCertUrl;
   const label = type === 'health' ? '健康证' : '技能证书';
-  if (!url) {
+  const urls = type === 'health'
+    ? [detail.value?.healthCertUrl].filter((url): url is string => Boolean(url))
+    : getSkillCertUrls();
+  if (urls.length === 0) {
     uni.showToast({ title: `${label}暂未上传`, icon: 'none' });
     console.info('[mine] cert not uploaded, type=', type);
     return;
   }
-  uni.previewImage({ urls: [url], current: url });
-  console.info('[mine] preview cert, type=', type, 'url=', url);
+  uni.previewImage({ urls, current: urls[0] });
+  console.info('[mine] preview cert, type=', type, 'count=', urls.length);
+}
+
+/** 优先读取多图字段，并兼容历史单张技能证书。 */
+function getSkillCertUrls(): string[] {
+  const urls = detail.value?.skillCertUrls?.filter(Boolean) ?? [];
+  if (urls.length > 0) {
+    return urls;
+  }
+  return detail.value?.skillCertUrl ? [detail.value.skillCertUrl] : [];
 }
 
 /** 跳转修改密码页 */

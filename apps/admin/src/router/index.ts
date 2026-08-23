@@ -69,6 +69,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '服务配置', menuKey: 'config.services' },
       },
       {
+        path: 'config/review-keywords',
+        name: 'ConfigReviewKeywords',
+        component: () => import('@/views/config/review-keywords/index.vue'),
+        meta: { title: '关键词配置', menuKey: 'config.review-keywords' },
+      },
+      {
         path: 'config/operators',
         name: 'ConfigOperators',
         component: () => import('@/views/config/operators/index.vue'),

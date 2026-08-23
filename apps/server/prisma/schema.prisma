@@ -105,6 +105,7 @@ model Worker {
   healthCertUrl    String?      @map("health_cert_url") @db.VarChar(512)
   healthCertExpiry DateTime?    @map("health_cert_expiry")
   skillCertUrl     String?      @map("skill_cert_url") @db.VarChar(512)
+  skillCertUrls    Json?        @map("skill_cert_urls")
   skillCertExpiry  DateTime?    @map("skill_cert_expiry")
   createdAt        DateTime     @default(now()) @map("created_at")
   updatedAt        DateTime     @updatedAt @map("updated_at")
@@ -350,7 +351,9 @@ model Complaint {
   residentId       Int?            @map("resident_id")
   serviceType      String?         @map("service_type") @db.VarChar(32)
   serviceAddress   String?         @map("service_address") @db.VarChar(256)
-  reasons          Json             // string[]，投诉原因 value 数组快照
+  // 多选原因快照：[{ configId: number, label: string }]
+  // 存快照而非外键，配置被改名/删除都不影响历史投诉展示
+  reasons          Json
   description      String          @db.Text
   evidenceImages   Json?           @map("evidence_images")
   status           ComplaintStatus @default(PENDING)
@@ -414,6 +417,35 @@ model ServiceCatalog {
 
   @@index([bizType, isEnabled])
   @@map("service_catalogs")
+}
+
+// 评价快捷关键词配置：按保洁/废品回收业务分别维护
+model ReviewKeyword {
+  id        Int      @id @default(autoincrement())
+  bizType   String   @map("biz_type") @db.VarChar(16)
+  keyword   String   @db.VarChar(32)
+  sortOrder Int      @default(0) @map("sort_order")
+  isEnabled Boolean  @default(true) @map("is_enabled")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([bizType, keyword])
+  @@index([bizType, isEnabled, sortOrder])
+  @@map("review_keywords")
+}
+
+// 投诉原因配置：由自增主键标识，标签唯一；投诉侧保存 [{configId,label}] 快照，
+// 不建外键，配置删除不影响历史投诉展示
+model ComplaintReasonConfig {
+  id        Int      @id @default(autoincrement())
+  label     String   @unique @db.VarChar(32)
+  sortOrder Int      @default(0) @map("sort_order")
+  isEnabled Boolean  @default(true) @map("is_enabled")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([isEnabled, sortOrder])
+  @@map("complaint_reason_configs")
 }
 
 // v2.0 新增：轮播图管理（§5.4.5 / §6.4）

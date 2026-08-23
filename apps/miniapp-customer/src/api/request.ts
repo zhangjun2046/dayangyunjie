@@ -7,6 +7,9 @@
  * 注意：直接从 uni.storage 读取 token，避免与 store 形成循环依赖
  */
 
+import { ApiRequestError } from './errors';
+export { ApiRequestError } from './errors';
+
 /** 后端统一响应结构 */
 interface ApiResponse<T = unknown> {
   code: number;
@@ -82,7 +85,13 @@ export async function request<T = unknown>(
         const body = res.data as ApiResponse<T>;
         if (body.code !== 0) {
           console.info(`[request] API error: ${path} → code=${body.code} msg=${body.message}`);
-          reject(new Error(body.message || '请求失败'));
+          reject(
+            new ApiRequestError(
+              body.message || '请求失败',
+              body.code,
+              res.statusCode,
+            ),
+          );
           return;
         }
         resolve(body.data);

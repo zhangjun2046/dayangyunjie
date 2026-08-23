@@ -28,7 +28,7 @@ function makeComplaintRow(overrides: Record<string, unknown> = {}) {
     residentId: null,
     serviceType: null,
     serviceAddress: null,
-    reasons: ['NOT_CLEAN'],
+    reasons: [{ configId: 2, label: '打扫不干净' }],
     description: '保洁不彻底',
     evidenceImages: null,
     status: ComplaintStatus.PENDING,
@@ -50,13 +50,7 @@ function makeFollowUpRow(overrides: Record<string, unknown> = {}) {
 }
 
 function makePrismaMock(overrides: Record<string, unknown> = {}) {
-  return {
-    $transaction: jest.fn().mockImplementation((cbOrArray: unknown) => {
-      if (Array.isArray(cbOrArray)) {
-        return Promise.all(cbOrArray);
-      }
-      return (cbOrArray as (tx: unknown) => unknown)({});
-    }),
+  const prisma = {
     cleaningOrder: {
       findUnique: jest.fn().mockResolvedValue({ id: 1 }),
     },
@@ -65,6 +59,11 @@ function makePrismaMock(overrides: Record<string, unknown> = {}) {
     },
     consultOrder: {
       findUnique: jest.fn().mockResolvedValue({ id: 3 }),
+    },
+    complaintReasonConfig: {
+      findMany: jest.fn().mockResolvedValue([
+        { id: 2, label: '打扫不干净', isEnabled: true },
+      ]),
     },
     complaint: {
       create: jest.fn().mockResolvedValue(makeComplaintRow()),
@@ -81,6 +80,15 @@ function makePrismaMock(overrides: Record<string, unknown> = {}) {
     },
     ...overrides,
   };
+  return {
+    ...prisma,
+    $transaction: jest.fn().mockImplementation((cbOrArray: unknown) => {
+      if (Array.isArray(cbOrArray)) {
+        return Promise.all(cbOrArray);
+      }
+      return (cbOrArray as (tx: typeof prisma) => unknown)(prisma);
+    }),
+  };
 }
 
 function makeService(prismaOverrides: Record<string, unknown> = {}) {
@@ -93,7 +101,7 @@ function makeService(prismaOverrides: Record<string, unknown> = {}) {
 const baseCreateDto: CreateComplaintDto = {
   orderType: 'CLEANING',
   orderId: 1,
-  reasons: ['NOT_CLEAN'],
+  reasonConfigIds: [2],
   description: '保洁不彻底，地板还有灰尘',
 };
 
@@ -101,10 +109,26 @@ const baseCreateDto: CreateComplaintDto = {
 
 describe('ComplaintService — create（创建投诉）', () => {
   it('保洁订单投诉成功：返回 ComplaintDto，初始状态为 PENDING', async () => {
-    const { svc } = makeService();
+    const { svc, prisma } = makeService();
     const result = await svc.create(baseCreateDto);
     expect(result.status).toBe(ComplaintStatus.PENDING);
     expect(result.orderType).toBe('CLEANING');
+    expect(prisma.complaintReasonConfig.findMany).toHaveBeenCalledWith({
+      where: { id: { in: [2] } },
+      select: { id: true, label: true, isEnabled: true },
+    });
+    expect(prisma.complaint.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('在同一事务读取配置并写入 configId 与 label 快照', async () => {
+    const { svc, prisma } = makeService();
+    await svc.create(baseCreateDto);
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
+    expect(prisma.complaint.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        reasons: [{ configId: 2, label: '打扫不干净' }],
+      }),
+    });
   });
 
   it('废品订单投诉成功：orderType=RECYCLING', async () => {
@@ -141,23 +165,73 @@ describe('ComplaintService — create（创建投诉）', () => {
     expect(prisma.complaint.create).toHaveBeenCalledTimes(1);
   });
 
-  it('多个原因：create 写入去重后的 JSON 数组', async () => {
+  it('多选原因：按提交顺序去重后写入快照数组', async () => {
     const { svc, prisma } = makeService();
+    prisma.complaintReasonConfig.findMany.mockResolvedValue([
+      { id: 2, label: '打扫不干净', isEnabled: true },
+      { id: 5, label: '服务态度差', isEnabled: true },
+    ]);
     prisma.complaint.create = jest.fn().mockResolvedValue(
-      makeComplaintRow({ reasons: ['NOT_CLEAN', 'POOR_ATTITUDE'] }),
+      makeComplaintRow({
+        reasons: [
+          { configId: 2, label: '打扫不干净' },
+          { configId: 5, label: '服务态度差' },
+        ],
+      }),
     );
-    const result = await svc.create({
-      ...baseCreateDto,
-      reasons: ['NOT_CLEAN', 'POOR_ATTITUDE', 'NOT_CLEAN'],
+
+    const result = await svc.create({ ...baseCreateDto, reasonConfigIds: [2, 5, 2] });
+
+    expect(prisma.complaintReasonConfig.findMany).toHaveBeenCalledWith({
+      where: { id: { in: [2, 5] } },
+      select: { id: true, label: true, isEnabled: true },
     });
     expect(prisma.complaint.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          reasons: ['NOT_CLEAN', 'POOR_ATTITUDE'],
+          reasons: [
+            { configId: 2, label: '打扫不干净' },
+            { configId: 5, label: '服务态度差' },
+          ],
         }),
       }),
     );
-    expect(result.reasons).toEqual(['NOT_CLEAN', 'POOR_ATTITUDE']);
+    expect(result.reasons).toEqual([
+      { configId: 2, label: '打扫不干净' },
+      { configId: 5, label: '服务态度差' },
+    ]);
+  });
+
+  it('任一原因已停用时拒绝创建投诉', async () => {
+    const { svc, prisma } = makeService();
+    prisma.complaintReasonConfig.findMany.mockResolvedValue([
+      { id: 2, label: '打扫不干净', isEnabled: false },
+    ]);
+    await expect(svc.create(baseCreateDto)).rejects.toMatchObject({
+      constructor: BadRequestException,
+      message: '投诉原因「打扫不干净」当前已停用，请重新选择',
+    });
+    expect(prisma.complaint.create).not.toHaveBeenCalled();
+  });
+
+  it('任一原因不存在时返回 404 且不创建投诉', async () => {
+    const { svc, prisma } = makeService();
+    prisma.complaintReasonConfig.findMany.mockResolvedValue([
+      { id: 2, label: '打扫不干净', isEnabled: true },
+    ]);
+    await expect(svc.create({ ...baseCreateDto, reasonConfigIds: [2, 99] })).rejects.toMatchObject({
+      constructor: NotFoundException,
+      message: '投诉原因（ID: 99）不存在',
+    });
+    expect(prisma.complaint.create).not.toHaveBeenCalled();
+  });
+
+  it('配置查询的其他数据库错误不应被吞掉', async () => {
+    const { svc, prisma } = makeService();
+    const error = new Error('database unavailable');
+    prisma.complaintReasonConfig.findMany.mockRejectedValue(error);
+    await expect(svc.create(baseCreateDto)).rejects.toBe(error);
+    expect(prisma.complaint.create).not.toHaveBeenCalled();
   });
 });
 
@@ -175,24 +249,26 @@ describe('ComplaintService — findAll（列表查询）', () => {
     });
   });
 
-  it('按 status=PENDING 筛选：findMany 带 status', async () => {
+  it('按 status=PENDING 筛选：查询条件正确', async () => {
     const { svc, prisma } = makeService();
     await svc.findAll({ status: 'PENDING' });
     expect(prisma.complaint.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ status: 'PENDING' }),
-      }),
+      expect.objectContaining({ where: expect.objectContaining({ status: 'PENDING' }) }),
     );
+    expect(prisma.complaint.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({ status: 'PENDING' }),
+    });
   });
 
-  it('按 orderType=CLEANING 筛选：findMany 带 orderType', async () => {
+  it('按 orderType=CLEANING 筛选：查询条件正确', async () => {
     const { svc, prisma } = makeService();
     await svc.findAll({ orderType: 'CLEANING' });
     expect(prisma.complaint.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ orderType: 'CLEANING' }),
-      }),
+      expect.objectContaining({ where: expect.objectContaining({ orderType: 'CLEANING' }) }),
     );
+    expect(prisma.complaint.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({ orderType: 'CLEANING' }),
+    });
   });
 
   it('items 中的 DTO 结构正确', async () => {
@@ -240,6 +316,18 @@ describe('ComplaintService — findOne（详情查询）', () => {
     const { svc, prisma } = makeService();
     prisma.complaint.findUnique = jest.fn().mockResolvedValue(null);
     await expect(svc.findOne(99)).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('配置删除后仍直接返回历史原因快照', async () => {
+    const { svc, prisma } = makeService();
+    prisma.complaint.findUnique = jest.fn().mockResolvedValue({
+      ...makeComplaintRow({ reasons: [{ configId: 404, label: '已删除的历史原因' }] }),
+      followUps: [],
+    });
+    await expect(svc.findOne(1)).resolves.toMatchObject({
+      reasons: [{ configId: 404, label: '已删除的历史原因' }],
+    });
+    expect(prisma.complaintReasonConfig.findMany).not.toHaveBeenCalled();
   });
 });
 

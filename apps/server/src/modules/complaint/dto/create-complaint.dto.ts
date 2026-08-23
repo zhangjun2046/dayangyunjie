@@ -11,15 +11,6 @@ import {
   Min,
 } from 'class-validator';
 
-const COMPLAINT_REASON_VALUES = [
-  'POOR_ATTITUDE',
-  'NOT_CLEAN',
-  'NOT_ON_TIME',
-  'ITEM_DAMAGED',
-  'EXTRA_CHARGE',
-  'OTHER',
-] as const;
-
 const ORDER_TYPE_VALUES = ['CLEANING', 'RECYCLING', 'CONSULT'] as const;
 
 export class CreateComplaintDto {
@@ -37,15 +28,16 @@ export class CreateComplaintDto {
   orderId!: number;
 
   @ApiProperty({
-    description: '投诉原因（可多选）',
-    enum: COMPLAINT_REASON_VALUES,
-    isArray: true,
-    example: ['NOT_CLEAN', 'POOR_ATTITUDE'],
+    description: '投诉原因配置 ID（可多选，至少 1 项）',
+    type: [Number],
+    example: [1, 3],
   })
   @IsArray()
   @ArrayMinSize(1)
-  @IsEnum(COMPLAINT_REASON_VALUES, { each: true })
-  reasons!: (typeof COMPLAINT_REASON_VALUES)[number][];
+  @Type(() => Number)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  reasonConfigIds!: number[];
 
   @ApiProperty({ description: '投诉详细描述（最长 1000 字符）', example: '保洁员工态度很差，服务不认真' })
   @IsString()

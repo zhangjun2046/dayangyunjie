@@ -3,7 +3,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ComplaintDto, ComplaintFollowUpDto } from '@dayangyunjie/shared';
+import {
+  ComplaintDto,
+  ComplaintFollowUpDto,
+  ComplaintReasonSnapshot,
+} from '@dayangyunjie/shared';
 import { Complaint, ComplaintFollowUp, ComplaintStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateComplaintDto } from './dto/create-complaint.dto';
@@ -103,29 +107,54 @@ export class ComplaintService {
    * 不限制订单状态，居民可随时投诉。
    */
   async create(dto: CreateComplaintDto): Promise<ComplaintDto> {
-    const { orderType, orderId, reasons, description, evidenceImages, residentId } = dto;
-    const uniqueReasons = [...new Set(reasons)];
+    const { orderType, orderId, reasonConfigIds, description, evidenceImages, residentId } = dto;
+    const uniqueReasonIds = [...new Set(reasonConfigIds)];
 
     // 验证订单存在
     await this.findOrderOrThrow(orderType, orderId);
-
     const complaintNo = await this.generateComplaintNo();
 
-    const row = await this.prismaService.complaint.create({
-      data: {
-        complaintNo,
-        orderType,
-        reasons: uniqueReasons as Prisma.InputJsonValue,
-        description,
-        ...(evidenceImages ? { evidenceImages: evidenceImages as Prisma.InputJsonValue } : {}),
-        ...(residentId ? { residentId } : {}),
-        ...(orderType === 'CLEANING' ? { cleaningOrderId: orderId } : {}),
-        ...(orderType === 'RECYCLING' ? { recyclingOrderId: orderId } : {}),
-        ...(orderType === 'CONSULT' ? { consultOrderId: orderId } : {}),
-      },
+    // 配置读取与投诉快照写入必须处于同一事务，避免并发删除或修改造成文案不一致。
+    const row = await this.prismaService.$transaction(async (transaction) => {
+      const reasonConfigs = await transaction.complaintReasonConfig.findMany({
+        where: { id: { in: uniqueReasonIds } },
+        select: { id: true, label: true, isEnabled: true },
+      });
+
+      const configById = new Map(reasonConfigs.map((config) => [config.id, config]));
+      const missingId = uniqueReasonIds.find((id) => !configById.has(id));
+      if (missingId !== undefined) {
+        throw this.complaintReasonNotFound(missingId);
+      }
+      const disabled = reasonConfigs.find((config) => !config.isEnabled);
+      if (disabled) {
+        throw new BadRequestException(`投诉原因「${disabled.label}」当前已停用，请重新选择`);
+      }
+
+      // 按提交顺序落快照，保证展示顺序与居民勾选顺序一致
+      const reasons: ComplaintReasonSnapshot[] = uniqueReasonIds.map((id) => {
+        const config = configById.get(id)!;
+        return { configId: config.id, label: config.label };
+      });
+
+      return transaction.complaint.create({
+        data: {
+          complaintNo,
+          orderType,
+          reasons: reasons as unknown as Prisma.InputJsonValue,
+          description,
+          ...(evidenceImages ? { evidenceImages: evidenceImages as Prisma.InputJsonValue } : {}),
+          ...(residentId ? { residentId } : {}),
+          ...(orderType === 'CLEANING' ? { cleaningOrderId: orderId } : {}),
+          ...(orderType === 'RECYCLING' ? { recyclingOrderId: orderId } : {}),
+          ...(orderType === 'CONSULT' ? { consultOrderId: orderId } : {}),
+        },
+      });
     });
 
-    console.info(`[Complaint] created id=${row.id} orderType=${orderType} orderId=${orderId} reasons=${JSON.stringify(uniqueReasons)}`);
+    console.info(
+      `[Complaint] created id=${row.id} orderType=${orderType} orderId=${orderId} reasonConfigIds=${JSON.stringify(uniqueReasonIds)}`,
+    );
     return this.toDto(row);
   }
 
@@ -247,6 +276,10 @@ export class ComplaintService {
 
   // ─── 私有方法 ─────────────────────────────────────────────────────────────
 
+  private complaintReasonNotFound(id: number): NotFoundException {
+    return new NotFoundException(`投诉原因（ID: ${id}）不存在`);
+  }
+
   /**
    * 校验投诉状态转移是否合法。
    * @throws BadRequestException 转移非法或已为终态时抛出
@@ -327,7 +360,7 @@ export class ComplaintService {
       recyclingOrderId: row.recyclingOrderId ?? null,
       consultOrderId: row.consultOrderId ?? null,
       orderType: row.orderType as ComplaintDto['orderType'],
-      reasons: parseComplaintReasons(row.reasons) as ComplaintDto['reasons'],
+      reasons: parseComplaintReasons(row.reasons),
       description: row.description,
       evidenceImages: row.evidenceImages ? (row.evidenceImages as string[]) : null,
       status: row.status as ComplaintDto['status'],
@@ -387,9 +420,13 @@ export class ComplaintService {
   }
 }
 
-function parseComplaintReasons(value: Prisma.JsonValue): string[] {
-  if (Array.isArray(value)) {
-    return value.filter((v): v is string => typeof v === 'string');
-  }
-  return [];
+/** 读取投诉原因快照；忽略结构不符的脏数据，避免详情页整条渲染失败 */
+function parseComplaintReasons(value: Prisma.JsonValue): ComplaintReasonSnapshot[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return [];
+    const { configId, label } = item as Record<string, unknown>;
+    if (typeof configId !== 'number' || typeof label !== 'string') return [];
+    return [{ configId, label }];
+  });
 }

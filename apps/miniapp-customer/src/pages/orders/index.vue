@@ -124,6 +124,10 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/store/auth';
 import {
+  useOrderNavigationStore,
+  type CustomerOrderType,
+} from '@/store/order-navigation';
+import {
   fetchCleaningOrderList,
   type CleaningOrderDto,
 } from '@/api/cleaning-order';
@@ -144,7 +148,7 @@ import {
 
 console.info('[orders] page loaded');
 
-type TabKey = 'cleaning' | 'recycling' | 'consult';
+type TabKey = CustomerOrderType;
 type AnyOrder = (CleaningOrderDto | RecyclingOrderDto | ConsultOrderDto) & {
   id: number;
   orderNo: string;
@@ -159,6 +163,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
 ];
 
 const authStore = useAuthStore();
+const orderNavigationStore = useOrderNavigationStore();
 const activeTab = ref<TabKey>('cleaning');
 const activeFilter = ref<string>('all');
 const orders = ref<AnyOrder[]>([]);
@@ -195,6 +200,17 @@ onMounted(() => {
 
 // 每次页面重新显示时刷新列表（如从订单详情/评价页返回后状态已更新）
 onShow(() => {
+  const pendingTab = orderNavigationStore.consumeOrderTab();
+  if (pendingTab) {
+    const selectionChanged = activeTab.value !== pendingTab || activeFilter.value !== '';
+    activeTab.value = pendingTab;
+    activeFilter.value = '';
+    console.info('[orders] onShow → select created order tab=', pendingTab);
+
+    // 页签或筛选变化时由 watch 统一刷新，避免重复请求。
+    if (selectionChanged) return;
+  }
+
   console.info('[orders] onShow → refresh list');
   resetAndLoad();
 });

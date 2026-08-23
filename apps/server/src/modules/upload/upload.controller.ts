@@ -30,6 +30,9 @@ import { UploadImageResponseDto } from './dto/upload-response.dto';
 /** 最大上传文件大小：10 MB */
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
+/** 服务类型图标最大上传文件大小：1 MB */
+const MAX_ICON_FILE_SIZE = 1024 * 1024;
+
 /** 允许的 MIME 类型 */
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
@@ -43,6 +46,13 @@ function buildFilename(orderNo?: string): string {
   const ts = Date.now();
   const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
   return `${prefix}_${ts}_${rand}.jpg`;
+}
+
+/** 生成无水印服务图标文件名，统一保存为支持透明通道的 WebP。 */
+function buildIconFilename(): string {
+  const ts = Date.now();
+  const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `ICON_${ts}_${rand}.webp`;
 }
 
 /**
@@ -90,6 +100,81 @@ export class UploadController {
     @Inject(STORAGE_SERVICE)
     private readonly storageService: IStorageService,
   ) {}
+
+  /**
+   * 上传服务类型图标（无水印）
+   * 图片会自动纠正方向，并在不放大的前提下约束到 512×512 以内。
+   */
+  @Post('icon')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: MAX_ICON_FILE_SIZE },
+    }),
+  )
+  @ApiOperation({
+    summary: '上传服务类型图标（无水印）',
+    description: '接受服务类型图标，压缩为最大 512×512 的 WebP 后存储，返回可访问 URL',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: '服务类型图标（JPEG/PNG/WebP，≤1MB）',
+        },
+      },
+      required: ['file'],
+    },
+  })
+  async uploadIcon(
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<{ code: number; message: string; data: UploadImageResponseDto }> {
+    if (!file) {
+      throw new BadRequestException('未接收到文件，请确认请求包含 file 字段');
+    }
+    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      throw new BadRequestException(
+        `不支持的文件类型 ${file.mimetype}，仅允许 JPEG / PNG / WebP`,
+      );
+    }
+    if (file.size > MAX_ICON_FILE_SIZE) {
+      throw new BadRequestException('服务图标大小不能超过 1MB');
+    }
+
+    this.logger.log(
+      `Uploading service icon: originalName=${file.originalname}, size=${file.size}`,
+    );
+
+    let iconBuffer: Buffer;
+    try {
+      iconBuffer = await sharp(file.buffer)
+        .rotate()
+        .resize({
+          width: 512,
+          height: 512,
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .webp({ quality: 90, alphaQuality: 100 })
+        .toBuffer();
+    } catch {
+      throw new BadRequestException('图片内容无效或已损坏');
+    }
+
+    const filename = buildIconFilename();
+    const url = await this.storageService.save(filename, iconBuffer);
+
+    this.logger.log(`Service icon uploaded successfully: ${url}`);
+
+    return {
+      code: 0,
+      message: 'ok',
+      data: { url, filename },
+    };
+  }
 
   /**
    * 上传图片（自动叠加水印）

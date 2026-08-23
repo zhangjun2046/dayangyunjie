@@ -11,6 +11,7 @@ module.exports = {
   },
   moduleNameMapper: {
     '^@dayangyunjie/shared$': '<rootDir>/../../../packages/shared/src/index.ts',
+    '^@prisma/client$': '<rootDir>/../../../node_modules/@prisma/client/default.js',
   },
   moduleFileExtensions: ['js', 'json', 'ts'],
   collectCoverageFrom: ['**/*.ts', '!**/*.spec.ts', '!**/main.ts'],
