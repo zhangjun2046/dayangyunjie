@@ -82,6 +82,7 @@ export async function request<T = unknown>(
       method,
       data,
       header,
+      timeout: 15000,
       success(res) {
         const body = res.data as ApiResponse<T>;
         if (body.code !== 0) {

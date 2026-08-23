@@ -57,7 +57,7 @@
 
       <!-- 空状态 -->
       <view v-else-if="orders.length === 0" class="status-wrap empty-wrap">
-        <image class="empty-icon-img" src="/static/icons/task.png" mode="aspectFit" />
+        <image class="empty-icon-img" src="/static/icons/icon_empty.png" mode="aspectFit" />
         <text class="empty-text">暂无待接单任务</text>
         <text class="empty-sub">下拉刷新可更新列表</text>
       </view>
@@ -350,8 +350,8 @@ function handleViewDetail(item: AssignedOrderItem): void {
 }
 
 .empty-icon-img {
-  width: 96rpx;
-  height: 96rpx;
+  width: 320rpx;
+  height: 320rpx;
 }
 
 .empty-text {
