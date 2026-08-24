@@ -8,6 +8,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { WorkerLoginResult } from '@/api/auth';
 import { refreshWorkerTokens } from '@/api/auth';
+import { readJwtExpiry } from '@/utils/jwt';
 
 export const STORAGE_KEY = '__worker_auth__';
 
@@ -57,29 +58,6 @@ function loadFromStorage(): PersistedState {
     // 读取失败时使用默认值
   }
   return { ...EMPTY_STATE };
-}
-
-/** 解析 JWT payload（仅用于本地过期判断，不做签名校验） */
-function parseJwtPayload(token: string): { exp?: number } | null {
-  try {
-    const part = token.split('.')[1];
-    if (!part) return null;
-    const base64 = part.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
-    const binary = globalThis.atob(padded);
-    const json = decodeURIComponent(
-      Array.from(binary, (c) => `%${c.charCodeAt(0).toString(16).padStart(2, '0')}`).join(''),
-    );
-    return JSON.parse(json) as { exp?: number };
-  } catch {
-    return null;
-  }
-}
-
-function isJwtExpired(token: string, skewSeconds = 30): boolean {
-  const payload = parseJwtPayload(token);
-  if (!payload?.exp) return true;
-  return payload.exp * 1000 <= Date.now() + skewSeconds * 1000;
 }
 
 export const useAuthStore = defineStore('worker-auth', () => {
@@ -142,13 +120,27 @@ export const useAuthStore = defineStore('worker-auth', () => {
       return false;
     }
 
-    if (!isJwtExpired(accessToken.value)) {
-      console.info('[worker-auth-store] ensureSession: access token still valid, workerId=', worker.value.id);
+    const accessExpiry = readJwtExpiry(accessToken.value);
+    console.info(
+      '[worker-auth-store] ensureSession: accessExpiry=',
+      accessExpiry,
+      'workerId=',
+      worker.value.id,
+    );
+    if (accessExpiry === 'valid') {
+      console.info('[worker-auth-store] branch=valid, keep session');
+      return true;
+    }
+    // 真机解不出 exp 时不能当过期，否则刚登录就会被踢回登录页
+    if (accessExpiry === 'unknown') {
+      console.info('[worker-auth-store] branch=unknown fallback, keep session without refresh');
       return true;
     }
 
-    if (!refreshToken.value || isJwtExpired(refreshToken.value, 0)) {
-      console.info('[worker-auth-store] ensureSession: tokens expired, force logout');
+    const refreshExpiry = refreshToken.value ? readJwtExpiry(refreshToken.value, 0) : 'expired';
+    console.info('[worker-auth-store] ensureSession: refreshExpiry=', refreshExpiry);
+    if (!refreshToken.value || refreshExpiry === 'expired') {
+      console.info('[worker-auth-store] branch=expired, force logout');
       logout();
       return false;
     }
