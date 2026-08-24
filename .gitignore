@@ -26,6 +26,7 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+D:\\npm-cache/
 
 # Prisma (migrations 是否入库由团队决定，默认忽略)
 apps/server/prisma/migrations/
