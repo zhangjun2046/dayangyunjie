@@ -3,7 +3,6 @@ import type { ServiceCatalogDto } from '@/api/service-catalog';
 import type { WorkerOrderItem } from '@/api/order';
 import {
   resolveOrderRemoteIcon,
-  resolveOrderServiceEmoji,
   resolveOrderServiceIcon,
 } from './service-catalog-icon';
 
@@ -52,7 +51,6 @@ describe('worker service catalog icon utilities — full matrix', () => {
 
       expect(resolveOrderServiceIcon(order, catalogs, new Set())).toBe(icon);
       expect(resolveOrderRemoteIcon(order, catalogs)).toBe(icon);
-      expect(resolveOrderServiceEmoji(order, catalogs)).toBeNull();
     });
 
     it('清理后台 icon 首尾空白后返回', () => {
@@ -67,7 +65,6 @@ describe('worker service catalog icon utilities — full matrix', () => {
       expect(resolveOrderRemoteIcon(order, catalogs)).toBe(
         'https://cdn.example.com/daily.webp',
       );
-      expect(resolveOrderServiceEmoji(order, catalogs)).toBeNull();
     });
 
     it('停用的服务目录仍可供历史订单匹配', () => {
@@ -82,7 +79,7 @@ describe('worker service catalog icon utilities — full matrix', () => {
     });
   });
 
-  describe('Emoji 二级服务 icon', () => {
+  describe('Emoji 或非图片 icon 回退本地大类图', () => {
     it.each([
       ['cleaning', 'CLEANING', '日常保洁', '🧹', CLEANING_FALLBACK],
       ['cleaning', 'CLEANING', '深度保洁', '🧽', CLEANING_FALLBACK],
@@ -90,12 +87,11 @@ describe('worker service catalog icon utilities — full matrix', () => {
       ['recycling', 'RECYCLING', '大件类废品', '🚚', RECYCLING_FALLBACK],
       ['recycling', 'RECYCLING', '小件类废品', '📦', RECYCLING_FALLBACK],
     ] as const)(
-      '%s / %s / %s 直接渲染 %s',
+      '%s / %s 配置 Emoji 时回退本地图',
       (orderType, bizType, name, emoji, imageFallback) => {
         const order = makeOrder(orderType, name);
         const catalogs = [makeCatalog(bizType, name, ` ${emoji} `)];
 
-        expect(resolveOrderServiceEmoji(order, catalogs)).toBe(emoji);
         expect(resolveOrderRemoteIcon(order, catalogs)).toBeNull();
         expect(resolveOrderServiceIcon(order, catalogs, new Set())).toBe(imageFallback);
       },
@@ -105,7 +101,6 @@ describe('worker service catalog icon utilities — full matrix', () => {
       const order = makeOrder('cleaning', '专项保洁');
       const catalogs = [makeCatalog('CLEANING', '专项保洁', '💧')];
 
-      expect(resolveOrderServiceEmoji(order, catalogs)).toBe('💧');
       expect(resolveOrderServiceIcon(order, catalogs, new Set(['💧']))).toBe(
         CLEANING_FALLBACK,
       );
@@ -137,7 +132,6 @@ describe('worker service catalog icon utilities — full matrix', () => {
         resolveOrderServiceIcon(makeOrder('cleaning', '专项'), catalogs, new Set()),
       ).toBe(CLEANING_FALLBACK);
       expect(resolveOrderRemoteIcon(makeOrder('cleaning', '专项'), catalogs)).toBeNull();
-      expect(resolveOrderServiceEmoji(makeOrder('cleaning', '专项'), catalogs)).toBeNull();
     });
 
     it('业务大类不同时不误匹配', () => {
@@ -148,7 +142,6 @@ describe('worker service catalog icon utilities — full matrix', () => {
 
       expect(resolveOrderServiceIcon(order, catalogs, new Set())).toBe(CLEANING_FALLBACK);
       expect(resolveOrderRemoteIcon(order, catalogs)).toBeNull();
-      expect(resolveOrderServiceEmoji(order, catalogs)).toBeNull();
     });
   });
 
@@ -161,7 +154,6 @@ describe('worker service catalog icon utilities — full matrix', () => {
 
       expect(resolveOrderServiceIcon(order, [], new Set())).toBe(fallback);
       expect(resolveOrderRemoteIcon(order, [])).toBeNull();
-      expect(resolveOrderServiceEmoji(order, [])).toBeNull();
     });
 
     it.each([null, '', '   '] as const)('icon 为 %j 时回退保洁大类 icon', (icon) => {
@@ -170,7 +162,6 @@ describe('worker service catalog icon utilities — full matrix', () => {
 
       expect(resolveOrderServiceIcon(order, catalogs, new Set())).toBe(CLEANING_FALLBACK);
       expect(resolveOrderRemoteIcon(order, catalogs)).toBeNull();
-      expect(resolveOrderServiceEmoji(order, catalogs)).toBeNull();
     });
   });
 

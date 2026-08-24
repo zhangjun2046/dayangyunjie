@@ -16,7 +16,10 @@
     {
       "path": "pages/tasks/index",
       "style": {
-        "navigationBarTitleText": "任务"
+        "navigationBarTitleText": "任务",
+        "enablePullDownRefresh": true,
+        "backgroundColor": "#F8FAFF",
+        "backgroundTextStyle": "dark"
       }
     },
     {

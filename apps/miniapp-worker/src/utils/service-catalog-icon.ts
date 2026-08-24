@@ -37,7 +37,7 @@ function isImageSource(icon: string): boolean {
 
 /**
  * 根据订单业务大类和二级服务名称解析后台配置图标。
- * 仅图片地址交给 image 组件；Emoji 由 resolveOrderServiceEmoji 单独解析。
+ * 仅图片地址可用；Emoji 或其它非图片值回退到一级大类本地图标。
  */
 export function resolveOrderServiceIcon(
   item: WorkerOrderCardItem,
@@ -54,16 +54,6 @@ export function resolveOrderServiceIcon(
     return configuredIcon;
   }
   return DEFAULT_ICONS[item.orderType];
-}
-
-/** 解析非图片类型的文本图标（当前后台历史配置主要为 Emoji）。 */
-export function resolveOrderServiceEmoji(
-  item: WorkerOrderCardItem,
-  catalogs: ServiceCatalogDto[],
-): string | null {
-  const configuredIcon = findConfiguredIcon(item, catalogs);
-  if (!configuredIcon || isImageSource(configuredIcon)) return null;
-  return configuredIcon;
 }
 
 /** 获取当前订单配置的图片地址，用于图片加载失败后的降级处理。 */

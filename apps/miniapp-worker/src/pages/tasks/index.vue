@@ -56,11 +56,7 @@
         <view class="card-main">
           <!-- 服务类型图标 -->
           <view :class="['service-icon', item.orderType === 'cleaning' ? 'icon-cleaning' : 'icon-recycling']">
-            <text v-if="getServiceEmoji(item)" class="icon-emoji">
-              {{ getServiceEmoji(item) }}
-            </text>
             <image
-              v-else
               class="icon-img"
               :src="getServiceIcon(item)"
               mode="aspectFit"
@@ -129,7 +125,6 @@ import { fetchWorkerServiceCatalogs } from '@/api/service-catalog';
 import type { ServiceCatalogDto } from '@/api/service-catalog';
 import {
   resolveOrderRemoteIcon,
-  resolveOrderServiceEmoji,
   resolveOrderServiceIcon,
 } from '@/utils/service-catalog-icon';
 
@@ -176,11 +171,6 @@ async function loadServiceCatalogs(): Promise<void> {
 /** 获取订单对应的二级服务配置图标。 */
 function getServiceIcon(item: WorkerOrderItem): string {
   return resolveOrderServiceIcon(item, serviceCatalogs.value, failedRemoteIcons.value);
-}
-
-/** 获取订单对应的 Emoji 图标；图片地址返回 null。 */
-function getServiceEmoji(item: WorkerOrderItem): string | null {
-  return resolveOrderServiceEmoji(item, serviceCatalogs.value);
 }
 
 /** 远程配置图标加载失败后，记录地址并切换为一级大类兜底图标。 */
@@ -528,11 +518,6 @@ function handleViewDetail(item: WorkerOrderItem): void {
 .icon-img {
   width: 100rpx;
   height: 100rpx;
-}
-
-.icon-emoji {
-  font-size: 56rpx;
-  line-height: 1;
 }
 
 .card-info {
