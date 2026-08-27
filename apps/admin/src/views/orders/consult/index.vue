@@ -690,27 +690,33 @@ const openDetail = async (row: ConsultOrderItem) => {
   }
 };
 
+/** 提交跟进记录；若仍为待跟进则推进到跟进中 */
+const persistFollowUpRecord = async (): Promise<void> => {
+  if (!detailDrawer.order) return;
+
+  await createConsultFollowUp(detailDrawer.order.id, {
+    handlerName: followUpForm.handlerName.trim(),
+    content: followUpForm.content.trim(),
+  });
+
+  if (detailDrawer.order.status === 'FOLLOW_UP') {
+    await updateConsultStatus(detailDrawer.order.id, { status: 'FOLLOWING', operatorId: 1 });
+    detailDrawer.order.status = 'FOLLOWING';
+  }
+};
+
 const submitFollowUp = async () => {
   const valid = await followUpFormRef.value?.validate().catch(() => false);
   if (!valid || !detailDrawer.order) return;
 
   detailDrawer.submittingFollowUp = true;
   try {
-    await createConsultFollowUp(detailDrawer.order.id, {
-      handlerName: followUpForm.handlerName.trim(),
-      content: followUpForm.content.trim(),
-    });
-
-    // 若当前状态为 FOLLOW_UP，自动推进到 FOLLOWING
-    if (detailDrawer.order.status === 'FOLLOW_UP') {
-      await updateConsultStatus(detailDrawer.order.id, { status: 'FOLLOWING', operatorId: 1 });
-    }
+    await persistFollowUpRecord();
 
     ElMessage.success('跟进记录已提交');
     followUpForm.handlerName = '';
     followUpForm.content = '';
 
-    // 重新加载详情和跟进记录
     const res = await fetchConsultOrderDetail(detailDrawer.order.id);
     detailDrawer.order = res.data.data;
     await loadFollowUps(detailDrawer.order.id);
@@ -725,8 +731,11 @@ const submitFollowUp = async () => {
 const completeOrder = async () => {
   if (!detailDrawer.order) return;
 
+  const valid = await followUpFormRef.value?.validate().catch(() => false);
+  if (!valid) return;
+
   try {
-    await ElMessageBox.confirm('确认将此咨询单标记为已完成？', '完成确认', {
+    await ElMessageBox.confirm('确认提交本次跟进并将咨询单标记为已完成？', '完成确认', {
       confirmButtonText: '确认完成',
       cancelButtonText: '取消',
       type: 'info',
@@ -737,8 +746,12 @@ const completeOrder = async () => {
 
   detailDrawer.completing = true;
   try {
+    await persistFollowUpRecord();
+
     await updateConsultStatus(detailDrawer.order.id, { status: 'COMPLETED', operatorId: 1 });
     ElMessage.success('咨询单已完成');
+    followUpForm.handlerName = '';
+    followUpForm.content = '';
 
     const res = await fetchConsultOrderDetail(detailDrawer.order.id);
     detailDrawer.order = res.data.data;
