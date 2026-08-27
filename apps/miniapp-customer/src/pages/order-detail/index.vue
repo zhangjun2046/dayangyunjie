@@ -1044,8 +1044,8 @@ function getComplaintStatusClass(status: string): string {
   font-weight: 500;
   border: none;
   line-height: 88rpx;
-  background: #f56c6c;
-  color: #ffffff;
+  background: #f6f6f6;
+  color: #333333;
 }
 
 .btn-cancel::after {
