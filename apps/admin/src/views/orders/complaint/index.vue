@@ -496,24 +496,31 @@ const reloadDetail = async () => {
   }
 };
 
+/** 提交跟进记录；若仍为待处理则推进到跟进中 */
+const persistFollowUpRecord = async (): Promise<void> => {
+  if (!detailDrawer.complaint) return;
+
+  const handlerName = followUpForm.handlerName.trim();
+  const content = followUpForm.content.trim();
+
+  await addComplaintFollowUp(detailDrawer.complaint.id, { handlerName, content });
+
+  if (detailDrawer.complaint.status === 'PENDING') {
+    await updateComplaintStatus(detailDrawer.complaint.id, {
+      status: 'PROCESSING',
+      operatorName: handlerName,
+    });
+    detailDrawer.complaint.status = 'PROCESSING';
+  }
+};
+
 const submitFollowUp = async () => {
   const valid = await followUpFormRef.value?.validate().catch(() => false);
   if (!valid || !detailDrawer.complaint) return;
 
   detailDrawer.submittingFollowUp = true;
   try {
-    await addComplaintFollowUp(detailDrawer.complaint.id, {
-      handlerName: followUpForm.handlerName.trim(),
-      content: followUpForm.content.trim(),
-    });
-
-    // PENDING → PROCESSING 自动推进
-    if (detailDrawer.complaint.status === 'PENDING') {
-      await updateComplaintStatus(detailDrawer.complaint.id, {
-        status: 'PROCESSING',
-        operatorName: followUpForm.handlerName.trim(),
-      });
-    }
+    await persistFollowUpRecord();
 
     ElMessage.success('跟进记录已提交');
     followUpForm.handlerName = '';
@@ -530,8 +537,11 @@ const submitFollowUp = async () => {
 const completeComplaint = async () => {
   if (!detailDrawer.complaint) return;
 
+  const valid = await followUpFormRef.value?.validate().catch(() => false);
+  if (!valid) return;
+
   try {
-    await ElMessageBox.confirm('确认将此投诉标记为已完成？', '完成确认', {
+    await ElMessageBox.confirm('确认提交本次跟进并将投诉标记为已完成？', '完成确认', {
       confirmButtonText: '确认完成',
       cancelButtonText: '取消',
       type: 'info',
@@ -542,11 +552,18 @@ const completeComplaint = async () => {
 
   detailDrawer.completing = true;
   try {
+    const handlerName = followUpForm.handlerName.trim();
+
+    await persistFollowUpRecord();
+
     await updateComplaintStatus(detailDrawer.complaint.id, {
       status: 'COMPLETED',
-      operatorName: '管理员',
+      operatorName: handlerName,
     });
+
     ElMessage.success('投诉已完成');
+    followUpForm.handlerName = '';
+    followUpForm.content = '';
     await reloadDetail();
     loadComplaints();
   } catch (e) {
