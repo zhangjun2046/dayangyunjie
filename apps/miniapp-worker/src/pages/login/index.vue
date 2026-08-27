@@ -27,10 +27,13 @@
           <input
             v-model="password"
             class="input-field"
-            :password="true"
+            :password="!showPassword"
             placeholder="请输入密码"
             placeholder-class="input-placeholder"
           />
+          <view class="pwd-toggle" @tap.stop="showPassword = !showPassword">
+            <uni-icons :type="showPassword ? 'eye-slash' : 'eye'" size="22" color="#999999" />
+          </view>
         </view>
 
         <!-- 登录按钮 -->
@@ -87,6 +90,7 @@ function hasPersistedSession(): boolean {
 
 const phone = ref('');
 const password = ref('');
+const showPassword = ref(false);
 const agreed = ref(true);
 const loading = ref(false);
 // 无本地会话时直接展示登录表单，避免模拟器先看到一块空白
@@ -227,10 +231,22 @@ async function onLogin() {
 
 .input-field {
   flex: 1;
+  min-width: 0;
   height: 96rpx;
   font-size: 30rpx;
   color: #333333;
   background: transparent;
+}
+
+.pwd-toggle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8rpx;
+  padding: 8rpx 0 8rpx 16rpx;
+  min-width: 56rpx;
+  min-height: 56rpx;
 }
 
 .input-placeholder {
