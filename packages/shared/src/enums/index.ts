@@ -39,6 +39,14 @@ export const WorkerStatus = {
 } as const;
 export type WorkerStatus = (typeof WorkerStatus)[keyof typeof WorkerStatus];
 
+/** 员工在职/离职状态 */
+export const WorkerEmploymentStatus = {
+  ACTIVE: 'ACTIVE',
+  RESIGNED: 'RESIGNED',
+} as const;
+export type WorkerEmploymentStatus =
+  (typeof WorkerEmploymentStatus)[keyof typeof WorkerEmploymentStatus];
+
 /** 作业照片类型 */
 export const PhotoType = {
   BEFORE: 'BEFORE',

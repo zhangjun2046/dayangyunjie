@@ -6,6 +6,7 @@ import type {
   PaymentStatus,
   PhotoType,
   WorkerStatus,
+  WorkerEmploymentStatus,
 } from '../enums';
 import type { ComplaintReasonSnapshot } from '../entities/complaint';
 
@@ -39,6 +40,11 @@ export const ORDER_SOURCE_LABELS: Record<OrderSource, string> = {
 export const WORKER_STATUS_LABELS: Record<WorkerStatus, string> = {
   IDLE: '空闲',
   BUSY: '服务中',
+};
+
+export const WORKER_EMPLOYMENT_STATUS_LABELS: Record<WorkerEmploymentStatus, string> = {
+  ACTIVE: '在职',
+  RESIGNED: '离职',
 };
 
 export const PHOTO_TYPE_LABELS: Record<PhotoType, string> = {

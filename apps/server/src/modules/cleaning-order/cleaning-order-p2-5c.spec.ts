@@ -63,7 +63,7 @@ function makeTxMock(overrides: Record<string, unknown> = {}) {
       update: jest.fn().mockResolvedValue(makeOrderRow()),
     },
     worker: {
-      findUnique: jest.fn().mockResolvedValue({ id: 1 }),
+      findUnique: jest.fn().mockResolvedValue({ id: 1, employmentStatus: 'ACTIVE' }),
     },
     workPhoto: {
       createMany: jest.fn().mockResolvedValue({ count: 1 }),
@@ -136,6 +136,13 @@ describe('CleaningOrderService — assignOrder（派单）', () => {
       worker: { findUnique: jest.fn().mockResolvedValue(null) },
     });
     await expect(svc.assignOrder(1, dto)).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('离职员工不可派单', async () => {
+    const { svc } = makeService({
+      worker: { findUnique: jest.fn().mockResolvedValue({ id: 1, employmentStatus: 'RESIGNED' }) },
+    });
+    await expect(svc.assignOrder(1, dto)).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('订单不存在时抛出 404', async () => {

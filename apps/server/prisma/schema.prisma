@@ -45,6 +45,12 @@ enum WorkerStatus {
   BUSY
 }
 
+// 员工在职/离职状态（与 IDLE/BUSY 服务状态独立）
+enum WorkerEmploymentStatus {
+  ACTIVE
+  RESIGNED
+}
+
 enum PhotoType {
   BEFORE
   AFTER
@@ -99,8 +105,9 @@ model Worker {
   emergencyContact String?      @map("emergency_contact") @db.VarChar(32)
   emergencyPhone   String?      @map("emergency_phone") @db.VarChar(20)
   avatar           String?      @db.VarChar(512)
-  status           WorkerStatus @default(IDLE)
-  rating           Float        @default(5.0)
+  status           WorkerStatus           @default(IDLE)
+  employmentStatus WorkerEmploymentStatus @default(ACTIVE) @map("employment_status")
+  rating           Float                  @default(5.0)
   totalOrders      Int          @default(0) @map("total_orders")
   healthCertUrl    String?      @map("health_cert_url") @db.VarChar(512)
   healthCertExpiry DateTime?    @map("health_cert_expiry")
@@ -114,8 +121,9 @@ model Worker {
   recyclingOrders RecyclingOrder[]
   workPhotos      WorkPhoto[]      @relation("WorkPhotoUploader")
 
-  // status + skillType 复合索引支撑派单查空闲员工
+  // status + skillType 复合索引支撑派单查空闲员工；employmentStatus 支撑在职筛选
   @@index([status, skillType])
+  @@index([employmentStatus])
   @@map("workers")
 }
 

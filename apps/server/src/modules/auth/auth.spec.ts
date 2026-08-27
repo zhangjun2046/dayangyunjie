@@ -36,6 +36,7 @@ function makeWorkerRow(overrides: Record<string, unknown> = {}) {
     emergencyPhone: null,
     avatar: null,
     status: 'IDLE',
+    employmentStatus: 'ACTIVE',
     rating: 5.0,
     totalOrders: 0,
     healthCertUrl: null,
@@ -148,6 +149,14 @@ describe('AuthService.workerLogin', () => {
 
     await expect(
       authService.workerLogin({ phone: PHONE, password: 'wrongpassword' }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('离职员工 → 抛出 UnauthorizedException', async () => {
+    prismaMock.worker.findUnique.mockResolvedValue(makeWorkerRow({ employmentStatus: 'RESIGNED' }));
+
+    await expect(
+      authService.workerLogin({ phone: PHONE, password: PASSWORD }),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 

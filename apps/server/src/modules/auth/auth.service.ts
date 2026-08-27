@@ -124,6 +124,10 @@ export class AuthService {
       throw new UnauthorizedException('手机号或密码错误');
     }
 
+    if (worker.employmentStatus === 'RESIGNED') {
+      throw new UnauthorizedException('账号已离职，无法登录');
+    }
+
     const isPasswordValid = await bcrypt.compare(loginDto.password, worker.passwordHash);
     if (!isPasswordValid) {
       throw new UnauthorizedException('手机号或密码错误');

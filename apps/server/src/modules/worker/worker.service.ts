@@ -43,11 +43,12 @@ export class WorkerService {
   }
 
   async findAll(query: QueryWorkerDto) {
-    const { page = 1, pageSize = 10, name, phone, status, skillType } = query;
+    const { page = 1, pageSize = 10, name, phone, status, employmentStatus, skillType } = query;
     const where: Prisma.WorkerWhereInput = {
       ...(name ? { name: { contains: name } } : {}),
       ...(phone ? { phone: { contains: phone } } : {}),
       ...(status ? { status } : {}),
+      ...(employmentStatus ? { employmentStatus } : {}),
       ...(skillType ? { skillType } : {}),
     };
 

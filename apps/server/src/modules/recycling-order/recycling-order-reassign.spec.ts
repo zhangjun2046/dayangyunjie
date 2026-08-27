@@ -12,7 +12,7 @@ function makeService(status = 'ASSIGNED') {
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     worker: {
-      findUnique: jest.fn().mockResolvedValue({ id: 3, name: '李师傅' }),
+      findUnique: jest.fn().mockResolvedValue({ id: 3, name: '李师傅', employmentStatus: 'ACTIVE' }),
     },
     orderStatusLog: {
       create: jest.fn().mockResolvedValue({}),

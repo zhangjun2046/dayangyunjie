@@ -12,6 +12,7 @@ function makeWorker(overrides: Partial<WorkerListItem> = {}): WorkerListItem {
     employeeNo: 'WK0001',
     skillType: 'CLEANING',
     status: 'IDLE',
+    employmentStatus: 'ACTIVE',
     rating: 5,
     totalOrders: 0,
     todayOrders: 0,
@@ -71,6 +72,12 @@ describe.each<{
 
   it('排除忙碌且技能匹配的人员', () => {
     const worker = makeWorker({ status: 'BUSY', skillType: ownSkillType });
+
+    expect(filterAssignableWorkers([worker], orderSkillType)).toEqual([]);
+  });
+
+  it('排除离职且技能匹配的人员', () => {
+    const worker = makeWorker({ employmentStatus: 'RESIGNED', skillType: ownSkillType });
 
     expect(filterAssignableWorkers([worker], orderSkillType)).toEqual([]);
   });

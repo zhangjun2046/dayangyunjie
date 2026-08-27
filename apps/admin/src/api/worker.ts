@@ -13,6 +13,7 @@ export interface WorkerListItem {
   /** @deprecated 旧字段兼容保留 */
   skills?: string[];
   status: 'IDLE' | 'BUSY';
+  employmentStatus: 'ACTIVE' | 'RESIGNED';
   rating: number;
   totalOrders: number;
   pendingOrders: number;
@@ -60,6 +61,7 @@ export interface CreateWorkerPayload {
   skillCertUrls?: string[];
   skillCertExpiry?: string;
   status?: 'IDLE' | 'BUSY';
+  employmentStatus?: 'ACTIVE' | 'RESIGNED';
   rating?: number;
 }
 
@@ -73,6 +75,7 @@ export interface QueryWorkerParams {
   name?: string;
   phone?: string;
   status?: string;
+  employmentStatus?: string;
   skillType?: string;
 }
 

@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { WorkerStatus } from '@prisma/client';
+import { WorkerEmploymentStatus, WorkerStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
@@ -29,10 +29,15 @@ export class QueryWorkerDto {
   @IsString()
   phone?: string;
 
-  @ApiPropertyOptional({ enum: WorkerStatus, description: '员工状态筛选' })
+  @ApiPropertyOptional({ enum: WorkerStatus, description: '服务状态筛选（空闲/服务中）' })
   @IsOptional()
   @IsEnum(WorkerStatus)
   status?: WorkerStatus;
+
+  @ApiPropertyOptional({ enum: WorkerEmploymentStatus, description: '在职状态筛选（在职/离职）' })
+  @IsOptional()
+  @IsEnum(WorkerEmploymentStatus)
+  employmentStatus?: WorkerEmploymentStatus;
 
   @ApiPropertyOptional({ description: '技能筛选（CLEANING / RECYCLING）', example: 'CLEANING' })
   @IsOptional()

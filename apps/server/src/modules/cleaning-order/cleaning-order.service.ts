@@ -14,6 +14,7 @@ import { CleaningOrder, OrderSource as PrismaOrderSource, OrderStatus as PrismaO
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { OrderStateMachineService } from '../../common/order-state-machine/order-state-machine.service';
 import { GeoService } from '../../common/geo/geo.service';
+import { assertWorkerAssignable } from '../../common/worker/assert-worker-assignable';
 import {
   OrderProgressService,
   ProgressRole,
@@ -343,11 +344,9 @@ export class CleaningOrderService {
     await this.prismaService.$transaction(async (tx) => {
       const worker = await tx.worker.findUnique({
         where: { id: dto.workerId },
-        select: { id: true },
+        select: { id: true, employmentStatus: true },
       });
-      if (!worker) {
-        throw new NotFoundException(`Worker ${dto.workerId} not found`);
-      }
+      assertWorkerAssignable(worker, dto.workerId);
 
       // 先写 workerId，再做状态转移（均在事务内）
       await tx.cleaningOrder.update({
@@ -420,9 +419,9 @@ export class CleaningOrderService {
 
       const nextWorker = await tx.worker.findUnique({
         where: { id: dto.workerId },
-        select: { id: true, name: true },
+        select: { id: true, name: true, employmentStatus: true },
       });
-      if (!nextWorker) throw new NotFoundException(`Worker ${dto.workerId} not found`);
+      assertWorkerAssignable(nextWorker, dto.workerId);
 
       const updated = await tx.cleaningOrder.updateMany({
         where: { id, status: 'ASSIGNED', workerId: order.workerId },

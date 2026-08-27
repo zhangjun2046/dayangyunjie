@@ -10,13 +10,14 @@ export function skillLabel(skillType?: string | null): string {
   return skillType ?? '—';
 }
 
-/** 按空闲状态和订单技能筛选可分配的服务人员，BOTH 可承接两类订单。 */
+/** 按在职、空闲状态和订单技能筛选可分配的服务人员，BOTH 可承接两类订单。 */
 export function filterAssignableWorkers(
   workers: readonly WorkerListItem[],
   orderSkillType: OrderSkillType,
 ): WorkerListItem[] {
   return workers.filter(
     (worker) =>
+      (worker.employmentStatus ?? 'ACTIVE') === 'ACTIVE' &&
       worker.status === 'IDLE' &&
       (worker.skillType === orderSkillType || worker.skillType === 'BOTH'),
   );

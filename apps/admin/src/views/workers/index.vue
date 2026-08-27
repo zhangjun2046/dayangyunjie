@@ -15,13 +15,23 @@
         </el-input>
         <el-select
           v-model="queryParams.status"
-          placeholder="全部状态"
+          placeholder="服务状态"
           clearable
           style="width: 130px"
           @change="onSearch"
         >
           <el-option label="空闲" value="IDLE" />
           <el-option label="服务中" value="BUSY" />
+        </el-select>
+        <el-select
+          v-model="queryParams.employmentStatus"
+          placeholder="在职状态"
+          clearable
+          style="width: 130px"
+          @change="onSearch"
+        >
+          <el-option label="在职" value="ACTIVE" />
+          <el-option label="离职" value="RESIGNED" />
         </el-select>
         <el-select
           v-model="queryParams.skillType"
@@ -52,10 +62,17 @@
           </template>
         </el-table-column>
         <el-table-column label="手机号" prop="phone" min-width="140" />
-        <el-table-column label="状态" min-width="90" align="center">
+        <el-table-column label="服务状态" min-width="90" align="center">
           <template #default="{ row }">
             <el-tag :type="row.status === 'IDLE' ? 'success' : 'warning'" size="small">
               {{ row.status === 'IDLE' ? '空闲' : '服务中' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="在职状态" min-width="90" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.employmentStatus === 'ACTIVE' ? 'success' : 'info'" size="small">
+              {{ employmentStatusLabel(row.employmentStatus) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -113,9 +130,14 @@
           <el-descriptions-item label="昵称">{{ currentWorker.nickname || '—' }}</el-descriptions-item>
           <el-descriptions-item label="手机号">{{ currentWorker.phone }}</el-descriptions-item>
           <el-descriptions-item label="性别">{{ genderLabel(currentWorker.gender) }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
+          <el-descriptions-item label="服务状态">
             <el-tag :type="currentWorker.status === 'IDLE' ? 'success' : 'warning'" size="small">
               {{ currentWorker.status === 'IDLE' ? '空闲' : '服务中' }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="在职状态">
+            <el-tag :type="currentWorker.employmentStatus === 'ACTIVE' ? 'success' : 'info'" size="small">
+              {{ employmentStatusLabel(currentWorker.employmentStatus) }}
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="技能">{{ skillLabel(currentWorker.skillType) }}</el-descriptions-item>
@@ -269,10 +291,18 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="员工状态">
+            <el-form-item label="服务状态">
               <el-radio-group v-model="form.status">
                 <el-radio value="IDLE">空闲</el-radio>
                 <el-radio value="BUSY">服务中</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="在职状态">
+              <el-radio-group v-model="form.employmentStatus">
+                <el-radio value="ACTIVE">在职</el-radio>
+                <el-radio value="RESIGNED">离职</el-radio>
               </el-radio-group>
             </el-form-item>
           </el-col>
@@ -451,6 +481,7 @@ const queryParams = reactive({
   pageSize: 10,
   name: '',
   status: '',
+  employmentStatus: '',
   skillType: '',
 });
 
@@ -477,6 +508,7 @@ async function loadWorkers() {
       }
     }
     if (queryParams.status) params.status = queryParams.status;
+    if (queryParams.employmentStatus) params.employmentStatus = queryParams.employmentStatus;
     if (queryParams.skillType) params.skillType = queryParams.skillType;
 
     const res = await fetchWorkers(params);
@@ -514,6 +546,7 @@ function onSearch() {
 function onReset() {
   queryParams.name = '';
   queryParams.status = '';
+  queryParams.employmentStatus = '';
   queryParams.skillType = '';
   queryParams.page = 1;
   loadWorkers();
@@ -576,6 +609,7 @@ const EMPTY_FORM = () => ({
   position: '',
   skillType: '',
   status: 'IDLE' as 'IDLE' | 'BUSY',
+  employmentStatus: 'ACTIVE' as 'ACTIVE' | 'RESIGNED',
   emergencyContact: '',
   emergencyPhone: '',
   idFrontUrl: '',
@@ -627,6 +661,7 @@ function openEditDialog(row: WorkerListItem) {
     position: row.position ?? '',
     skillType: row.skillType,
     status: row.status,
+    employmentStatus: row.employmentStatus ?? 'ACTIVE',
     emergencyContact: row.emergencyContact ?? '',
     emergencyPhone: row.emergencyPhone ?? '',
     idFrontUrl: '',
@@ -656,6 +691,7 @@ async function onSave() {
         position: form.position || undefined,
         skillType: form.skillType,
         status: form.status,
+        employmentStatus: form.employmentStatus,
         emergencyContact: form.emergencyContact || undefined,
         emergencyPhone: form.emergencyPhone || undefined,
         healthCertUrl: form.healthCertUrl || undefined,
@@ -676,6 +712,7 @@ async function onSave() {
         idCard: form.idCard || undefined,
         position: form.position || undefined,
         status: form.status,
+        employmentStatus: form.employmentStatus,
         emergencyContact: form.emergencyContact || undefined,
         emergencyPhone: form.emergencyPhone || undefined,
         healthCertUrl: form.healthCertUrl || undefined,
@@ -852,6 +889,11 @@ function skillLabel(skillType?: string) {
   if (skillType === 'RECYCLING') return '收废品';
   if (skillType === 'BOTH') return '保洁和收废品';
   return skillType ?? '—';
+}
+
+function employmentStatusLabel(status?: string | null) {
+  if (status === 'RESIGNED') return '离职';
+  return '在职';
 }
 
 function genderLabel(gender?: string | null) {

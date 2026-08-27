@@ -42,6 +42,8 @@ apps/server/prisma/migrations/*
 !apps/server/prisma/migrations/20260823120000_complaint_reasons_json_snapshot/migration.sql
 !apps/server/prisma/migrations/20260823120100_add_worker_skill_cert_urls/
 !apps/server/prisma/migrations/20260823120100_add_worker_skill_cert_urls/migration.sql
+!apps/server/prisma/migrations/20260827100000_add_worker_employment_status/
+!apps/server/prisma/migrations/20260827100000_add_worker_employment_status/migration.sql
 
 # Uploads (local dev)
 uploads/

@@ -47,7 +47,7 @@ function makeService(status = 'ASSIGNED', updateCount = 1) {
       updateMany: jest.fn().mockResolvedValue({ count: updateCount }),
     },
     worker: {
-      findUnique: jest.fn().mockResolvedValue({ id: 3, name: '李师傅' }),
+      findUnique: jest.fn().mockResolvedValue({ id: 3, name: '李师傅', employmentStatus: 'ACTIVE' }),
     },
     orderStatusLog: {
       create: jest.fn().mockResolvedValue({}),
@@ -101,5 +101,35 @@ describe('CleaningOrderService reassignOrder', () => {
     await expect(service.reassignOrder(1, dto)).rejects.toBeInstanceOf(
       BadRequestException,
     );
+  });
+
+  it('离职员工不可改派', async () => {
+    const tx = {
+      cleaningOrder: {
+        findUnique: jest.fn().mockResolvedValue({
+          status: 'ASSIGNED',
+          workerId: 2,
+          worker: { name: '张师傅' },
+        }),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      worker: {
+        findUnique: jest.fn().mockResolvedValue({ id: 3, name: '李师傅', employmentStatus: 'RESIGNED' }),
+      },
+      orderStatusLog: {
+        create: jest.fn().mockResolvedValue({}),
+      },
+    };
+    const service = new CleaningOrderService(
+      {
+        $transaction: jest.fn().mockImplementation((callback: (client: typeof tx) => unknown) =>
+          callback(tx),
+        ),
+        cleaningOrder: { findUnique: jest.fn().mockResolvedValue(makeOrder()) },
+      } as never,
+      {} as never,
+      {} as never,
+    );
+    await expect(service.reassignOrder(1, dto)).rejects.toBeInstanceOf(BadRequestException);
   });
 });

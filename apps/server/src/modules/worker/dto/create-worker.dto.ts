@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { WorkerStatus } from '@prisma/client';
+import { WorkerEmploymentStatus, WorkerStatus } from '@prisma/client';
 import {
   ArrayMaxSize,
   IsEnum,
@@ -71,10 +71,19 @@ export class CreateWorkerDto {
   @MaxLength(512)
   avatar?: string;
 
-  @ApiPropertyOptional({ enum: WorkerStatus, description: '员工状态', default: WorkerStatus.IDLE })
+  @ApiPropertyOptional({ enum: WorkerStatus, description: '服务状态（空闲/服务中）', default: WorkerStatus.IDLE })
   @IsOptional()
   @IsEnum(WorkerStatus)
   status?: WorkerStatus;
+
+  @ApiPropertyOptional({
+    enum: WorkerEmploymentStatus,
+    description: '在职状态（在职/离职）',
+    default: WorkerEmploymentStatus.ACTIVE,
+  })
+  @IsOptional()
+  @IsEnum(WorkerEmploymentStatus)
+  employmentStatus?: WorkerEmploymentStatus;
 
   @ApiPropertyOptional({ description: '评分', example: 5, default: 5 })
   @IsOptional()
