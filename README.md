@@ -1,35 +1,42 @@
 # 大洋云洁 · 编码仓库 (dayangyunjie-code)
 
-本目录为**专用代码 monorepo**，与资料目录 `D:\coding\dayangyunjie`（商务/调研文档）平级分离。
+大洋云洁 · 智享社区综合服务平台 **专用代码 monorepo**（npm workspaces）。  
+与资料/商务文档目录分离；默认分支为 `master`。
 
 ## 目录说明
 
-| 路径                    | 说明                                                           |
-| ----------------------- | -------------------------------------------------------------- |
-| `apps/server`           | NestJS 后端 API                                                |
-| `apps/miniapp-customer` | 居民端小程序（P3 完成；PNG tabBar/业务图标已替换）            |
-| `apps/miniapp-worker`   | 员工端小程序（P4 完成；PNG tabBar/业务图标已替换；废品 serviceItem 映射已修正） |
-| `apps/admin`            | 管理后台（P5.1–P5.12 已完成；含首页工作台 + auth + dashboard + cleaning/recycling/consult 订单 + workers/complaint/service-catalog/operator/banner + admin/admin-permission API） |
-| `packages/shared`       | 共享枚举、DTO、`ApiResponse`（`@dayangyunjie/shared`）         |
-| `docs/`                 | CodingPlan、tech、Schema 等技术文档                            |
-| `requirement.md`        | 需求文档（主稿；原型图仍在资料区 `dayangyunjie\requirement\`） |
-| `docs/`                 | CodingPlan、tech、Schema（开发指引唯一主稿）                   |
+| 路径 | 说明 |
+| ---- | ---- |
+| `apps/server` | NestJS 后端 API（Prisma + MySQL） |
+| `apps/admin` | PC 管理后台（Vue 3 + Element Plus，开发端口 `5173`） |
+| `apps/miniapp-admin` | 管理端 H5（uni-app：保洁/废品订单查看与派单，开发端口 `5176`） |
+| `apps/miniapp-customer` | 居民端小程序（uni-app） |
+| `apps/miniapp-worker` | 员工端小程序（uni-app） |
+| `packages/shared` | 共享枚举、DTO、文案（`@dayangyunjie/shared`） |
+| `docs/` | 技术文档主稿（CodingPlan、tech、Schema、部署等） |
+| `plan/` | 近期功能方案、升级 SQL、增量部署说明 |
+| `requirement.md` | 需求主稿（原型图可在资料区单独存放） |
 
 ## 常用命令
 
-在**本目录根**执行：
+在**仓库根目录**执行：
 
 ```bash
-npm install          # 安装依赖（仅根目录执行一次）
-npm run build        # 编译 shared + 双端 miniapp(H5) + admin + 后端
-npm run dev          # 启动后端开发模式
-npm run dev:miniapp-customer  # 启动居民端 uni-app H5
-npm run dev:mp-weixin --workspace=@dayangyunjie/miniapp-customer  # 编译居民端 uni-app dev
-npm run build:mp-weixin --workspace=@dayangyunjie/miniapp-customer # 编译居民端 uni-app build
-npm run dev:miniapp-worker    # 启动员工端 uni-app H5
-npm run dev:mp-weixin --workspace=@dayangyunjie/miniapp-worker # 编译员工端 uni-app dev
-npm run build:mp-weixin --workspace=@dayangyunjie/miniapp-worker # 编译员工端 uni-app build
-npm run dev:admin             # 启动管理后台（Vue 3，端口 5173）
+npm install                 # 安装依赖（仅根目录执行一次）
+npm run build               # 编译 shared + 三端 miniapp(H5) + admin + server
+npm run dev                 # 启动后端开发模式（默认 http://127.0.0.1:3000）
+
+npm run dev:admin           # PC 管理后台 → http://localhost:5173
+npm run dev:miniapp-admin   # 管理端 H5 → http://localhost:5176
+npm run build:miniapp-admin # 管理端 H5 生产构建（产物 apps/miniapp-admin/dist/build/h5）
+
+npm run dev:miniapp-customer
+npm run dev:mp-weixin --workspace=@dayangyunjie/miniapp-customer
+npm run build:mp-weixin --workspace=@dayangyunjie/miniapp-customer
+
+npm run dev:miniapp-worker
+npm run dev:mp-weixin --workspace=@dayangyunjie/miniapp-worker
+npm run build:mp-weixin --workspace=@dayangyunjie/miniapp-worker
 ```
 
 后端 Prisma（在 `apps/server` 下）：
@@ -37,79 +44,62 @@ npm run dev:admin             # 启动管理后台（Vue 3，端口 5173）
 ```bash
 cd apps/server
 npx prisma generate
-npx prisma migrate dev
+npx prisma migrate deploy   # 应用已有迁移（测试/生产推荐）
+# 本地改 schema 时再用：npx prisma migrate dev
 ```
 
-## 环境
+环境变量：复制根目录 [`.env.example`](./.env.example) 到 `apps/server/.env`（或按项目约定加载路径）后填写。**勿将含密钥的 `.env` 提交到 Git。**
 
-- Node.js 22+
-- MySQL 8（开发库连接见 `.env`，勿提交 Git）
-- npm 缓存建议：`D:\npm-cache`（见根目录 `.npmrc`）
+## 环境要求
+
+- Node.js **22+**
+- MySQL **8**
+- npm workspaces（根目录一次 `npm install` 即可）
+
+> Windows 开发机历史上曾将 npm 缓存设为 `D:\npm-cache`（见根目录 `.npmrc`）。Linux/macOS 服务器部署请覆盖为本地缓存路径，详见 [`docs/TencentCloud-Test-Deploy.md`](./docs/TencentCloud-Test-Deploy.md)。
+
+## 应用入口速查
+
+| 应用 | 本地开发 | 账号说明 |
+| ---- | -------- | -------- |
+| 后端 API / Swagger | `http://127.0.0.1:3000` · `/api/docs` | — |
+| PC 管理后台 | `http://localhost:5173` | Admin 邮箱+密码（种子示例常见为 `admin@dayunyunjie.com` / `admin123`） |
+| 管理端 H5 | `http://localhost:5176` | 同上 Admin；开发态 `/api/v1` 由 Vite 代理到后端 |
+| 居民端 / 员工端 | H5 或微信开发者工具打开对应 `dist` | 居民：微信登录；员工：手机号+密码 |
+
+管理端 H5 说明见 [`apps/miniapp-admin/README.md`](./apps/miniapp-admin/README.md)。
+
+## 文档索引
+
+| 文档 | 用途 |
+| ---- | ---- |
+| [`docs/CodingPlan.md`](./docs/CodingPlan.md) | 分阶段开发计划与验收（Cursor Agent 主稿） |
+| [`docs/tech.md`](./docs/tech.md) | 技术选型 |
+| [`docs/TencentCloud-Test-Deploy.md`](./docs/TencentCloud-Test-Deploy.md) | 腾讯云测试环境装机与运维 |
+| [`plan/deploy-worker-employment-status.md`](./plan/deploy-worker-employment-status.md) | 员工在职/离职功能增量部署 |
+| [`plan/uniapp-admin-h5-orders.md`](./plan/uniapp-admin-h5-orders.md) | 管理端 H5 订单能力方案 |
+| [`plan/sql/`](./plan/sql/) | 生产/手工升级与回滚 SQL |
+
+## 近期能力（摘要）
+
+- **管理端 H5**（`apps/miniapp-admin`）：保洁/废品订单列表与详情、按权限 Tab、分配/改派、Token 刷新
+- **员工在职/离职**：`Worker.employmentStatus`（`ACTIVE` / `RESIGNED`）；离职不可派单、不可登录员工端；PC 员工管理可筛选/编辑
+- **投诉 / 咨询「完成」**：须先校验并落库本次跟进，再推进到已完成
+- P1–P5：后端核心 API、居民端、员工端、PC 管理后台已按 CodingPlan 收口；测试环境部署见上文文档
+
+更完整的阶段清单见 `docs/CodingPlan.md`。
+
+## 问题修复（摘录）
+
+- 2026-08-27 员工在职/离职：新增 `employment_status` 字段与 migration；派单/改派与员工登录拦截离职账号；PC/H5 派单候选排除离职；部署说明见 `plan/deploy-worker-employment-status.md`
+- 2026-08-27 管理端投诉/咨询：点「完成」时先提交跟进记录，避免只改状态漏跟进
+- 2026-08-27 居民端订单详情取消按钮改为中性灰样式；员工端登录支持密码可见切换
+- 2026-08-07 居民端微信登录/手机号授权：配置 `WECHAT_CUSTOMER_APPID`/`SECRET` 后走真实 `code2session` / 取号，未配置仍走 mock
+- 2026-08-20 投诉原因多选：`reasons` JSON + migration / 手工升级 SQL；多端展示对齐
+- 2026-08-20～08-21 订单状态文案统一、服务进度、改派规则、远程图片 `RemoteImage`、员工端登录白屏与作业区引导等（详见 git 历史）
 
 ## Cursor Agent
 
-请将工作区根目录设为：**`D:\coding\dayangyunjie-code`**
-
-- 开发计划与口令见 `docs/CodingPlan.md`（Cursor Agent 版）
-- npm 缓存：`D:\npm-cache`（根目录 `.npmrc`）
-- AI/工具日志：`D:\coding\dayangyunjie-code\.cursor-logs\`（定期清理，见 CodingPlan §2.1）
-
-## 开发进度
-
-- P2.4 服务目录查询模块验收通过（使用 Auto LLM 完成）
-- 使用Codex 5.3 LLM完成P2.5a,实现 CleaningOrder CRUD 和创建订单
-- 使用Sonnet4.6 LLM完成P2.5c实现派单/GPS签到/完成/取消操作接口
-- 使用Sonnet4.6 LLM完成P2.6a，实现 RecyclingOrder CRUD、状态机及操作接口（流程与保洁一致，含 estimatedWeight 字段）
-- 使用Sonnet4.6 LLM完成P2.7 实现 ConsultOrder 咨询单模块
-- 使用Sonnet4.6 LLM完成P2.8，实现 GPS 签到校验服务
-- 使用Sonnet4.6 LLM完成P2.9，实现 COS 文件上传和水印功能
-- 使用Sonnet4.6 LLM完成P2.10，实现评价与投诉模块
-- 使用Sonnet4.6 LLM完成P2.11，实现数据看板聚合 API。后端核心API开发完成
-- 使用Sonnet4.6 LLM完成P2.12，执行 prisma migrate v2.0 并更新 seed.ts / 枚举引用（ConsultStatus / OrderSource），全量回归测试通过
-- 开始 P2.13（v2.0），实现 Worker 手机号+密码登录（/auth/worker-login）、Worker JWT Guard、员工改密与管理员重置密码接口
-- 使用Sonnet4.6 LLM完成P2.14，实现 ServiceCatalog 全 CRUD+toggle、Banner 全 CRUD+有效轮播查询、Operator 全 CRUD+接单人接口
-- 使用Sonnet4.6 LLM完成P2.15，实现废品居民验收接口（/recycling-orders/:id/accept）、ConsultFollowUp CRUD 及 ConsultOrder v2.0 字段适配
-- 使用Sonnet4.6 LLM完成P3.1，实现居民端应用骨架、微信登录和首次下单手机号快速授权
-- 使用Sonnet4.6 LLM完成P3.2，实现居民端首页（动态 Banner + 服务详情页 + 动态客服电话）
-- 使用Sonnet4.6 LLM完成P3.3、P3.4，实现保洁预约三步向导（动态服务类型 + 地址选择页 + 代下单勾选 + 无价格展示）；实现废品回收预约三步向导（复用 P3.3 框架，含代下单）
-- 使用Sonnet4.6 LLM完成P3.5，实现家政咨询提交流程（动态服务类型 + 代下单 + 无地址字段）
-- 使用Sonnet4.6 LLM完成P3.6，实现我的订单列表（三 Tab：保洁/废品/家政）和详情页（废品验收服务按钮 + 无价格）
-- 使用Sonnet4.6 LLM完成P3.7，实现评价页、投诉页（多图 + ACCEPTED后才可投诉）和我的页（完整手机号 + 服务地址管理+我的投诉）
-- 使用Sonnet4.6 LLM完成P3.6_repair，废品回收的验收改为由员工触发,与保洁一致
-- 使用Sonnet4.6 LLM完成P3.8,代下单集成验证（保洁+废品+家政三类代下单全流程闭环）
-- 使用Sonnet4.6 LLM完成P4.1，实现员工端手机号+密码登录页（调 /auth/worker-login）
-- 使用Sonnet4.6 LLM完成P4.2，实现员工端首页—仅展示 ASSIGNED 待接单任务列表（无统计卡片）
-- 使用Sonnet4.6 LLM完成P4.3，实现员工端任务列表（双 Tab + 精确系统状态值筛选，无 PENDING_ASSIGN）
-- 使用Sonnet4.6 LLM完成P4.4，实现任务详情—已派单/已接单态（GPS签到 + ACCEPTED 状态作业区禁用 + 代下单展示）
-- 使用Sonnet4.6 LLM完成P4.5，实现任务详情—服务中态（无SOP弹窗 + 保洁「完成服务」按钮 + 废品也有「完成服务」按钮（与保洁对称） + 无重量/金额字段）
-- 使用Sonnet4.6 LLM完成P4.6，实现任务详情—待评价/已完成态（只读模板 + 时间轴 + 照片网格 + REVIEWED 展示居民评价）
-- 使用Sonnet4.6 LLM完成P4.7，实现员工端我的页（技能证书 + 修改密码 + 无服务记录入口）
-- 使用Sonnet4.6 LLM完成P5.1，实现管理后台登录和二级折叠菜单布局（含配置管理一级菜单 + P5.9–P5.11 路由）
-- 使用Sonnet4.6 LLM完成P5.2，实现数据看板
-- 使用Sonnet4.6 LLM完成P5.3，实现保洁订单管理（被服务人列 + 分配弹窗 + 服务时段字段 + 代下单 + 无金额列），修改了服务人员不可见；查询条件不完整；新增订单报错；新增订单时间范围选择与居民端小程序不一致的问题
-- 使用Sonnet4.6 LLM完成 P5.4，实现废品订单管理（同步代下单/分配弹窗 + 详情无重量/金额/收款字段）
-- 使用Sonnet4.6 LLM完成P5.5，实现家政咨询单管理（被服务人列 + ConsultFollowUp 跟进时间轴 + 提交/完成按钮 + FOLLOW_UP/FOLLOWING/COMPLETED 状态名）
-- 使用Sonnet4.6 LLM完成P5.6，实现服务人员管理（今日订单列 + 重置密码 + 技能单选 + 证书区 + 投诉记录列表 + 移除创收金额）
-- 使用Sonnet4.6 LLM完成P5.7，实现投诉反馈管理（关联订单列 + 投诉内容列 + 移除旧列 + 完成按钮）
-- 使用Sonnet4.6 LLM完成P5.9，实现服务配置管理（ServiceCatalog CRUD + 启用停用 toggle + 无价格字段）
-- 使用默认 LLM完成P5.10，实现运营人员信息配置（Operator CRUD + 手机号完整展示）
-- 使用默认 LLM完成P5.11，实现轮播图管理（Banner CRUD + 展示端筛选 + 排序数字）
-- 使用Sonnet5 LLM完成P5.8、P5.8b，实现系统管理-用户管理（Admin 扩展字段迁移 + 默认密码Dyyj123.. + 重置密码 + 禁用即时失效 + 顶栏修改密码）;实现系统管理-功能授权（AdminPermission 迁移 + 权限树分配 + 侧栏菜单动态渲染 + 路由守卫拦截）
-- 使用Sonnet5 LLM完成P512，实现管理后台首页/工作台（欢迎条 + 4 张按功能授权过滤的待办事项卡片，复用已有列表接口 total，无需新增后端接口）
-- 使用Sonnet5 LLM完成P居民端小程序和员工端小程序Icon替换
-
-## 问题修复
-
-- 2026-08-07 居民端微信登录/手机号授权：后端接入真实 `code2session` + `getuserphonenumber`（配置 `WECHAT_CUSTOMER_APPID`/`SECRET` 时生效，未配置仍走 mock）；授权后不再显示假手机号；同微信号重登可按稳定 openid 找回历史订单；首页改为先登录再授权手机号，避免 `/auth/decrypt-phone` 401
-- 2026-08-20 投诉原因多选：将投诉原因由单值 `reason` 改为 `reasons` JSON 数组并提供 Prisma migration、手工升级及回滚 SQL；居民端支持多选提交，居民投诉列表/详情/订单详情和管理端投诉/员工详情均支持多个原因展示；历史单值数据迁移为单元素数组
-- 2026-08-20 订单计划第 1 步（状态文案统一）：居民端、员工端订单状态角标和筛选统一使用共享常量；员工详情明确区分「已派单 / 已接单」，消除页面内重复状态映射和文案不一致
-- 2026-08-20 订单计划第 2 步（服务进度）：保洁、废品、家政创建订单时写入首条 `order_status_logs`；订单详情接口返回按居民/员工/管理员角色组装的 `progress`；居民端、员工端和管理端详情统一消费后端进度数据，时间按北京时间显示到秒
-- 2026-08-20 订单计划第 3 步（员工统计与改派）：统一待办、今日完成、累计完成和管理端完成率口径；完成服务回写 `Worker.totalOrders`，评价后重算 `Worker.rating`；管理端仅允许 `ASSIGNED` 未接单订单改派，`ACCEPTED` 及以后禁止，改派记录在管理端进度中展示且旧员工无法继续查看或操作订单
-- 2026-08-21 远程图片展示：新增 `RemoteImage` 与 `resolveDisplayImage`，体验版/真机对 `http://IP` 图改走 `uni.request` 落本地再给 `<image>`；后端增加 `GET /upload/file/:filename`，与 API 同前缀读上传图，避免 Nginx 未转发 `/uploads` 导致 404；首页 Banner、「我的」头像等改用该组件
-- 2026-08-21 Banner 跳转：居民端新增 `webview`（外链）与 `cleaning-ad-detail`（海报详情，支持 `img` 参数与默认兜底图）；`decodeQueryUrl` 避免对 query 二次 decode 破坏 URL 编码
-- 2026-08-21 居民端手机号绑定：「我的」改为 `button` + `open-type="getPhoneNumber"` 走微信官方取号窗，成功后调 `decrypt-phone` 写库；菜单露出「我的投诉」入口；`.env.example` 补充 `WECHAT_CUSTOMER_APPID`/`SECRET` 说明
-- 2026-08-21 改派进度展示：管理端服务进度将每次改派拆成独立「已改派」节点（`eventKey`），首次派单文案固定；居民/员工端仅刷新派单时间；管理端保洁/废品详情时间轴按 `eventKey` 渲染避免同状态 key 冲突
-- 2026-08-21 员工「今日完成」查询：保洁/废品列表 DTO 增加 `completedToday` 布尔筛选（兼容 `true`/`'true'`），与列表服务已有今日完成过滤对齐
-- 2026-08-21 员工端登录白屏：登录页移出 `pages.json` 首页位；`App.onLaunch` 只装路由守卫、不再立即 `switchTab`；tab 页用 `ensureAuthed` 渲染后再 `reLaunch` 登录；无本地会话时直接展示登录表单并清空预填账号
-- 2026-08-21 员工端作业区引导：接单/开始服务前点击灰显上传入口改为 toast 提示（「请先接单」/「请先开始服务」），不再用 `pointer-events: none` 吞掉点击
-- 2026-08-21 居民端体验细节：地址区划收窄为北京朝阳、新增地址预填手机号；订单/投诉空状态换 `icon_empty`；订单详情按性别切换服务人员头像；评价文案去「阿姨」、按钮与安全区样式统一；首页服务卡片箭头改 `uni-icons`
+- 将工作区根目录设为本仓库根（含 `apps/`、`packages/`、`docs/`）
+- 开发计划与口令：`docs/CodingPlan.md`
+- AI/工具日志目录可按团队约定放在 `.cursor-logs/`（定期清理，见 CodingPlan §2.1）
