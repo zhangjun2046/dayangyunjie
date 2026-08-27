@@ -1,0 +1,18 @@
+{
+    "name" : "大洋云洁-管理端",
+    "appid" : "__UNI__DAYANG_ADMIN",
+    "description" : "大洋云洁智享社区 · 管理端 H5",
+    "versionName" : "0.1.0",
+    "versionCode" : "100",
+    "transformPx" : false,
+    "h5" : {
+        "title" : "大洋云洁 · 管理端",
+        "router" : {
+            "mode" : "hash"
+        },
+        "devServer" : {
+            "port" : 5176
+        }
+    },
+    "vueVersion" : "3"
+}

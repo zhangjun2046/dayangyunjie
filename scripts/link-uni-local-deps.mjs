@@ -10,7 +10,7 @@
  * Usage:
  *   node scripts/link-uni-local-deps.mjs
  *   node scripts/link-uni-local-deps.mjs miniapp-customer
- *   node scripts/link-uni-local-deps.mjs miniapp-customer miniapp-worker
+ *   node scripts/link-uni-local-deps.mjs miniapp-customer miniapp-worker miniapp-admin
  */
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 
-const DEFAULT_APPS = ['miniapp-customer', 'miniapp-worker'];
+const DEFAULT_APPS = ['miniapp-customer', 'miniapp-worker', 'miniapp-admin'];
 const PACKAGES = ['vite-plugin-uni', 'uni-mp-weixin', 'uni-automator'];
 
 function ensureDir(dir) {

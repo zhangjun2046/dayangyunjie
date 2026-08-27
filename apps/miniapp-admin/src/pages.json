@@ -1,0 +1,52 @@
+{
+  "easycom": {
+    "autoscan": true
+  },
+  "pages": [
+    {
+      "path": "pages/login/index",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom",
+        "navigationBarTextStyle": "black",
+        "disableScroll": true,
+        "backgroundColor": "#F8FAFF"
+      }
+    },
+    {
+      "path": "pages/orders/index",
+      "style": {
+        "navigationBarTitleText": "订单",
+        "navigationStyle": "custom",
+        "navigationBarTextStyle": "black",
+        "enablePullDownRefresh": true,
+        "backgroundColor": "#F8FAFF",
+        "backgroundTextStyle": "dark"
+      }
+    },
+    {
+      "path": "pages/order-detail/index",
+      "style": {
+        "navigationBarTitleText": "订单详情",
+        "navigationStyle": "custom",
+        "navigationBarTextStyle": "white",
+        "backgroundColor": "#F8FAFF"
+      }
+    },
+    {
+      "path": "pages/agreement/index",
+      "style": {
+        "navigationBarTitleText": "协议与隐私",
+        "navigationBarBackgroundColor": "#ffffff",
+        "navigationBarTextStyle": "black",
+        "backgroundColor": "#F8FAFF"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "大洋云洁",
+    "navigationBarBackgroundColor": "#ffffff",
+    "backgroundColor": "#f5f5f5"
+  }
+}

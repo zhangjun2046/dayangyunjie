@@ -11,8 +11,10 @@
     "dev": "npm run dev --workspace=apps/server",
     "dev:miniapp-customer": "npm run dev:h5 --workspace=@dayangyunjie/miniapp-customer",
     "dev:miniapp-worker": "npm run dev:h5 --workspace=@dayangyunjie/miniapp-worker",
+    "dev:miniapp-admin": "npm run dev:h5 --workspace=@dayangyunjie/miniapp-admin",
+    "build:miniapp-admin": "npm run build:h5 --workspace=@dayangyunjie/miniapp-admin",
     "dev:admin": "npm run dev --workspace=@dayangyunjie/admin",
-    "build": "npm run build --workspace=@dayangyunjie/shared && npm run build --workspace=@dayangyunjie/miniapp-customer && npm run build --workspace=@dayangyunjie/miniapp-worker && npm run build --workspace=@dayangyunjie/admin && npm run build --workspace=@dayangyunjie/server",
+    "build": "npm run build --workspace=@dayangyunjie/shared && npm run build --workspace=@dayangyunjie/miniapp-customer && npm run build --workspace=@dayangyunjie/miniapp-worker && npm run build --workspace=@dayangyunjie/miniapp-admin && npm run build --workspace=@dayangyunjie/admin && npm run build --workspace=@dayangyunjie/server",
     "test:review-keywords": "npm test --workspace=@dayangyunjie/server -- review-keyword && npm test --workspace=@dayangyunjie/admin -- review-keyword && npm test --workspace=@dayangyunjie/miniapp-customer -- review-keyword",
     "lint": "echo 'TODO: eslint setup'",
     "format": "prettier --write \"**/*.{ts,json,md}\""
