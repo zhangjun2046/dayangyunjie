@@ -257,7 +257,7 @@ API：`apps/admin/src/api/biz-dict.ts`
 |------|------|------|--------|------|
 | **评价快捷标签** | `REVIEW_TAG` | 居民评价页 | 拉启用项展示 chips；提交 `tags` 仍为字符串数组快照 | **最低**。`reviews.tags` 已是 JSON，后端未校验固定列表 |
 | **预约时段** | `APPOINT_TIME_SLOT` | 居民预约保洁/废品；管理端代下单 | 四处改拉启用项；创建订单 `appointTimeSlot` 必须是当前启用 `value`（如 `14:00`） | **中**。四处常量改为接口；DTO 从自由字符串改为按字典校验。看板已按字符串解析小时，不必改 |
-| **投诉原因** | `COMPLAINT_REASON` | 居民投诉页；管理端投诉详情 label | 选项拉字典；提交存 `value` 数组快照；展示用 `label`，查不到则显示原码 | **中**。Prisma `Complaint.reasons` 已改为 `Json`（见 [`complaint-reasons-multi-select.md`](./complaint-reasons-multi-select.md)）；接字典时 DTO 去掉死枚举、改为按启用集校验。运营新增原因只需插 `biz_dict_items`，**不必再 ALTER `complaints`** |
+| **投诉原因** | `COMPLAINT_REASON` | 居民投诉页；管理端投诉详情 label | 选项拉字典；提交存 `value` 数组快照；展示用 `label`，查不到则显示原码 | **中**。Prisma `Complaint.reasons` 已是 `Json`；接字典时 DTO 去掉死枚举、改为按启用集校验。运营新增原因只需插 `biz_dict_items`，**不必再 ALTER `complaints`** |
 
 接入时每处都要：
 

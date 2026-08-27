@@ -14,7 +14,7 @@
 | `apps/miniapp-worker` | 员工端小程序（uni-app） |
 | `packages/shared` | 共享枚举、DTO、文案（`@dayangyunjie/shared`） |
 | `docs/` | 技术文档主稿（CodingPlan、tech、Schema、部署等） |
-| `plan/` | 近期功能方案、升级 SQL、增量部署说明 |
+| `plan/` | 近期未落地功能方案 |
 | `requirement.md` | 需求主稿（原型图可在资料区单独存放） |
 
 ## 常用命令
@@ -76,9 +76,9 @@ npx prisma migrate deploy   # 应用已有迁移（测试/生产推荐）
 | [`docs/CodingPlan.md`](./docs/CodingPlan.md) | 分阶段开发计划与验收（Cursor Agent 主稿） |
 | [`docs/tech.md`](./docs/tech.md) | 技术选型 |
 | [`docs/TencentCloud-Test-Deploy.md`](./docs/TencentCloud-Test-Deploy.md) | 腾讯云测试环境装机与运维 |
-| [`plan/deploy-worker-employment-status.md`](./plan/deploy-worker-employment-status.md) | 员工在职/离职功能增量部署 |
-| [`plan/uniapp-admin-h5-orders.md`](./plan/uniapp-admin-h5-orders.md) | 管理端 H5 订单能力方案 |
-| [`plan/sql/`](./plan/sql/) | 生产/手工升级与回滚 SQL |
+| [`plan/wechat-notify-auth-roadmap.md`](./plan/wechat-notify-auth-roadmap.md) | 微信订单通知方案 |
+| [`plan/appoint-time-lead-validation.md`](./plan/appoint-time-lead-validation.md) | 预约时间过期与派单缓冲校验 |
+| [`plan/biz-dict.md`](./plan/biz-dict.md) | 管理端业务字典 |
 
 ## 近期能力（摘要）
 
@@ -91,7 +91,7 @@ npx prisma migrate deploy   # 应用已有迁移（测试/生产推荐）
 
 ## 问题修复（摘录）
 
-- 2026-08-27 员工在职/离职：新增 `employment_status` 字段与 migration；派单/改派与员工登录拦截离职账号；PC/H5 派单候选排除离职；部署说明见 `plan/deploy-worker-employment-status.md`
+- 2026-08-27 员工在职/离职：新增 `employment_status` 字段与 migration；派单/改派与员工登录拦截离职账号；PC/H5 派单候选排除离职
 - 2026-08-27 管理端投诉/咨询：点「完成」时先提交跟进记录，避免只改状态漏跟进
 - 2026-08-27 居民端订单详情取消按钮改为中性灰样式；员工端登录支持密码可见切换
 - 2026-08-07 居民端微信登录/手机号授权：配置 `WECHAT_CUSTOMER_APPID`/`SECRET` 后走真实 `code2session` / 取号，未配置仍走 mock

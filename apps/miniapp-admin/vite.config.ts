@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 import uni from '@dcloudio/vite-plugin-uni';
 
 export default defineConfig({
-  // 生产托管在同域子路径 /admin/（见 plan/deploy-worker-employment-status.md）
+  // 生产托管在同域子路径 /admin/
   base: process.env.NODE_ENV === 'production' ? '/admin/' : '/',
   plugins: [uni()],
   resolve: {
