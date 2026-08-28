@@ -2,6 +2,7 @@
 
 > 存放位置：仓库根目录 [`plan/`](./)（勿放入 `~/.cursor/plans`，便于后续查找）  
 > 日期：2026-08-27  
+> 修订：同日补齐安全绑定票据、员工真实路由与登录回跳、订阅点击入口、公众号关联小程序、模板字段契约及发送幂等。  
 > 范围：仅订单通知（运营服务号、员工服务号、居民小程序订阅）。不含居民登录弹窗、Token 时效与三端刷新。
 
 ---
@@ -21,8 +22,8 @@
 | 端 | 通道 | 用户在微信里看到哪 | 点进去 |
 |---|---|---|---|
 | 运营（管理端 H5） | **服务号模板消息** | 服务号会话 | H5 订单详情 |
-| 员工（员工端小程序） | **服务号模板消息**（同一服务号） | 同一服务号会话 | 员工端任务详情 |
-| 居民（居民端小程序） | **小程序订阅消息** | 「服务通知」 | 居民端订单详情 / 评价页 |
+| 员工（员工端小程序） | **服务号模板消息**（同一服务号） | 同一服务号会话 | 员工端任务详情；未登录先登录再回跳 |
+| 居民（居民端小程序） | **小程序订阅消息** | 「服务通知」 | 居民端订单详情 |
 
 管理端 H5 **没有 AppID**，不能绑进开放平台当第三个小程序，也不能用小程序订阅消息跳进 H5。H5 只作为服务号模板里的 `url`。
 
@@ -37,7 +38,7 @@
 
 员工完成服务
   → 小程序订阅消息 → 下单居民
-  → 点击打开居民端订单详情（或评价页）
+  → 点击打开居民端订单详情
 ```
 
 **发给哪些运营：** 同一批 `Admin` 账号（PC「用户管理」创建，PC / H5 共用邮箱密码），不是「运营人员配置」里的客服 `Operator`。
@@ -73,8 +74,9 @@
 | A1 | 企业主体已认证 | 与小程序同一主体（「大洋云洁生态」营业执照） |
 | A2 | **已认证服务号** | 订阅号不能作本业务通知通道 |
 | A3 | 居民端、员工端小程序均已创建 | 各有 AppID / AppSecret |
-| A4 | 微信开放平台账号 | 把 **居民小程序 + 员工小程序 + 服务号** 绑到 **同一开放平台**，否则可能没有 `unionid` |
-| A5 | 管理端 H5 **不**申请小程序 | 无需也不应把 H5 绑进开放平台 |
+| A4 | 微信开放平台账号（推荐，非本期发信硬依赖） | 把 **居民小程序 + 员工小程序 + 服务号** 绑到同一开放平台，便于取得 `unionid`；本期运营/员工靠绑定票据关联、居民靠小程序 openid，不应因暂时没有 unionid 阻塞发信 |
+| A5 | **服务号关联员工端小程序** | 这与开放平台绑定是两件事。服务号后台 → 广告与服务 → 小程序管理 → 添加/关联员工端小程序；员工端小程序后台须允许公众号关联，否则模板消息不能可靠跳入员工端 |
+| A6 | 管理端 H5 **不**申请小程序 | 无需也不应把 H5 绑进开放平台 |
 
 ### B. 域名与服务号后台
 
@@ -82,7 +84,7 @@
 |---|---|---|
 | B1 | H5 使用 **已备案 HTTPS 域名** | 模板消息 `url` 不支持纯 IP（测试机 `118.195.149.50` 不能作为跳转目标） |
 | B2 | H5 按现网托管在 `/admin/` | 生产 `base` 见 `apps/miniapp-admin`；hash 路由 |
-| B3 | 服务号 **服务器配置** | 公网 HTTPS 回调，例如 `https://域名/api/v1/wechat/oa/callback`；Token / EncodingAESKey 与 `.env` 一致 |
+| B3 | 服务号 **服务器配置** | 公网 HTTPS 回调，例如 `https://域名/api/v1/wechat/oa/callback`；Token 与 `.env` 一致；本期固定明文模式 `plain` |
 | B4 | 服务号 **网页授权回调域名** | 填 H5 所在根域名（不含 `https://` 与路径），便于以后网页授权补绑 |
 | B5 | JS 接口安全域名（可选） | 仅当改用服务号「订阅通知」网页组件时才必须 |
 
@@ -94,6 +96,7 @@
 | C2 | 居民端小程序已选类目 | 订阅消息模板库按小程序类目开放 |
 | C3 | 已选用本期 3 类模板并拿到 ID | 运营待派单、员工新任务（改派可复用或另选）、居民服务完成 |
 | C4 | 禁止营销文案 | 只能发服务进度类通知，否则会被拦截 |
+| C5 | 模板字段契约已抄入本文 | 不能只拿模板 ID；须把后台实际关键词名、类型、长度逐项记录到下方“模板字段契约”，C5/C6/C7 发信代码不得猜字段名 |
 
 ### D. 系统配置
 
@@ -113,7 +116,7 @@ WECHAT_OA_APPID=
 WECHAT_OA_SECRET=
 WECHAT_OA_TOKEN=
 WECHAT_OA_AES_KEY=
-WECHAT_OA_ENCODING_MODE=plain
+WECHAT_OA_ENCODING_MODE=plain  # 本期只实现 plain；安全模式另开任务
 
 # 服务号模板 ID（公众平台选用后粘贴）
 WECHAT_OA_TMPL_NEW_ORDER=
@@ -152,8 +155,25 @@ WECHAT_ADMIN_H5_BASE_URL=https://example.com/admin/
 | 用途 | 发给谁 | 建议字段 | 点击跳转 |
 |---|---|---|---|
 | 新订单待派单 | 运营 Admin | 订单号、服务类型、预约时间、地址摘要 | `url` → `{WECHAT_ADMIN_H5_BASE_URL}#/pages/order-detail/index?id={id}&type=cleaning\|recycling` |
-| 新任务待接单 | 被派员工 | 订单号、预约时间、服务地址 | `miniprogram.appid` = 员工端 AppID；`pagepath` = `pages/task-detail/index?id={id}&type=cleaning\|recycling` |
+| 新任务待接单 | 被派员工 | 订单号、预约时间、服务地址 | `miniprogram.appid` = 员工端 AppID；`pagepath` = `pages/task-detail/index?orderId={id}&orderType=cleaning\|recycling` |
 | 任务已改派（可选） | 被换下的员工 | 订单号、说明 | 同上，或只打开任务列表 `pages/tasks/index` |
+
+### 服务号模板字段契约（申请后必须填写）
+
+下面不能凭建议字段开发。申请完成后，由运营把微信后台“模板详情”逐项抄入；没有填完时可开发 token、回调和绑定，但**不得验收真实发送**。
+
+| 环境变量 | 微信后台模板标题 / ID | 关键词名（原样） | 类型与最大长度 | 业务值来源 |
+|---|---|---|---|---|
+| `WECHAT_OA_TMPL_NEW_ORDER` | 待填写 | 待填写，例如 `character_string1`（仅示意） | 待填写 | 订单号 |
+| 同上 | 同上 | 待填写 | 待填写 | 服务类型 |
+| 同上 | 同上 | 待填写 | 待填写 | 预约时间 |
+| 同上 | 同上 | 待填写 | 待填写 | 地址摘要 |
+| `WECHAT_OA_TMPL_WORKER_ASSIGNED` | 待填写 | 待填写 | 待填写 | 订单号 |
+| 同上 | 同上 | 待填写 | 待填写 | 预约时间 |
+| 同上 | 同上 | 待填写 | 待填写 | 服务地址 |
+| `WECHAT_OA_TMPL_WORKER_REASSIGNED`（可选） | 待填写 | 待填写 | 待填写 | 订单号 / 改派说明 |
+
+组装 `data` 时只使用上表确认后的关键词；地址等超长值须按微信模板上限截断，并在单测覆盖边界。
 
 官方发送接口：`POST https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=...`  
 说明文档：[模板消息](https://developers.weixin.qq.com/doc/service/guide/product/template_message/Template_Message_Interface.html)。
@@ -169,7 +189,22 @@ WECHAT_ADMIN_H5_BASE_URL=https://example.com/admin/
 3. 复制模板 ID 到 `WECHAT_MP_TMPL_SERVICE_DONE`。  
 4. 记下关键词类型与字数限制，与后端 `data` 对齐。
 
-居民端在 **预约成功页**（或订单详情）调用 `wx.requestSubscribeMessage`，用户同意一次，才能在「完成服务」时发一条。拒绝不挡下单。
+同样补齐居民模板字段契约：
+
+| 环境变量 | 微信后台模板标题 / ID | 关键词名（原样） | 类型与最大长度 | 业务值来源 |
+|---|---|---|---|---|
+| `WECHAT_MP_TMPL_SERVICE_DONE` | 待填写 | 待填写 | 待填写 | 订单号 |
+| 同上 | 同上 | 待填写 | 待填写 | 服务类型 / 完成时间（按实际模板） |
+
+居民订阅引导：**实现时从下列三选一落地**（方案阶段不定死某一种；约束是必须有用户手势触发 `wx.requestSubscribeMessage`，不能在下单成功异步回调、`onLoad`、`setTimeout` 里自动弹）。
+
+| 方案 | 做法 | 注意 |
+|---|---|---|
+| A. 成功卡片按钮 | 卡片增加「接收服务完成通知」；**取消现有约 2 秒自动跳详情**，点订阅或「查看订单」后再跳 | 与当前 `BookingSuccessOverlay` + `setTimeout` 行为冲突，改卡片时必须一起改跳转 |
+| B. 提交前订阅 | 用户点「提交订单」时先调订阅，再发创建接口 | 手势最顺；拒绝也不挡下单 |
+| C. 详情页补订为主 | 成功后仍可短时进详情；详情顶栏 / 按钮「开启完成通知」 | 卡片可不加强制订阅按钮；适合先保现有跳转节奏 |
+
+共同规则：同意一次才能在完成服务时发一条；拒绝或关闭不挡下单和查看订单；一次性订阅，**每次预约成功都宜再给一次订阅机会**（不要假定订过一次就永远有效）。
 
 长期订阅仅对政务民生、医疗等开放，家政保洁按 **一次性** 做。
 
@@ -192,22 +227,22 @@ WECHAT_ADMIN_H5_BASE_URL=https://example.com/admin/
 
 1. 超管在 **PC 后台 → 用户管理** 创建 Admin（邮箱 + 密码），状态启用。  
 2. **功能授权** 勾选 `orders.cleaning` 和 / 或 `orders.recycling`（只做投诉、配置的人不要勾，避免被新单刷屏）。超管不必勾，系统视为两边都有。  
-3. 该员工用微信 **扫描服务号带参二维码**（scene 含 `admin_{id}`）关注；关注后粉丝表写入 `adminId`。  
+3. 该员工在已登录的 PC / H5 申请一次性绑定二维码（scene 只含随机票据 `bind_{token}`，**不得含裸 `adminId`**），用微信扫码关注；回调消费票据后写入 `adminId`。
 4. 告知：派单在微信点开消息进入 **管理端 H5**，不是 PC。PC 仍可派单，但不走这条推送点击路径。  
 5. 未关注 / 未绑定：下单成功照常，只是收不到微信；H5 / PC 登录后可展示绑定入口。
 
 ### 入职：服务人员
 
 1. PC **员工管理** 建档（手机号 + 密码），在职。  
-2. 入职要求关注同一服务号，扫带参码 `worker_{id}`（或先登录员工端再出示绑定码）。  
+2. 入职要求关注同一服务号；员工登录后申请一次性绑定二维码（scene 只含随机票据 `bind_{token}`，不得含裸 `workerId`）并扫码。
 3. 粉丝表写入 `workerId`。之后派单通知走服务号 openid，**不依赖**员工小程序 `wx.login`。  
-4. 员工点消息进入 **员工端小程序** 任务详情，仍用手机号登录。
+4. 员工点消息进入 **员工端小程序** 任务详情；若会话过期，先登录，再自动回到原 `orderId/orderType` 任务详情。
 
 ### 日常履约
 
 ```text
 居民在居民端下单（不强制关注服务号）
-  → 预约成功页引导订阅「服务完成」通知（可拒绝）
+  → 预约成功后按所选方案引导订阅「服务完成」通知（可拒绝；A/B/C 见上文）
 
 系统：给所有 ENABLED + 对应订单权限 + 已绑定服务号的 Admin 发「待派单」
 
@@ -289,17 +324,35 @@ flowchart LR
 | `residentId` | 可空，对上居民（本期发信不用，便于以后扩展） |
 | `createdAt` / `updatedAt` | 审计 |
 
-同一粉丝可同时填 `adminId` 与 `workerId`（内部人兼职）。
+关系约束：
+
+- `oaOpenid` 唯一；`adminId`、`workerId` 分别可空唯一（本期一个业务账号只绑定一个微信）。
+- Admin / Worker / Resident 删除时对应外键 `onDelete: SetNull`，不因历史粉丝记录阻塞删除。
+- 同一粉丝可同时填 `adminId` 与 `workerId`（内部人兼职）。
+- 重新绑定时必须显式解绑旧微信；禁止静默覆盖，避免消息发给离职人员。
+
+另建一次性绑定票据表（推荐 `wechat_oa_bind_tickets`）：
+
+| 字段 | 说明 |
+|---|---|
+| `id` | 主键 |
+| `tokenHash` | 高强度随机 token 的哈希，唯一；数据库不存明文 |
+| `targetType` | `ADMIN` / `WORKER` |
+| `targetId` | 目标业务账号 ID |
+| `expiresAt` | 过期时间（建议 10 分钟） |
+| `usedAt` | 可空；扫码成功后一次性消费 |
+| `createdByAdminId` / `createdByWorkerId` / `createdAt` | 审计；按创建者角色二选一 |
 
 **1.2 服务号关注回调**
 
-- `GET/POST /api/v1/wechat/oa/callback`：GET 验签回 `echostr`；POST 处理 `subscribe` / `unsubscribe` / 扫码带参。  
-- `subscribe`：`FromUserName` → `oaOpenid` → `user/info` 取 `unionid` → upsert 粉丝表。scene 为 `admin_{id}` / `worker_{id}` 时直接写外键。  
+- `GET/POST /api/v1/wechat/oa/callback`：GET 验签回 `echostr`；POST 处理 `subscribe` / `unsubscribe` / `SCAN`。本期只支持明文模式；必须校验签名、时间戳新鲜度和 nonce。
+- 首次关注扫码：`Event=subscribe`，`EventKey=qrscene_bind_{token}`；已关注后扫码：`Event=SCAN`，`EventKey=bind_{token}`。两种都去掉前缀后校验票据哈希、未过期、未使用，再写目标外键并消费票据。
+- `subscribe`：`FromUserName` → `oaOpenid` → `user/info` 取可选 `unionid` → upsert 粉丝表。不能根据二维码里的裸业务 ID 直接绑定。
 - `unsubscribe`：`subscribed=false`，之后不发。
 
 **1.3 带参二维码**
 
-- 后端用服务号接口生成永久或临时带参码。  
+- 后端仅允许“已登录账号为自己”或“超管为指定账号”创建绑定票据，再用服务号接口生成**临时**带参码；二维码过期后不可绑定。`bind_{token}` 总长度须符合微信字符串 scene 上限，token 建议使用紧凑的 base64url。
 - 管理端：PC 用户管理 / H5 登录后展示「关注服务号接收派单通知」。  
 - 员工端：「我的」展示绑定码。  
 - 未绑定不挡登录。
@@ -308,7 +361,14 @@ flowchart LR
 
 ### 阶段二：按节点发消息
 
-发送失败只打日志（建议以后加发送记录表），**不阻断**下单、派单、完成。
+业务事务成功提交后再安排发送；发送失败只记日志，**不阻断**下单、派单、完成。
+
+本期最低可靠性要求：
+
+- 服务号模板消息传 `client_msg_id`，建议由 `事件类型 + 订单类型 + 订单ID + 收件人openid` 生成，防止短时间重复发送。
+- 批量通知运营使用 `Promise.allSettled`（或等价后台任务），单个运营失败不影响其他人。
+- 记录事件、订单、脱敏收件人、模板 ID、微信 `msgid/errcode/errmsg`；不得把 access_token / Secret 写入日志。
+- 只允许在数据库事务**提交后**触发。若上线要求“进程重启也不丢消息”，须增加 outbox/队列；本期不做队列时要明确接受极端情况下可能丢通知。
 
 **2.1 居民下单成功 → 运营**
 
@@ -334,7 +394,7 @@ flowchart LR
 查被派 workerId → 粉丝表 subscribed=true AND workerId=?
   → template/send
        miniprogram.appid = WECHAT_WORKER_APPID
-       miniprogram.pagepath = pages/task-detail/index?id={id}&type=...
+       miniprogram.pagepath = pages/task-detail/index?orderId={id}&orderType=cleaning|recycling
 改派：新员工发新任务；若配置了 REASSIGNED 模板，再通知原员工
 ```
 
@@ -347,7 +407,6 @@ flowchart LR
   → 居民小程序 subscribe/send
        template_id = WECHAT_MP_TMPL_SERVICE_DONE
        page = pages/order-detail/index?id={id}
-         或 pages/review/index?id={id}
 ```
 
 居民未授权时微信返回错误，记日志即可。
@@ -359,13 +418,24 @@ flowchart LR
 - 401 清登录时尽量保留深链。  
 - 路由守卫（`useRouteGuard.ts`）不得把带 query 的详情重定向丢参。
 
-**2.5 居民端订阅引导**
+**2.5 员工端深链登录接力**
 
-- 预约成功页（保洁 / 废品）在用户点击行为里调 `wx.requestSubscribeMessage({ tmplIds: [服务完成模板] })`。  
-- 不可在 `onLoad` 里偷偷弹。  
-- 详情页可再给一次「开启完成通知」。
+- 模板 `pagepath` 使用现有页面实际参数：`orderId` / `orderType`，不能写 `id` / `type`。
+- 未登录或 refresh 失效时，员工端先保存目标 `pages/task-detail/index?orderId=...&orderType=...`，再去登录。
+- 登录成功后优先回到保存的任务详情；没有目标才走现有首页。
+- 目标只允许员工端已知的内部页面和合法参数，不能把任意外部 URL 写入 storage。
 
-**2.6 代码模块建议**
+**2.6 居民端订阅引导**
+
+实现时三选一（见上文「居民订阅引导」A / B / C），本阶段不定死：
+
+- A：成功卡片按钮 + 取消约 2 秒自动跳转；
+- B：点「提交订单」时先 `requestSubscribeMessage` 再创建；
+- C：以订单详情补订为主，可保留现有成功后跳转。
+
+硬性约束：只在用户 tap 手势链路里调用 `wx.requestSubscribeMessage({ tmplIds: [服务完成模板] })`；不可在 `onLoad`、下单成功异步回调或定时器里自动弹。
+
+**2.7 代码模块建议**
 
 - `WechatOaService`：服务号 token 缓存、user/info、带参码、template send  
 - `WechatOaController`：回调  
@@ -378,9 +448,9 @@ flowchart LR
 | # | 项 | 说明 |
 |---|---|---|
 | 3.1 | 员工 / 运营绑定入口 | 未绑定常驻提示 + 带参码；不挡登录 |
-| 3.2 | 居民订阅引导 | 预约成功必弹一次；详情可补；**不**引导关注服务号作为下单条件 |
+| 3.2 | 居民订阅引导 | A/B/C 三选一落地；须用户手势触发订阅，不自动弹；**不**引导关注服务号作为下单条件 |
 | 3.3 | 取关后停发 | 回调更新 `subscribed`；发送前再检查 |
-| 3.4 | 发送失败可观测 | 日志；可选通知发送记录表（openid、模板、errcode、msgid） |
+| 3.4 | 发送失败可观测 | 最低要求结构化日志 + `client_msg_id`；可选通知发送记录表 / outbox |
 | 3.5 | Mock | 未配服务号 / 小程序凭证时发送跳过；开发可用固定 openid 测组装逻辑 |
 | 3.6 | 代下单双接收人、派单中途通知居民 | **不在本期主路径**；以后加居民订阅次数再扩展 |
 
@@ -390,8 +460,10 @@ flowchart LR
 
 1. 运营 / 员工扫码关注后，粉丝表 `adminId` / `workerId` 正确；取关后 `subscribed=false` 且不再发。  
 2. 居民下保洁单：仅有保洁权限（及超管）且已绑定的 Admin 收到服务号消息；点开进入 H5 对应详情（含先登录再回跳）。无权限或未绑定的人无消息，下单成功。  
-3. 运营分配后，仅被派员工收到服务号消息，点开进入员工端该任务。改派行为符合 2.2。  
-4. 员工完成后：曾在预约成功页同意订阅的居民，在「服务通知」收到完成提醒；未同意则无消息，订单仍完成。
+3. 运营分配后，仅被派员工收到服务号消息；页面使用 `orderId/orderType`，未登录时登录后仍回到该任务。改派行为符合 2.2。
+4. 居民经所选方案（A/B/C）同意订阅后，员工完成服务时在「服务通知」收到提醒并进入订单详情；未同意则无消息，订单仍完成。
+5. 重复触发同一短时发送不会产生重复服务号消息；某个收件人发送失败不影响其他收件人和主业务。
+6. 绑定二维码使用一次性随机票据；篡改、过期、重复消费均不能绑定，首次关注与已关注扫码都可正确处理。
 
 ---
 

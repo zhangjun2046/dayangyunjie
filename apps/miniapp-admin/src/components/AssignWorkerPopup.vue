@@ -1,5 +1,5 @@
 <template>
-  <view v-if="visible" class="mask" @tap="onCancel">
+  <view v-if="visible" class="mask" @tap="onCancel" @touchmove.stop.prevent>
     <view class="sheet" @tap.stop>
       <view class="sheet-header">
         <text class="sheet-title">{{ title }}</text>

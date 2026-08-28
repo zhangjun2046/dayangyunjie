@@ -1,34 +1,26 @@
 <template>
-  <view class="page">
-    <uni-nav-bar
-      status-bar
-      fixed
-      title="订单"
-      :border="false"
-      :right-width="140"
-      background-color="#ffffff"
-      color="#333333"
-    >
-      <template #right>
-        <view class="nav-right">
-          <text class="nav-name">{{ displayName }}</text>
-          <text class="nav-logout" @tap.stop="onLogout">退出</text>
+  <view class="page" :class="{ 'page--locked': assignVisible }">
+    <view class="page-header" :style="{ paddingTop: statusBarHeight + 'px' }">
+      <view class="header-row">
+        <view v-if="visibleTabs.length > 0" class="header-tabs">
+          <view
+            v-for="tab in visibleTabs"
+            :key="tab.value"
+            :class="['tab-item', activeTab === tab.value && 'tab-item--active']"
+            @tap="onTabChange(tab.value)"
+          >
+            <text class="tab-label">{{ tab.label }}</text>
+            <view v-if="activeTab === tab.value" class="tab-indicator" />
+          </view>
         </view>
-      </template>
-    </uni-nav-bar>
-
-    <view v-if="showTabBar" class="top-tabs">
-      <view
-        v-for="tab in visibleTabs"
-        :key="tab.value"
-        :class="['tab-item', activeTab === tab.value && 'tab-item--active']"
-        @tap="onTabChange(tab.value)"
-      >
-        <text class="tab-label">{{ tab.label }}</text>
-        <view v-if="activeTab === tab.value" class="tab-indicator" />
+        <view v-else class="header-tabs header-tabs--empty" />
+        <text class="nav-logout" @tap.stop="onLogout">退出登录</text>
       </view>
     </view>
 
+    <view class="page-header-placeholder" :style="{ height: headerTotalHeight + 'px' }" />
+
+    <view class="page-body">
     <template v-if="visibleTabs.length === 0">
       <view class="status-wrap empty-wrap">
         <image class="empty-icon-img" src="/static/icons/icon_empty.png" mode="aspectFit" />
@@ -124,6 +116,7 @@
         </view>
       </view>
     </template>
+    </view>
 
     <AssignWorkerPopup
       v-model:visible="assignVisible"
@@ -137,7 +130,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch, onUnmounted, onMounted } from 'vue';
 import { onShow, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/store/auth';
 import { ensureAuthed } from '@/composables/useRouteGuard';
@@ -181,8 +174,16 @@ interface TabListState {
 const PAGE_SIZE = 20;
 
 const authStore = useAuthStore();
-const { visibleTabs, showTabBar, activeTab, syncFromPermissions, selectTab, snapshotVisibleKeys } =
+const { visibleTabs, activeTab, syncFromPermissions, selectTab, snapshotVisibleKeys } =
   useOrderTabs();
+
+const HEADER_ROW_PX = uni.upx2px(88);
+const statusBarHeight = ref(0);
+const headerTotalHeight = computed(() => statusBarHeight.value + HEADER_ROW_PX);
+
+onMounted(() => {
+  statusBarHeight.value = uni.getSystemInfoSync().statusBarHeight ?? 0;
+});
 
 const tabState = reactive<Record<OrderTab, TabListState>>({
   cleaning: emptyTabState(),
@@ -200,11 +201,6 @@ const ALL_TABS: OrderTab[] = ['cleaning', 'recycling'];
 const assignMode = computed<'assign' | 'reassign'>(() =>
   assignTarget.value?.status === 'ASSIGNED' ? 'reassign' : 'assign',
 );
-
-const displayName = computed(() => {
-  const name = authStore.admin?.name || authStore.admin?.username || '管理员';
-  return name.length > 6 ? `${name.slice(0, 6)}…` : name;
-});
 
 const currentState = computed(() => {
   const tab = activeTab.value ?? 'cleaning';
@@ -428,6 +424,39 @@ function onAssignTap(item: AdminOrderCard) {
   assignVisible.value = true;
 }
 
+/** 弹窗打开时锁定 H5 页面滚动，关闭后恢复，避免背景订单列表跟着滑 */
+let savedPageScrollTop = 0;
+
+function lockPageScroll(): void {
+  savedPageScrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+  document.body.style.overflow = 'hidden';
+  document.body.style.position = 'fixed';
+  document.body.style.width = '100%';
+  document.body.style.top = `-${savedPageScrollTop}px`;
+}
+
+function unlockPageScroll(): void {
+  document.body.style.overflow = '';
+  document.body.style.position = '';
+  document.body.style.width = '';
+  document.body.style.top = '';
+  window.scrollTo(0, savedPageScrollTop);
+}
+
+watch(assignVisible, (open) => {
+  if (open) {
+    lockPageScroll();
+  } else {
+    unlockPageScroll();
+  }
+});
+
+onUnmounted(() => {
+  if (assignVisible.value) {
+    unlockPageScroll();
+  }
+});
+
 async function onAssignSuccess() {
   if (activeTab.value) {
     await loadOrders(1, true);
@@ -438,7 +467,7 @@ function onLogout() {
   uni.showModal({
     title: '确认退出',
     content: '确定要退出登录吗？',
-    confirmText: '退出',
+    confirmText: '退出登录',
     cancelText: '取消',
     success: (res) => {
       if (!res.confirm) return;
@@ -455,51 +484,69 @@ function onLogout() {
   background: #f8faff;
 }
 
-.nav-right {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 16rpx;
-  padding-right: 8rpx;
-}
-
-.nav-name {
-  max-width: 140rpx;
-  font-size: 24rpx;
-  color: #666;
+.page--locked {
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  height: 100vh;
 }
 
-.nav-logout {
-  font-size: 26rpx;
-  color: #236eff;
-  flex-shrink: 0;
+.page-body {
+  min-height: 0;
 }
 
-.top-tabs {
-  display: flex;
-  flex-direction: row;
+.page-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 99;
   background: #ffffff;
-  padding: 0 32rpx;
   border-bottom: 1rpx solid #f0f0f0;
 }
 
-.tab-item {
-  flex: 1;
+.page-header-placeholder {
+  flex-shrink: 0;
+}
+
+.header-row {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  padding: 28rpx 0 0;
+  justify-content: space-between;
+  min-height: 88rpx;
+  padding: 0 32rpx;
+}
+
+.header-tabs {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 48rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+.header-tabs--empty {
+  flex: 1;
+}
+
+.nav-logout {
+  font-size: 32rpx;
+  color: #236eff;
+  flex-shrink: 0;
+  padding: 24rpx 0 24rpx 24rpx;
+}
+
+.tab-item {
   position: relative;
+  flex-shrink: 0;
+  padding: 24rpx 0 20rpx;
 }
 
 .tab-label {
   font-size: 36rpx;
   color: #666;
-  padding-bottom: 20rpx;
   font-weight: 400;
+  white-space: nowrap;
 }
 
 .tab-item--active .tab-label {
@@ -510,9 +557,8 @@ function onLogout() {
 .tab-indicator {
   position: absolute;
   bottom: 0;
-  left: 20%;
-  right: 20%;
-  width: auto;
+  left: 0;
+  right: 0;
   height: 4rpx;
   background: #236eff;
   border-radius: 2rpx;

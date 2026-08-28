@@ -263,6 +263,28 @@ npm install
 
 **代码同步原则**：配置/代码变更在 **本机修改 → push GitHub → 服务器 `git pull`**，避免在服务器直接改业务文件。`.npmrc` 缓存路径、`.env` 等环境配置可在服务器单独设置。
 
+### 4.0 远程 `git status` 只有 `package.json` / `package-lock.json`
+
+`git pull` 前若看到（且 `Your branch is up to date with 'origin/master'`）：
+
+```text
+Changes not staged for commit:
+        modified:   package-lock.json
+        modified:   package.json
+```
+
+这是服务器上 `npm install` 相对 Windows 开发机重写了 lock / 可选依赖，**不要在服务器提交**。
+
+```bash
+cd /opt/dayangyunjie-code
+git diff --stat
+git restore package.json package-lock.json
+# 部署需要 Linux 缓存路径时再覆盖（会再次弄脏 .npmrc，属预期，勿提交）：
+echo 'cache=/root/.npm' > .npmrc
+git pull origin master
+npm ci    # 失败再用 npm install；装完若 lock 又脏，再 restore，不要 add
+```
+
 **拉取验证**（2026-07-27 测试机已通过）：
 
 ```bash
@@ -384,7 +406,7 @@ for i in 1 2 3 4 5; do
   echo "失败，5 秒后重试..."
   sleep 5
 done
-npm install   # package.json 有变更时执行
+npm ci      # 严格按 lock；失败再用 npm install，装完不要提交 package.json / lock
 ```
 
 ---
@@ -872,8 +894,9 @@ pm2 logs dayangyunjie-api
 
 # 重启后端（更新代码后）
 cd /opt/dayangyunjie-code
+git restore package.json package-lock.json   # 若 status 显示这两文件被 npm 改过
 git pull
-npm install
+npm ci   # 或 npm install；装完不要把 lock 提交回 GitHub
 cd apps/server && npx prisma migrate deploy && cd ../..
 npm run build
 pm2 restart dayangyunjie-api

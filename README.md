@@ -79,6 +79,7 @@ npx prisma migrate deploy   # 应用已有迁移（测试/生产推荐）
 | [`plan/wechat-notify-auth-roadmap.md`](./plan/wechat-notify-auth-roadmap.md) | 微信订单通知方案 |
 | [`plan/appoint-time-lead-validation.md`](./plan/appoint-time-lead-validation.md) | 预约时间过期与派单缓冲校验 |
 | [`plan/biz-dict.md`](./plan/biz-dict.md) | 管理端业务字典 |
+| [`plan/code-update-steps.md`](./plan/code-update-steps.md) | 上述方案的分步改代码手册 |
 
 ## 近期能力（摘要）
 
