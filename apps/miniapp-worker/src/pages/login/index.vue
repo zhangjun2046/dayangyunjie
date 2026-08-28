@@ -32,7 +32,7 @@
             placeholder-class="input-placeholder"
           />
           <view class="pwd-toggle" @tap.stop="showPassword = !showPassword">
-            <uni-icons :type="showPassword ? 'eye-slash' : 'eye'" size="22" color="#999999" />
+            <uni-icons :type="showPassword ? 'eye' : 'eye-slash'" size="22" color="#999999" />
           </view>
         </view>
 
