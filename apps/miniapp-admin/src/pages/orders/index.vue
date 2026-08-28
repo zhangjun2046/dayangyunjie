@@ -531,7 +531,7 @@ function onLogout() {
 
 .nav-logout {
   font-size: 32rpx;
-  color: #236eff;
+  color: #333333;
   flex-shrink: 0;
   padding: 24rpx 0 24rpx 24rpx;
 }

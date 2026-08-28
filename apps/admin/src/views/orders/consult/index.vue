@@ -330,6 +330,15 @@
               size="large"
             >
               <div class="timeline-label timeline-done">已完成</div>
+              <template v-if="detailDrawer.order.completionRecord">
+                <div class="timeline-meta">
+                  {{ detailDrawer.order.completionRecord.handlerName }}
+                  ·
+                  {{ formatDateTime(detailDrawer.order.completionRecord.completedAt) }}
+                </div>
+                <div class="timeline-content">{{ detailDrawer.order.completionRecord.content }}</div>
+              </template>
+              <div v-else class="timeline-meta">{{ formatDateTime(detailDrawer.order.updatedAt) }}</div>
             </el-timeline-item>
           </el-timeline>
         </el-card>
@@ -396,6 +405,7 @@ import {
   type CreateConsultOrderDto,
 } from '@/api/consult';
 import { fetchServiceCatalogs, type ServiceCatalogItem } from '@/api/service-catalog';
+import { useUserStore } from '@/store';
 
 // ─── 状态 Tab ─────────────────────────────────────────────────────────────────
 
@@ -700,7 +710,10 @@ const persistFollowUpRecord = async (): Promise<void> => {
   });
 
   if (detailDrawer.order.status === 'FOLLOW_UP') {
-    await updateConsultStatus(detailDrawer.order.id, { status: 'FOLLOWING', operatorId: 1 });
+    await updateConsultStatus(detailDrawer.order.id, {
+      status: 'FOLLOWING',
+      operatorId: userStore.adminId || 1,
+    });
     detailDrawer.order.status = 'FOLLOWING';
   }
 };
@@ -735,7 +748,7 @@ const completeOrder = async () => {
   if (!valid) return;
 
   try {
-    await ElMessageBox.confirm('确认提交本次跟进并将咨询单标记为已完成？', '完成确认', {
+    await ElMessageBox.confirm('确认将咨询单标记为已完成？', '完成确认', {
       confirmButtonText: '确认完成',
       cancelButtonText: '取消',
       type: 'info',
@@ -746,16 +759,29 @@ const completeOrder = async () => {
 
   detailDrawer.completing = true;
   try {
-    await persistFollowUpRecord();
+    const handlerName = followUpForm.handlerName.trim();
+    const content = followUpForm.content.trim();
+    const orderId = detailDrawer.order.id;
+    const operatorId = userStore.adminId || 1;
 
-    await updateConsultStatus(detailDrawer.order.id, { status: 'COMPLETED', operatorId: 1 });
+    if (detailDrawer.order.status === 'FOLLOW_UP') {
+      await updateConsultStatus(orderId, { status: 'FOLLOWING', operatorId });
+    }
+
+    await updateConsultStatus(orderId, {
+      status: 'COMPLETED',
+      operatorId,
+      handlerName,
+      remark: content,
+    });
+
     ElMessage.success('咨询单已完成');
     followUpForm.handlerName = '';
     followUpForm.content = '';
 
-    const res = await fetchConsultOrderDetail(detailDrawer.order.id);
+    const res = await fetchConsultOrderDetail(orderId);
     detailDrawer.order = res.data.data;
-    await loadFollowUps(detailDrawer.order.id);
+    await loadFollowUps(orderId);
     loadOrders();
   } catch (e) {
     console.error('[ConsultOrders] complete order failed', e);
@@ -767,6 +793,7 @@ const completeOrder = async () => {
 // ─── 初始化 ───────────────────────────────────────────────────────────────────
 
 const route = useRoute();
+const userStore = useUserStore();
 
 onMounted(() => {
   // P5.12 首页待办卡片跳转预置状态筛选（如 /orders/consult?status=FOLLOW_UP）

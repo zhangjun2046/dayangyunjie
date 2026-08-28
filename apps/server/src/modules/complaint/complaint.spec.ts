@@ -78,6 +78,10 @@ function makePrismaMock(overrides: Record<string, unknown> = {}) {
     complaintFollowUp: {
       create: jest.fn().mockResolvedValue(makeFollowUpRow()),
     },
+    orderStatusLog: {
+      create: jest.fn().mockResolvedValue({ id: 1 }),
+      findFirst: jest.fn().mockResolvedValue(null),
+    },
     ...overrides,
   };
   return {
@@ -347,6 +351,11 @@ describe('ComplaintService — updateStatus（状态转移）', () => {
     expect(prisma.complaint.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: { status: ComplaintStatus.PROCESSING } }),
     );
+    expect(prisma.orderStatusLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ orderType: 'COMPLAINT', toStatus: ComplaintStatus.PROCESSING }),
+      }),
+    );
   });
 
   it('PROCESSING → COMPLETED：合法转移', async () => {
@@ -354,9 +363,18 @@ describe('ComplaintService — updateStatus（状态转移）', () => {
     prisma.complaint.findUnique = jest.fn()
       .mockResolvedValueOnce(makeComplaintRow({ status: ComplaintStatus.PROCESSING, followUps: [] }))
       .mockResolvedValue(makeComplaintRow({ status: ComplaintStatus.COMPLETED, followUps: [] }));
-    await svc.updateStatus(1, toCompleted);
+    await svc.updateStatus(1, { ...toCompleted, remark: '已与居民协商完毕' });
     expect(prisma.complaint.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: { status: ComplaintStatus.COMPLETED } }),
+    );
+    expect(prisma.orderStatusLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          orderType: 'COMPLAINT',
+          toStatus: ComplaintStatus.COMPLETED,
+          remark: expect.stringContaining('张管理员'),
+        }),
+      }),
     );
   });
 

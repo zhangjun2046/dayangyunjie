@@ -15,6 +15,12 @@ export interface ConsultFollowUp {
   createdAt: string;
 }
 
+export interface CompletionRecord {
+  handlerName: string;
+  content: string;
+  completedAt: string;
+}
+
 // ─── 列表项 DTO ───────────────────────────────────────────────────────────────
 
 export interface ConsultOrderItem {
@@ -40,6 +46,7 @@ export interface ConsultOrderItem {
 
 export interface ConsultOrderDetail extends ConsultOrderItem {
   followUps?: ConsultFollowUp[];
+  completionRecord?: CompletionRecord | null;
 }
 
 // ─── 分页响应 ─────────────────────────────────────────────────────────────────
@@ -95,6 +102,8 @@ export interface UpdateConsultStatusDto {
   status: ConsultOrderStatus;
   operatorId: number;
   remark?: string;
+  /** 完成时的处理人姓名（写入完成节点） */
+  handlerName?: string;
 }
 
 // ─── 新增跟进记录 DTO ─────────────────────────────────────────────────────────

@@ -261,6 +261,15 @@
               size="large"
             >
               <div class="timeline-label timeline-done">已完成</div>
+              <template v-if="detailDrawer.complaint.completionRecord">
+                <div class="timeline-meta">
+                  {{ detailDrawer.complaint.completionRecord.handlerName }}
+                  ·
+                  {{ formatDateTime(detailDrawer.complaint.completionRecord.completedAt) }}
+                </div>
+                <div class="timeline-content">{{ detailDrawer.complaint.completionRecord.content }}</div>
+              </template>
+              <div v-else class="timeline-meta">{{ formatDateTime(detailDrawer.complaint.updatedAt) }}</div>
             </el-timeline-item>
           </el-timeline>
         </el-card>
@@ -541,7 +550,7 @@ const completeComplaint = async () => {
   if (!valid) return;
 
   try {
-    await ElMessageBox.confirm('确认提交本次跟进并将投诉标记为已完成？', '完成确认', {
+    await ElMessageBox.confirm('确认将投诉标记为已完成？', '完成确认', {
       confirmButtonText: '确认完成',
       cancelButtonText: '取消',
       type: 'info',
@@ -553,12 +562,20 @@ const completeComplaint = async () => {
   detailDrawer.completing = true;
   try {
     const handlerName = followUpForm.handlerName.trim();
+    const content = followUpForm.content.trim();
+    const complaintId = detailDrawer.complaint.id;
 
-    await persistFollowUpRecord();
+    if (detailDrawer.complaint.status === 'PENDING') {
+      await updateComplaintStatus(complaintId, {
+        status: 'PROCESSING',
+        operatorName: handlerName,
+      });
+    }
 
-    await updateComplaintStatus(detailDrawer.complaint.id, {
+    await updateComplaintStatus(complaintId, {
       status: 'COMPLETED',
       operatorName: handlerName,
+      remark: content,
     });
 
     ElMessage.success('投诉已完成');

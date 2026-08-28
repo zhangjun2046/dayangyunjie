@@ -124,6 +124,11 @@ export interface ConsultOrderDto {
 
 export interface ConsultOrderDetailDto extends ConsultOrderDto {
   progress: ProgressNodeDto[];
+  completionRecord?: {
+    handlerName: string;
+    content: string;
+    completedAt: string;
+  } | null;
 }
 
 /** 家政咨询跟进记录（API 出参，v2.0） */

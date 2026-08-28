@@ -56,8 +56,15 @@ export interface ComplaintFollowUp {
   createdAt: string;
 }
 
+export interface CompletionRecord {
+  handlerName: string;
+  content: string;
+  completedAt: string;
+}
+
 export interface ComplaintDetail extends ComplaintItem {
   followUps: ComplaintFollowUp[];
+  completionRecord?: CompletionRecord | null;
 }
 
 // ─── 查询参数 ─────────────────────────────────────────────────────────────────

@@ -93,6 +93,9 @@ function makePrismaMock(txOverrides: Record<string, unknown> = {}) {
     resident: {
       findUnique: jest.fn().mockResolvedValue({ id: 1 }),
     },
+    orderStatusLog: {
+      findFirst: jest.fn().mockResolvedValue(null),
+    },
     _tx: tx,
   };
 }

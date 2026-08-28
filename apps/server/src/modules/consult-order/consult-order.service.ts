@@ -22,6 +22,16 @@ import { CreateConsultOrderDto } from './dto/create-consult-order.dto';
 import { QueryConsultFollowUpDto } from './dto/query-consult-follow-up.dto';
 import { QueryConsultOrderDto } from './dto/query-consult-order.dto';
 import { UpdateConsultStatusDto } from './dto/update-consult-status.dto';
+import {
+  encodeCompletionRemark,
+  parseCompletionRemark,
+} from '../../common/completion-record';
+
+export interface CompletionRecordDto {
+  handlerName: string;
+  content: string;
+  completedAt: string;
+}
 
 const ORDER_NO_PREFIX = 'CNS';
 const ORDER_NO_SEQ_LENGTH = 6;
@@ -153,8 +163,10 @@ export class ConsultOrderService {
     role: ProgressRole = 'ADMIN',
   ): Promise<ConsultOrderDetailDto> {
     const row = await this.findOneOrThrow(id);
+    const completionRecord = await this.loadCompletionRecord(id);
     return {
       ...this.toDto(row),
+      completionRecord,
       progress: this.orderProgressService
         ? await this.orderProgressService.assemble({
             orderId: row.id,
@@ -174,10 +186,15 @@ export class ConsultOrderService {
    */
   async updateStatus(id: number, dto: UpdateConsultStatusDto): Promise<ConsultOrderDto> {
     const order = await this.findOneOrThrow(id);
-    const { status: toStatus, operatorId, remark } = dto;
+    const { status: toStatus, operatorId, remark, handlerName } = dto;
     const fromStatus = order.status as string;
 
     this.validateConsultTransition(fromStatus, toStatus);
+
+    const logRemark =
+      toStatus === ConsultStatus.COMPLETED && handlerName?.trim() && remark?.trim()
+        ? encodeCompletionRemark(handlerName.trim(), remark.trim())
+        : remark?.trim() ?? null;
 
     await this.prismaService.$transaction(async (tx) => {
       await tx.consultOrder.update({
@@ -193,7 +210,7 @@ export class ConsultOrderService {
           toStatus,
           operatorId,
           operatorType: 'ADMIN',
-          remark: remark ?? null,
+          remark: logRemark,
         },
       });
     });
@@ -256,6 +273,21 @@ export class ConsultOrderService {
   /**
    * 校验代下单字段：isProxyOrder=true 时 serviceContactName/Phone 必填。
    */
+  private async loadCompletionRecord(consultId: number): Promise<CompletionRecordDto | null> {
+    const log = await this.prismaService.orderStatusLog.findFirst({
+      where: { orderId: consultId, orderType: 'CONSULT', toStatus: ConsultStatus.COMPLETED },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!log) return null;
+    const parsed = parseCompletionRemark(log.remark);
+    if (!parsed) return null;
+    return {
+      handlerName: parsed.handlerName,
+      content: parsed.content,
+      completedAt: log.createdAt.toISOString(),
+    };
+  }
+
   private validateProxyFields(dto: CreateConsultOrderDto): void {
     if (!dto.isProxyOrder) {
       return;

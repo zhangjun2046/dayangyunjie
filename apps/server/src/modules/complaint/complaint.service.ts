@@ -14,6 +14,16 @@ import { CreateComplaintDto } from './dto/create-complaint.dto';
 import { QueryComplaintDto } from './dto/query-complaint.dto';
 import { UpdateComplaintStatusDto } from './dto/update-complaint-status.dto';
 import { CreateFollowUpDto } from './dto/create-follow-up.dto';
+import {
+  encodeCompletionRemark,
+  parseCompletionRemark,
+} from '../../common/completion-record';
+
+export interface CompletionRecordDto {
+  handlerName: string;
+  content: string;
+  completedAt: string;
+}
 
 /** 投诉合法状态转移规则（单向不可逆） */
 const COMPLAINT_TRANSITION_RULES: Record<string, string[]> = {
@@ -95,7 +105,10 @@ export interface ComplaintRichDto extends ComplaintDto {
 }
 
 /** 含跟进记录的管理端投诉详情 */
-export type ComplaintDetailDto = ComplaintRichDto & { followUps: ComplaintFollowUpDto[] };
+export type ComplaintDetailDto = ComplaintRichDto & {
+  followUps: ComplaintFollowUpDto[];
+  completionRecord?: CompletionRecordDto | null;
+};
 
 @Injectable()
 export class ComplaintService {
@@ -230,9 +243,11 @@ export class ComplaintService {
     if (!row) {
       throw new NotFoundException(`Complaint ${id} not found`);
     }
+    const completionRecord = await this.loadCompletionRecord(id);
     return {
       ...this.toRichDto(row),
       followUps: row.followUps.map((f) => this.toFollowUpDto(f)),
+      completionRecord,
     };
   }
 
@@ -248,9 +263,28 @@ export class ComplaintService {
 
     this.validateComplaintTransition(fromStatus, toStatus);
 
-    await this.prismaService.complaint.update({
-      where: { id },
-      data: { status: toStatus },
+    const remark =
+      toStatus === ComplaintStatus.COMPLETED && dto.remark?.trim()
+        ? encodeCompletionRemark(dto.operatorName, dto.remark.trim())
+        : dto.remark?.trim() ?? null;
+
+    await this.prismaService.$transaction(async (tx) => {
+      await tx.complaint.update({
+        where: { id },
+        data: { status: toStatus },
+      });
+
+      await tx.orderStatusLog.create({
+        data: {
+          orderId: id,
+          orderType: 'COMPLAINT',
+          fromStatus,
+          toStatus,
+          operatorId: 1,
+          operatorType: 'ADMIN',
+          remark,
+        },
+      });
     });
 
     console.info(`[Complaint] status updated id=${id} ${fromStatus} → ${toStatus} by ${dto.operatorName}`);
@@ -275,6 +309,21 @@ export class ComplaintService {
   }
 
   // ─── 私有方法 ─────────────────────────────────────────────────────────────
+
+  private async loadCompletionRecord(complaintId: number): Promise<CompletionRecordDto | null> {
+    const log = await this.prismaService.orderStatusLog.findFirst({
+      where: { orderId: complaintId, orderType: 'COMPLAINT', toStatus: ComplaintStatus.COMPLETED },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!log) return null;
+    const parsed = parseCompletionRemark(log.remark);
+    if (!parsed) return null;
+    return {
+      handlerName: parsed.handlerName,
+      content: parsed.content,
+      completedAt: log.createdAt.toISOString(),
+    };
+  }
 
   private complaintReasonNotFound(id: number): NotFoundException {
     return new NotFoundException(`投诉原因（ID: ${id}）不存在`);

@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 import { ConsultStatus } from '@prisma/client';
@@ -28,4 +28,10 @@ export class UpdateConsultStatusDto {
   @IsString()
   @MaxLength(512)
   remark?: string;
+
+  @ApiPropertyOptional({ description: '完成时的处理人姓名（写入完成节点，不单独建跟进记录）', example: '张管理员' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  handlerName?: string;
 }

@@ -362,14 +362,14 @@
 
       <!-- ACCEPTED 及以后（保洁/废品）：投诉反馈 + 联系客服 + 可选评价 -->
       <template v-if="canComplaint">
-        <button v-if="!complaint" class="btn-outline" @tap="onGoComplaint">投诉反馈</button>
-        <button class="btn-primary" @tap="onCallService">联系客服</button>
+        <button v-if="!complaint" class="btn-soft" @tap="onGoComplaint">投诉反馈</button>
+        <button class="btn-soft" @tap="onCallService">联系客服</button>
       </template>
 
       <!-- 待评价（7天内）：评价服务 -->
       <button
         v-if="canReview"
-        class="btn-outline"
+        class="btn-review"
         @tap="onGoReview"
       >
         评价服务
@@ -1021,7 +1021,41 @@ function getComplaintStatusClass(status: string): string {
   border-top: 1rpx solid #f0f0f0;
   display: flex;
   flex-direction: row;
+  align-items: center;
   gap: 20rpx;
+}
+
+.btn-soft {
+  flex: 1;
+  height: 88rpx;
+  border-radius: 20rpx;
+  font-size: 30rpx;
+  border: none;
+  line-height: 88rpx;
+  background: #f0f6ff;
+  color: #333333;
+}
+
+.btn-soft::after {
+  border: none;
+}
+
+.btn-review {
+  flex: 1;
+  height: 88rpx;
+  line-height: 88rpx;
+  border-radius: 20rpx;
+  font-size: 28rpx;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(135deg, #246bff 0%, #1aa1ff 100%);
+  color: #ffffff;
+  border: none;
+}
+
+.btn-review::after {
+  border: none;
 }
 
 .btn-primary {
@@ -1039,12 +1073,11 @@ function getComplaintStatusClass(status: string): string {
 .btn-cancel {
   flex: 1;
   height: 88rpx;
-  border-radius: 44rpx;
+  border-radius: 20rpx;
   font-size: 30rpx;
-  font-weight: 500;
   border: none;
   line-height: 88rpx;
-  background: #f6f6f6;
+  background: #f0f6ff;
   color: #333333;
 }
 
@@ -1070,6 +1103,8 @@ function getComplaintStatusClass(status: string): string {
 }
 
 .btn-cancel[disabled],
+.btn-soft[disabled],
+.btn-review[disabled],
 .btn-primary[disabled] {
   opacity: 0.6;
 }
