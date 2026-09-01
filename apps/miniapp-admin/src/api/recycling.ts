@@ -1,5 +1,5 @@
 import { request } from './request';
-import type { OrderStatus, ProgressNodeDto } from '@dayangyunjie/shared';
+import type { OrderStatus, ProgressNodeDto, RecyclingOrderSelectedItem } from '@dayangyunjie/shared';
 import type { AddressSnapshot, PagedResponse, WorkPhotoDto } from './cleaning';
 
 export interface RecyclingOrderItem {
@@ -8,6 +8,9 @@ export interface RecyclingOrderItem {
   status: OrderStatus;
   serviceItem: string;
   estimatedWeight?: number;
+  selectedItems?: RecyclingOrderSelectedItem[] | null;
+  hasElevator?: boolean | null;
+  carryFloor?: number | null;
   appointDate: string;
   appointTimeSlot: string;
   contactName: string;

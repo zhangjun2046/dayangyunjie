@@ -46,6 +46,8 @@ apps/server/prisma/migrations/*
 !apps/server/prisma/migrations/20260827100000_add_worker_employment_status/migration.sql
 !apps/server/prisma/migrations/20260901040000_add_recycling_items/
 !apps/server/prisma/migrations/20260901040000_add_recycling_items/migration.sql
+!apps/server/prisma/migrations/20260901053000_add_recycling_order_snapshot/
+!apps/server/prisma/migrations/20260901053000_add_recycling_order_snapshot/migration.sql
 
 # Uploads (local dev)
 uploads/

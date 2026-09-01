@@ -1,4 +1,5 @@
 import type { OrderSource } from '../enums';
+import type { RecyclingOrderSelectedItem } from '../entities/order';
 
 /** 居民端创建废品订单（P2.6a 确认版） */
 export interface CreateRecyclingOrderDto {
@@ -17,6 +18,10 @@ export interface CreateRecyclingOrderDto {
   isProxyOrder?: boolean;
   proxyName?: string;
   proxyPhone?: string;
+  /** 选中的回收品项；B 步旧代下单可不传 */
+  selectedItems?: RecyclingOrderSelectedItem[];
+  hasElevator?: boolean;
+  carryFloor?: number;
 }
 
 /** 废品订单列表筛选 */

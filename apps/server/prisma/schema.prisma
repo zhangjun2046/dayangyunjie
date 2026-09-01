@@ -244,6 +244,9 @@ model RecyclingOrder {
   itemType            String        @map("item_type") @db.VarChar(16)
   estimatedWeight     Float         @default(5) @map("estimated_weight")
   actualWeight        Float?        @map("actual_weight") // ⚠️ 封存
+  selectedItems       Json?         @map("selected_items")
+  hasElevator         Boolean?      @map("has_elevator")
+  carryFloor          Int?          @map("carry_floor")
   appointDate         DateTime      @map("appoint_date") @db.Date
   appointTimeSlot     String        @map("appoint_time_slot") @db.VarChar(32)
   addressSnapshot     Json          @map("address_snapshot")

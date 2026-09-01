@@ -9,7 +9,7 @@ import {
   WORKER_PENDING_ACCEPT_STATUSES,
   WORKER_VISIBLE_STATUSES,
 } from '@/constants/order-status';
-import type { ProgressNodeDto } from '@dayangyunjie/shared';
+import type { ProgressNodeDto, RecyclingOrderSelectedItem } from '@dayangyunjie/shared';
 
 /** 后端分页响应结构 */
 interface PagedResult<T> {
@@ -257,6 +257,9 @@ export interface OrderDetailDto {
   serviceDuration?: number;
   /** 废品：预估重量（kg） */
   estimatedWeight?: number;
+  selectedItems?: RecyclingOrderSelectedItem[] | null;
+  hasElevator?: boolean | null;
+  carryFloor?: number | null;
   appointDate: string;
   appointTimeSlot: string;
   contactName: string;

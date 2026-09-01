@@ -3,7 +3,7 @@
  */
 
 import { request } from './request';
-import type { ProgressNodeDto } from '@dayangyunjie/shared';
+import type { ProgressNodeDto, RecyclingOrderSelectedItem } from '@dayangyunjie/shared';
 
 export interface CreateRecyclingOrderParams {
   residentId: number;
@@ -19,6 +19,9 @@ export interface CreateRecyclingOrderParams {
   serviceContactPhone?: string;
   source?: string;
   remark?: string;
+  selectedItems?: RecyclingOrderSelectedItem[];
+  hasElevator?: boolean;
+  carryFloor?: number;
 }
 
 /** 服务作业照片（服务前/服务后） */
@@ -35,6 +38,9 @@ export interface RecyclingOrderDto {
   residentId: number;
   serviceItem: string;
   estimatedWeight: number;
+  selectedItems?: RecyclingOrderSelectedItem[] | null;
+  hasElevator?: boolean | null;
+  carryFloor?: number | null;
   appointDate: string;
   appointTimeSlot: string;
   status: string;

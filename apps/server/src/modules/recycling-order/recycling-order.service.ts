@@ -9,6 +9,7 @@ import {
   OrderSource,
   RecyclingOrderDetailDto,
   RecyclingOrderDto,
+  RecyclingOrderSelectedItem,
 } from '@dayangyunjie/shared';
 import { RecyclingOrder, OrderSource as PrismaOrderSource, OrderStatus as PrismaOrderStatus, PhotoType, Prisma, Worker, WorkPhoto } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -101,6 +102,7 @@ export class RecyclingOrderService {
 
           const orderNo = await this.generateOrderNo(tx);
           const appointDate = this.parseDateString(createRecyclingOrderDto.appointDate, 'appointDate');
+          const snapshot = await this.resolveRecyclingSnapshot(tx, createRecyclingOrderDto);
 
           const order = await tx.recyclingOrder.create({
             data: {
@@ -108,6 +110,11 @@ export class RecyclingOrderService {
               residentId: createRecyclingOrderDto.residentId ?? null,
               itemType: createRecyclingOrderDto.serviceItem,
               estimatedWeight: createRecyclingOrderDto.estimatedWeight,
+              selectedItems: snapshot.selectedItems
+                ? (snapshot.selectedItems as unknown as Prisma.InputJsonValue)
+                : Prisma.DbNull,
+              hasElevator: snapshot.hasElevator,
+              carryFloor: snapshot.carryFloor,
               appointDate,
               appointTimeSlot: createRecyclingOrderDto.appointTimeSlot,
               addressSnapshot,
@@ -584,6 +591,81 @@ export class RecyclingOrderService {
     }
   }
 
+  private async resolveRecyclingSnapshot(
+    tx: Prisma.TransactionClient,
+    dto: CreateRecyclingOrderDto,
+  ): Promise<{
+    selectedItems: RecyclingOrderSelectedItem[] | null;
+    hasElevator: boolean | null;
+    carryFloor: number | null;
+  }> {
+    if (dto.selectedItems === undefined || dto.selectedItems === null) {
+      return { selectedItems: null, hasElevator: null, carryFloor: null };
+    }
+    if (dto.selectedItems.length === 0) {
+      throw new BadRequestException('请选择回收物品');
+    }
+
+    for (const item of dto.selectedItems) {
+      if (!item.name?.trim() || !item.priceText?.trim() || item.quantity < 1) {
+        throw new BadRequestException('请重新选择回收物品');
+      }
+    }
+
+    const ids = dto.selectedItems.map((item) => item.itemId);
+    const liveRows = await tx.recyclingItem.findMany({
+      where: {
+        id: { in: ids },
+        isEnabled: true,
+        catalog: { isEnabled: true, bizType: 'RECYCLING' },
+      },
+    });
+    const liveById = new Map(liveRows.map((row) => [row.id, row]));
+    const selectedItems = dto.selectedItems.map((item) => {
+      const live = liveById.get(item.itemId);
+      if (!live) {
+        throw new BadRequestException('请重新选择回收物品');
+      }
+      return {
+        itemId: live.id,
+        name: live.name,
+        priceText: live.priceText,
+        quantity: item.quantity,
+      };
+    });
+
+    const isLarge = dto.serviceItem.includes('大件');
+    const isSmall = dto.serviceItem.includes('小件');
+    if (isLarge || isSmall) {
+      if (dto.hasElevator !== true && dto.hasElevator !== false) {
+        throw new BadRequestException('请选择是否有电梯');
+      }
+    }
+
+    let carryFloor: number | null = null;
+    if (isLarge) {
+      if (
+        typeof dto.carryFloor !== 'number' ||
+        !Number.isInteger(dto.carryFloor) ||
+        dto.carryFloor < 1 ||
+        dto.carryFloor > 30
+      ) {
+        throw new BadRequestException('请选择搬运楼层');
+      }
+      carryFloor = dto.carryFloor;
+    }
+
+    return {
+      selectedItems,
+      hasElevator: isLarge || isSmall ? dto.hasElevator! : (dto.hasElevator ?? null),
+      carryFloor,
+    };
+  }
+
+  private toSelectedItemsSnapshot(value: Prisma.JsonValue | null): RecyclingOrderSelectedItem[] | null {
+    return Array.isArray(value) ? (value as unknown as RecyclingOrderSelectedItem[]) : null;
+  }
+
   private formatDatePart(date: Date): string {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -634,6 +716,9 @@ export class RecyclingOrderService {
       worker: row.worker ?? null,
       serviceItem: row.itemType,
       estimatedWeight: row.estimatedWeight,
+      selectedItems: this.toSelectedItemsSnapshot(row.selectedItems),
+      hasElevator: row.hasElevator,
+      carryFloor: row.carryFloor,
       appointDate: row.appointDate.toISOString(),
       appointTimeSlot: row.appointTimeSlot,
       addressSnapshot: row.addressSnapshot as unknown as AddressSnapshot,

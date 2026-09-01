@@ -2,16 +2,46 @@ import { OrderSource } from '@dayangyunjie/shared';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsDateString,
   IsIn,
   IsInt,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
+
+export class RecyclingOrderSelectedItemDto {
+  @ApiProperty({ description: '下单当时的品项 ID', example: 1 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  itemId!: number;
+
+  @ApiProperty({ description: '品项名称快照', example: '纸张' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(64)
+  name!: string;
+
+  @ApiProperty({ description: '金额展示文案快照', example: '0.6元/kg' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(32)
+  priceText!: string;
+
+  @ApiProperty({ description: '数量；小件恒为 1，大件为步进器值', example: 1 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  quantity!: number;
+}
 
 export class CreateRecyclingOrderDto {
   @ApiPropertyOptional({ description: '居民 ID（小程序用户创建时必填，管理后台代下单可不填）', example: 1 })
@@ -31,6 +61,30 @@ export class CreateRecyclingOrderDto {
   @IsNumber()
   @Min(0.1)
   estimatedWeight!: number;
+
+  @ApiPropertyOptional({
+    description: '选中的回收品项快照；不传则按旧代下单处理',
+    type: [RecyclingOrderSelectedItemDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RecyclingOrderSelectedItemDto)
+  selectedItems?: RecyclingOrderSelectedItemDto[];
+
+  @ApiPropertyOptional({ description: '是否有电梯', example: true })
+  @Type(() => Boolean)
+  @IsOptional()
+  @IsBoolean()
+  hasElevator?: boolean;
+
+  @ApiPropertyOptional({ description: '搬运楼层，仅大件，1～30', example: 6, minimum: 1, maximum: 30 })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(30)
+  carryFloor?: number;
 
   @ApiProperty({ description: '预约日期（ISO 日期）', example: '2026-06-08' })
   @IsDateString()

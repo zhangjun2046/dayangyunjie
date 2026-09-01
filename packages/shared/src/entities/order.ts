@@ -59,6 +59,14 @@ export interface CleaningOrderDetailDto extends CleaningOrderDto {
   progress: ProgressNodeDto[];
 }
 
+/** 废品订单上的回收品项快照（只存展示，不算价；无外键） */
+export interface RecyclingOrderSelectedItem {
+  itemId: number;
+  name: string;
+  priceText: string;
+  quantity: number;
+}
+
 /** 废品订单（API 出参，v2.0：proxyName→serviceContactName，proxyPhone→serviceContactPhone） */
 export interface RecyclingOrderDto {
   id: number;
@@ -76,6 +84,12 @@ export interface RecyclingOrderDto {
   } | null;
   serviceItem: string;
   estimatedWeight: number;
+  /** 下单时选中的回收品项快照；旧单为 null */
+  selectedItems?: RecyclingOrderSelectedItem[] | null;
+  /** 是否有电梯；旧单为 null */
+  hasElevator?: boolean | null;
+  /** 搬运楼层，仅大件；小件 / 旧单为 null */
+  carryFloor?: number | null;
   appointDate: string;
   appointTimeSlot: string;
   addressSnapshot: AddressSnapshot;

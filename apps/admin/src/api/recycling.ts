@@ -1,6 +1,6 @@
 import request from './request';
 import type { ApiResponse } from './request';
-import type { ProgressNodeDto } from '@dayangyunjie/shared';
+import type { ProgressNodeDto, RecyclingOrderSelectedItem } from '@dayangyunjie/shared';
 
 // ─── 地址快照 ─────────────────────────────────────────────────────────────────
 
@@ -42,6 +42,9 @@ export interface RecyclingOrderItem {
   status: RecyclingOrderStatus;
   serviceItem: string;
   estimatedWeight: number;
+  selectedItems?: RecyclingOrderSelectedItem[] | null;
+  hasElevator?: boolean | null;
+  carryFloor?: number | null;
   appointDate: string;
   appointTimeSlot: string;
   contactName: string;
@@ -128,6 +131,9 @@ export interface CreateRecyclingOrderDto {
   residentId?: number;
   /** addressId 可选（管理后台可不传） */
   addressId?: number;
+  selectedItems?: RecyclingOrderSelectedItem[];
+  hasElevator?: boolean;
+  carryFloor?: number;
 }
 
 // ─── API 方法 ─────────────────────────────────────────────────────────────────
