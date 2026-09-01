@@ -41,6 +41,12 @@
       }
     },
     {
+      "path": "pages/booking-recycling/price-list",
+      "style": {
+        "navigationBarTitleText": "价格表"
+      }
+    },
+    {
       "path": "pages/booking-consult/index",
       "style": {
         "navigationBarTitleText": "家政服务"

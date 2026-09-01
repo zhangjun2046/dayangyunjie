@@ -149,6 +149,100 @@
         </view>
       </view>
 
+      <!-- 回收物品 + 电梯 / 楼层 -->
+      <view v-if="store.selectedCatalog" class="section-wrap">
+        <view class="items-head">
+          <text class="items-title">请选择物品</text>
+          <text v-if="isLargeItem" class="price-link" @tap.stop="goPriceList">价格表</text>
+        </view>
+
+        <view v-if="itemsLoading" class="empty-tip">
+          <text>加载中...</text>
+        </view>
+        <view v-else-if="enabledItems.length === 0" class="empty-tip">
+          <text>暂无回收物品</text>
+        </view>
+
+        <view v-else-if="isLargeItem" class="capsule-wrap">
+          <view
+            v-for="item in enabledItems"
+            :key="item.id"
+            class="capsule"
+            :class="{ selected: isItemSelected(item.id) }"
+            @tap="toggleItem(item)"
+          >
+            <text>{{ item.name }}</text>
+          </view>
+        </view>
+        <view v-else class="items-grid">
+          <view
+            v-for="item in enabledItems"
+            :key="item.id"
+            class="item-cell"
+            :class="{ selected: isItemSelected(item.id) }"
+            @tap="toggleItem(item)"
+          >
+            <view class="item-icon-wrap">
+              <image
+                v-if="itemIconUrl(item)"
+                class="item-icon-img"
+                :src="itemIconUrl(item)!"
+                mode="aspectFit"
+                @error="onRecyclingItemIconError(item)"
+              />
+              <text v-else class="item-icon-fallback">{{ itemNameInitial(item.name) }}</text>
+            </view>
+            <text class="item-name">{{ item.name }}</text>
+            <text class="item-price">{{ item.priceText }}</text>
+          </view>
+        </view>
+
+        <view v-if="isLargeItem && store.selectedItems.length > 0" class="qty-list">
+          <view v-for="row in store.selectedItems" :key="row.itemId" class="qty-row">
+            <text class="qty-name">{{ row.name }}</text>
+            <view class="qty-ctrl">
+              <view class="qty-btn" @tap="changeItemQty(row.itemId, -1)"><text>-</text></view>
+              <text class="qty-num">{{ row.quantity }}</text>
+              <view class="qty-btn plus" @tap="changeItemQty(row.itemId, 1)"><text>+</text></view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view v-if="store.selectedCatalog" class="section-wrap">
+        <text class="sub-title">是否有电梯</text>
+        <view class="radio-group">
+          <view class="radio-item" @tap="store.hasElevator = true">
+            <image
+              class="radio-icon"
+              :src="store.hasElevator === true ? '/static/icons/radio-checked.png' : '/static/icons/radio-unchecked.png'"
+              mode="aspectFit"
+            />
+            <text class="radio-label">有电梯</text>
+          </view>
+          <view class="radio-item" @tap="store.hasElevator = false">
+            <image
+              class="radio-icon"
+              :src="store.hasElevator === false ? '/static/icons/radio-checked.png' : '/static/icons/radio-unchecked.png'"
+              mode="aspectFit"
+            />
+            <text class="radio-label">无电梯</text>
+          </view>
+        </view>
+      </view>
+
+      <view v-if="store.selectedCatalog && isLargeItem" class="section-wrap">
+        <text class="sub-title">搬运楼层</text>
+        <picker mode="selector" :range="CARRY_FLOOR_OPTIONS" @change="onCarryFloorChange">
+          <view class="floor-picker">
+            <text class="floor-text" :class="{ placeholder: store.carryFloor == null }">
+              {{ store.carryFloor == null ? '请选择楼层' : `${store.carryFloor}层` }}
+            </text>
+            <text class="addr-arrow">›</text>
+          </view>
+        </picker>
+      </view>
+
       <!-- 代家人下单 -->
       <view class="section-wrap proxy-section">
         <text class="sub-title">是否为代家人下单</text>
@@ -294,6 +388,7 @@ import { useAuthStore } from '@/store/auth';
 import { fetchRecyclingCatalogs, type ServiceCatalogDto } from '@/api/service-catalog';
 import { fetchAddresses } from '@/api/address';
 import { createRecyclingOrder } from '@/api/recycling-order';
+import { fetchEnabledRecyclingItems } from '@/api/recycling-item';
 import { getSolarToLunar } from '@/utils/lunar';
 import { openCreatedOrderDetail } from '@/utils/order-navigation';
 import {
@@ -301,6 +396,16 @@ import {
   serviceCatalogFallbackEmoji,
 } from '@/utils/service-catalog-icon';
 import BookingSuccessOverlay from '@/components/BookingSuccessOverlay.vue';
+import type { RecyclingItemDto } from '@dayangyunjie/shared';
+import {
+  CARRY_FLOOR_OPTIONS,
+  changeSelectedQuantity,
+  getRecyclingStep2BlockMessage,
+  isLargeCatalogName,
+  itemNameInitial,
+  retainAvailableSelectedItems,
+  toggleSelectedItem,
+} from './booking-recycling.utils';
 
 const store = useBookingRecyclingStore();
 const authStore = useAuthStore();
@@ -322,9 +427,11 @@ const catalogs = ref<ServiceCatalogDto[]>([]);
 const catalogLoading = ref(false);
 const failedRemoteIconIds = ref<Set<number>>(new Set());
 
-const isLargeItem = computed(() =>
-  store.selectedCatalog?.name?.includes('大件') ?? false,
-);
+const isLargeItem = computed(() => isLargeCatalogName(store.selectedCatalog?.name));
+
+const enabledItems = ref<RecyclingItemDto[]>([]);
+const itemsLoading = ref(false);
+const failedItemIconIds = ref<Set<number>>(new Set());
 
 /** 后台图标优先，加载失败或未配置时回退现有本地图标。 */
 function itemIconSrc(item: ServiceCatalogDto): string | null {
@@ -349,7 +456,7 @@ async function loadCatalogs() {
   try {
     catalogs.value = await fetchRecyclingCatalogs();
     if (catalogs.value.length > 0 && !store.selectedCatalog) {
-      store.selectedCatalog = catalogs.value[0];
+      store.selectCatalog(catalogs.value[0]);
     }
     console.info('[booking-recycling] catalogs loaded, count=', catalogs.value.length);
   } catch (e) {
@@ -361,7 +468,7 @@ async function loadCatalogs() {
 }
 
 function selectCatalog(item: ServiceCatalogDto) {
-  store.selectedCatalog = item;
+  store.selectCatalog(item);
 }
 
 function changeWeight(delta: number) {
@@ -448,6 +555,61 @@ function maskPhone(phone: string): string {
   return phone.slice(0, 3) + '****' + phone.slice(-4);
 }
 
+// ───────────────────── Step 2 回收物品 ─────────────────────
+async function loadRecyclingItems() {
+  const catalogId = store.selectedCatalog?.id;
+  if (!catalogId) {
+    enabledItems.value = [];
+    return;
+  }
+  itemsLoading.value = true;
+  try {
+    enabledItems.value = await fetchEnabledRecyclingItems(catalogId);
+    store.selectedItems = retainAvailableSelectedItems(
+      store.selectedItems,
+      enabledItems.value.map((item) => item.id),
+    );
+  } catch (error) {
+    console.info('[booking-recycling] load items failed', error);
+    uni.showToast({ title: '回收物品加载失败', icon: 'none' });
+  } finally {
+    itemsLoading.value = false;
+  }
+}
+
+function isItemSelected(id: number): boolean {
+  return store.selectedItems.some((row) => row.itemId === id);
+}
+
+function toggleItem(item: RecyclingItemDto) {
+  store.selectedItems = toggleSelectedItem(store.selectedItems, item);
+}
+
+function changeItemQty(itemId: number, delta: number) {
+  store.selectedItems = changeSelectedQuantity(store.selectedItems, itemId, delta);
+}
+
+function itemIconUrl(item: RecyclingItemDto): string | null {
+  const icon = item.icon?.trim();
+  if (!icon || failedItemIconIds.value.has(item.id)) return null;
+  return icon;
+}
+
+function onRecyclingItemIconError(item: RecyclingItemDto) {
+  if (failedItemIconIds.value.has(item.id)) return;
+  failedItemIconIds.value = new Set([...failedItemIconIds.value, item.id]);
+}
+
+function goPriceList() {
+  const catalogId = store.selectedCatalog?.id;
+  if (!catalogId) return;
+  uni.navigateTo({ url: `/pages/booking-recycling/price-list?catalogId=${catalogId}` });
+}
+
+function onCarryFloorChange(event: { detail: { value: string } }) {
+  store.carryFloor = Number(event.detail.value) + 1;
+}
+
 // ───────────────────── Step 3 显示计算 ─────────────────────
 const appointTimeDisplay = computed(() => {
   if (!store.selectedDate || !store.selectedTime) return '-';
@@ -469,6 +631,7 @@ function nextStep() {
     }
     store.goStep(2);
     loadDefaultAddress();
+    loadRecyclingItems();
     if (!store.selectedDate) {
       store.selectedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     }
@@ -485,6 +648,16 @@ function nextStep() {
     }
     if (!store.selectedAddress) {
       uni.showToast({ title: '请选择服务地址', icon: 'none' });
+      return;
+    }
+    const blockMessage = getRecyclingStep2BlockMessage({
+      selectedCount: store.selectedItems.length,
+      hasElevator: store.hasElevator,
+      carryFloor: store.carryFloor,
+      isLarge: isLargeItem.value,
+    });
+    if (blockMessage) {
+      uni.showToast({ title: blockMessage, icon: 'none' });
       return;
     }
     store.goStep(3);
@@ -567,6 +740,9 @@ onLoad(() => {
 
 onShow(() => {
   console.info('[booking-recycling] page shown, step=', store.step);
+  if (store.step === 2) {
+    loadRecyclingItems();
+  }
 });
 
 onUnload(() => {
@@ -1039,6 +1215,166 @@ onUnload(() => {
 .addr-empty-text {
   font-size: 28rpx;
   color: #236EFF;
+}
+
+.items-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid #f7f9fa;
+}
+
+.items-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.price-link {
+  font-size: 28rpx;
+  color: #236eff;
+}
+
+.items-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28rpx 16rpx;
+  padding-top: 28rpx;
+}
+
+.item-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.item-icon-wrap {
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 50%;
+  border: 4rpx solid transparent;
+  background: #f0f6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.item-cell.selected .item-icon-wrap {
+  border-color: #236eff;
+}
+
+.item-icon-img {
+  width: 100%;
+  height: 100%;
+}
+
+.item-icon-fallback {
+  font-size: 36rpx;
+  color: #236eff;
+  font-weight: 600;
+}
+
+.item-name {
+  margin-top: 12rpx;
+  font-size: 26rpx;
+  color: #333;
+  text-align: center;
+}
+
+.item-price {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: #999;
+  text-align: center;
+}
+
+.capsule-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  padding-top: 28rpx;
+}
+
+.capsule {
+  padding: 12rpx 28rpx;
+  border-radius: 32rpx;
+  background: #f2f3fc;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.capsule.selected {
+  background: #236eff;
+  color: #fff;
+}
+
+.qty-list {
+  margin-top: 24rpx;
+  padding-top: 8rpx;
+  border-top: 1rpx solid #f7f9fa;
+}
+
+.qty-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18rpx 0;
+}
+
+.qty-name {
+  font-size: 28rpx;
+  color: #333;
+}
+
+.qty-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.qty-btn {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  background: #f2f3fc;
+  color: #236eff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.qty-btn.plus {
+  background: #236eff;
+  color: #fff;
+}
+
+.qty-num {
+  min-width: 40rpx;
+  text-align: center;
+  font-size: 30rpx;
+  color: #333;
+  font-weight: 600;
+}
+
+.floor-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12rpx;
+}
+
+.floor-text {
+  font-size: 30rpx;
+  color: #333;
+}
+
+.floor-text.placeholder {
+  color: #999;
 }
 
 /* ── 代下单单选 ── */

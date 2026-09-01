@@ -7,6 +7,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import type { ServiceCatalogDto } from '@/api/service-catalog';
 import type { AddressDto } from '@/api/address';
+import type { BookingSelectedItem } from '@/pages/booking-recycling/booking-recycling.utils';
 
 export const useBookingRecyclingStore = defineStore('bookingRecycling', () => {
   /** 当前步骤（1=选服务 2=选时间 3=确认订单） */
@@ -27,6 +28,15 @@ export const useBookingRecyclingStore = defineStore('bookingRecycling', () => {
   /** Step 2: 选择的服务地址 */
   const selectedAddress = ref<AddressDto | null>(null);
 
+  /** Step 2: 已选回收品项快照（小件 quantity 恒为 1） */
+  const selectedItems = ref<BookingSelectedItem[]>([]);
+
+  /** Step 2: 是否有电梯；未选为 null */
+  const hasElevator = ref<boolean | null>(null);
+
+  /** Step 2: 搬运楼层，仅大件；未选为 null */
+  const carryFloor = ref<number | null>(null);
+
   /** Step 2: 是否为代家人下单 */
   const isProxy = ref<boolean>(false);
 
@@ -38,6 +48,19 @@ export const useBookingRecyclingStore = defineStore('bookingRecycling', () => {
 
   /** Step 3: 备注 */
   const remark = ref<string>('');
+
+  function clearItemConditions() {
+    selectedItems.value = [];
+    hasElevator.value = null;
+    carryFloor.value = null;
+  }
+
+  function selectCatalog(catalog: ServiceCatalogDto) {
+    if (selectedCatalog.value?.id !== catalog.id) {
+      clearItemConditions();
+    }
+    selectedCatalog.value = catalog;
+  }
 
   /** 重置向导所有状态（进入预约页时调用） */
   function reset() {
@@ -51,6 +74,7 @@ export const useBookingRecyclingStore = defineStore('bookingRecycling', () => {
     serviceContactName.value = '';
     serviceContactPhone.value = '';
     remark.value = '';
+    clearItemConditions();
     console.info('[booking-recycling-store] reset');
   }
 
@@ -66,10 +90,14 @@ export const useBookingRecyclingStore = defineStore('bookingRecycling', () => {
     selectedDate,
     selectedTime,
     selectedAddress,
+    selectedItems,
+    hasElevator,
+    carryFloor,
     isProxy,
     serviceContactName,
     serviceContactPhone,
     remark,
+    selectCatalog,
     reset,
     goStep,
   };
