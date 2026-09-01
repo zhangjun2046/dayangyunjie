@@ -73,6 +73,18 @@
           <text class="info-label">预估重量</text>
           <text class="info-value">{{ estimatedWeightText }}</text>
         </view>
+        <view v-if="recyclingItemNames" class="info-row">
+          <text class="info-label">回收物品</text>
+          <text class="info-value">{{ recyclingItemNames }}</text>
+        </view>
+        <view v-if="recyclingElevatorText" class="info-row">
+          <text class="info-label">是否有电梯</text>
+          <text class="info-value">{{ recyclingElevatorText }}</text>
+        </view>
+        <view v-if="recyclingCarryFloorText" class="info-row">
+          <text class="info-label">搬运楼层</text>
+          <text class="info-value">{{ recyclingCarryFloorText }}</text>
+        </view>
         <view class="info-row">
           <text class="info-label">联系人姓名</text>
           <text class="info-value">{{ order.contactName }}</text>
@@ -323,6 +335,11 @@ import { fetchOrderReview } from '@/api/review';
 import type { ReviewDto } from '@/api/review';
 import { getOrderBadgeLabel } from '@/constants/order-status';
 import AssignWorkerPopup from '@/components/AssignWorkerPopup.vue';
+import {
+  formatRecyclingCarryFloorText,
+  formatRecyclingElevatorText,
+  formatRecyclingItemNames,
+} from '@dayangyunjie/shared';
 
 type OrderTab = 'cleaning' | 'recycling';
 type AdminOrderDetail = CleaningOrderDetail | RecyclingOrderDetail;
@@ -369,6 +386,20 @@ const estimatedWeightText = computed(() => {
   const weight = (order.value as RecyclingOrderDetail).estimatedWeight;
   return weight != null ? `${weight}kg` : '—';
 });
+
+const recyclingSnapshot = computed(() => {
+  if (!order.value || orderType.value !== 'recycling') return null;
+  return order.value as RecyclingOrderDetail;
+});
+const recyclingItemNames = computed(() =>
+  formatRecyclingItemNames(recyclingSnapshot.value?.selectedItems),
+);
+const recyclingElevatorText = computed(() =>
+  formatRecyclingElevatorText(recyclingSnapshot.value?.hasElevator),
+);
+const recyclingCarryFloorText = computed(() =>
+  formatRecyclingCarryFloorText(recyclingSnapshot.value?.carryFloor),
+);
 
 const appointTimeText = computed(() => {
   if (!order.value) return '';

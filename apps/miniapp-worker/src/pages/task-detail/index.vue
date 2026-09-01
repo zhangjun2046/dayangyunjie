@@ -78,6 +78,18 @@
           <text class="info-label">预估重量</text>
           <text class="info-value">{{ order.estimatedWeight != null ? `${order.estimatedWeight}kg` : '—' }}</text>
         </view>
+        <view v-if="recyclingItemNames" class="info-row">
+          <text class="info-label">回收物品</text>
+          <text class="info-value">{{ recyclingItemNames }}</text>
+        </view>
+        <view v-if="recyclingElevatorText" class="info-row">
+          <text class="info-label">是否有电梯</text>
+          <text class="info-value">{{ recyclingElevatorText }}</text>
+        </view>
+        <view v-if="recyclingCarryFloorText" class="info-row">
+          <text class="info-label">搬运楼层</text>
+          <text class="info-value">{{ recyclingCarryFloorText }}</text>
+        </view>
         <view class="info-row">
           <text class="info-label">联系人姓名</text>
           <text class="info-value">{{ order.contactName }}</text>
@@ -436,6 +448,11 @@ import { uploadImage } from '@/api/upload';
 import { fetchOrderReview } from '@/api/review';
 import type { ReviewDto } from '@/api/review';
 import { getOrderBadgeClass, getOrderBadgeLabel } from '@/constants/order-status';
+import {
+  formatRecyclingCarryFloorText,
+  formatRecyclingElevatorText,
+  formatRecyclingItemNames,
+} from '@dayangyunjie/shared';
 
 const authStore = useAuthStore();
 
@@ -460,6 +477,16 @@ const navDark = ref(false);
 const heroThreshold = ref(80);
 const navColor = computed(() => (navDark.value ? '#000000' : '#ffffff'));
 const navBgColor = computed(() => (navDark.value ? '#ffffff' : 'transparent'));
+
+const recyclingItemNames = computed(() =>
+  orderType.value === 'recycling' ? formatRecyclingItemNames(order.value?.selectedItems) : null,
+);
+const recyclingElevatorText = computed(() =>
+  orderType.value === 'recycling' ? formatRecyclingElevatorText(order.value?.hasElevator) : null,
+);
+const recyclingCarryFloorText = computed(() =>
+  orderType.value === 'recycling' ? formatRecyclingCarryFloorText(order.value?.carryFloor) : null,
+);
 
 // ===== 路由参数加载 =====
 onLoad((query) => {

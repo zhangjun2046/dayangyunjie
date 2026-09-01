@@ -129,6 +129,18 @@
             <text class="info-label">预估重量</text>
             <text class="info-value">{{ (order as RecyclingOrderDto).estimatedWeight }}kg</text>
           </view>
+          <view v-if="recyclingItemNames" class="info-row">
+            <text class="info-label">回收物品</text>
+            <text class="info-value">{{ recyclingItemNames }}</text>
+          </view>
+          <view v-if="recyclingElevatorText" class="info-row">
+            <text class="info-label">是否有电梯</text>
+            <text class="info-value">{{ recyclingElevatorText }}</text>
+          </view>
+          <view v-if="recyclingCarryFloorText" class="info-row">
+            <text class="info-label">搬运楼层</text>
+            <text class="info-value">{{ recyclingCarryFloorText }}</text>
+          </view>
           <view class="info-row">
             <text class="info-label">预约时间</text>
             <text class="info-value">{{ formatDate((order as CleaningOrderDto | RecyclingOrderDto).appointDate) }} {{ (order as CleaningOrderDto | RecyclingOrderDto).appointTimeSlot }}</text>
@@ -411,7 +423,12 @@ import ContactOperatorPicker from '@/components/ContactOperatorPicker.vue';
 import RemoteImage from '@/components/RemoteImage.vue';
 import { callContactOperator } from '@/utils/call-contact-operator';
 import { previewNetworkImages } from '@/utils/remote-image';
-import type { ProgressNodeDto } from '@dayangyunjie/shared';
+import {
+  formatRecyclingCarryFloorText,
+  formatRecyclingElevatorText,
+  formatRecyclingItemNames,
+  type ProgressNodeDto,
+} from '@dayangyunjie/shared';
 import {
   canCancelOrder,
   canComplaintOrder,
@@ -457,6 +474,20 @@ const navDark = ref(false);
 const heroThreshold = ref(80);
 const navColor = computed(() => (navDark.value ? '#000000' : '#ffffff'));
 const navBgColor = computed(() => (navDark.value ? '#ffffff' : 'transparent'));
+
+const recyclingSnapshot = computed(() => {
+  if (orderType.value !== 'recycling' || !order.value) return null;
+  return order.value as RecyclingOrderDto;
+});
+const recyclingItemNames = computed(() =>
+  formatRecyclingItemNames(recyclingSnapshot.value?.selectedItems),
+);
+const recyclingElevatorText = computed(() =>
+  formatRecyclingElevatorText(recyclingSnapshot.value?.hasElevator),
+);
+const recyclingCarryFloorText = computed(() =>
+  formatRecyclingCarryFloorText(recyclingSnapshot.value?.carryFloor),
+);
 
 /** 服务人员头像：女 icon_photo_n，男 icon_photo_p；未知性别沿用默认头像 */
 function getWorkerAvatar(gender?: string | null): string {

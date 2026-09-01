@@ -12,6 +12,7 @@ export * from './entities/complaint-reason-config';
 export * from './entities/complaint';
 export * from './entities/catalog';
 export * from './entities/recycling-item';
+export * from './utils/recycling-order-display';
 export * from './entities/banner';
 export * from './entities/operator';
 export * from './entities/work-photo';

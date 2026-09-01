@@ -302,6 +302,18 @@
             <text class="order-key">预估重量</text>
             <text class="order-val">{{ store.estimatedWeight }}kg</text>
           </view>
+          <view v-if="confirmItemNames" class="order-row">
+            <text class="order-key">回收物品</text>
+            <text class="order-val">{{ confirmItemNames }}</text>
+          </view>
+          <view v-if="confirmElevatorText" class="order-row">
+            <text class="order-key">是否有电梯</text>
+            <text class="order-val">{{ confirmElevatorText }}</text>
+          </view>
+          <view v-if="confirmCarryFloorText" class="order-row">
+            <text class="order-key">搬运楼层</text>
+            <text class="order-val">{{ confirmCarryFloorText }}</text>
+          </view>
           <view class="order-row">
             <text class="order-key">预约时间</text>
             <text class="order-val">{{ appointTimeDisplay }}</text>
@@ -396,7 +408,12 @@ import {
   serviceCatalogFallbackEmoji,
 } from '@/utils/service-catalog-icon';
 import BookingSuccessOverlay from '@/components/BookingSuccessOverlay.vue';
-import type { RecyclingItemDto } from '@dayangyunjie/shared';
+import {
+  formatRecyclingCarryFloorText,
+  formatRecyclingElevatorText,
+  formatRecyclingItemNames,
+  type RecyclingItemDto,
+} from '@dayangyunjie/shared';
 import {
   CARRY_FLOOR_OPTIONS,
   changeSelectedQuantity,
@@ -622,6 +639,10 @@ const appointAddrDisplay = computed(() => {
   return `${store.selectedAddress.district} ${store.selectedAddress.detail}`;
 });
 
+const confirmItemNames = computed(() => formatRecyclingItemNames(store.selectedItems));
+const confirmElevatorText = computed(() => formatRecyclingElevatorText(store.hasElevator));
+const confirmCarryFloorText = computed(() => formatRecyclingCarryFloorText(store.carryFloor));
+
 // ───────────────────── 步骤控制 ─────────────────────
 function nextStep() {
   if (store.step === 1) {
@@ -709,6 +730,14 @@ async function submitOrder() {
       serviceContactPhone: store.isProxy ? store.serviceContactPhone.trim() : undefined,
       source: 'MINIPROGRAM',
       remark: store.remark || undefined,
+      selectedItems: store.selectedItems.map((row) => ({
+        itemId: row.itemId,
+        name: row.name,
+        priceText: row.priceText,
+        quantity: row.quantity,
+      })),
+      hasElevator: store.hasElevator === true,
+      ...(isLargeItem.value && store.carryFloor != null ? { carryFloor: store.carryFloor } : {}),
     });
 
     console.info('[booking-recycling] order created, orderNo=', result.orderNo);

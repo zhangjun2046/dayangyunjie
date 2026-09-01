@@ -403,6 +403,15 @@
             <el-descriptions-item label="预估重量">
               {{ detailDrawer.order.estimatedWeight != null ? detailDrawer.order.estimatedWeight + ' kg' : '—' }}
             </el-descriptions-item>
+            <el-descriptions-item v-if="detailItemNames" label="回收物品">
+              {{ detailItemNames }}
+            </el-descriptions-item>
+            <el-descriptions-item v-if="detailElevatorText" label="是否有电梯">
+              {{ detailElevatorText }}
+            </el-descriptions-item>
+            <el-descriptions-item v-if="detailCarryFloorText" label="搬运楼层">
+              {{ detailCarryFloorText }}
+            </el-descriptions-item>
             <el-descriptions-item label="客户姓名">
               {{ detailDrawer.order.contactName || detailDrawer.order.resident?.name || '—' }}
             </el-descriptions-item>
@@ -555,6 +564,11 @@ import { fetchWorkers, type WorkerListItem } from '@/api/worker';
 import { fetchServiceCatalogs, type ServiceCatalogItem } from '@/api/service-catalog';
 import { useUserStore } from '@/store';
 import { filterAssignableWorkers, skillLabel } from '@/utils/worker-skill';
+import {
+  formatRecyclingCarryFloorText,
+  formatRecyclingElevatorText,
+  formatRecyclingItemNames,
+} from '@dayangyunjie/shared';
 
 // ─── 状态 Tab ─────────────────────────────────────────────────────────────────
 
@@ -957,6 +971,16 @@ const detailDrawer = reactive<{
   order: null,
   review: null,
 });
+
+const detailItemNames = computed(() =>
+  formatRecyclingItemNames(detailDrawer.order?.selectedItems),
+);
+const detailElevatorText = computed(() =>
+  formatRecyclingElevatorText(detailDrawer.order?.hasElevator),
+);
+const detailCarryFloorText = computed(() =>
+  formatRecyclingCarryFloorText(detailDrawer.order?.carryFloor),
+);
 
 const openDetail = async (row: RecyclingOrderItem) => {
   detailDrawer.visible = true;
