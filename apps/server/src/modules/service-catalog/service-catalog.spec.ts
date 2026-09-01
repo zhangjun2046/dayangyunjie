@@ -10,7 +10,7 @@
  *  6. toggle    — 反转 isEnabled；不存在 → 404
  */
 
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ServiceCatalogService } from './service-catalog.service';
 
 // ─── 工厂函数 ─────────────────────────────────────────────────────────────────
@@ -41,6 +41,10 @@ function makePrismaMock(overrides: Record<string, unknown> = {}) {
       update: jest.fn(),
       delete: jest.fn(),
       ...((overrides as any).serviceCatalog ?? {}),
+    },
+    recyclingItem: {
+      count: jest.fn().mockResolvedValue(0),
+      ...((overrides as any).recyclingItem ?? {}),
     },
     $transaction: jest.fn(),
     ...overrides,
@@ -176,12 +180,23 @@ describe('ServiceCatalogService', () => {
   describe('remove', () => {
     it('存在时删除并返回 { id }', async () => {
       prisma.serviceCatalog.count.mockResolvedValue(1);
+      prisma.recyclingItem.count.mockResolvedValue(0);
       prisma.serviceCatalog.delete.mockResolvedValue(undefined);
 
       const result = await service.remove(1);
 
       expect(result).toEqual({ id: 1 });
       expect(prisma.serviceCatalog.delete).toHaveBeenCalledWith({ where: { id: 1 } });
+    });
+
+    it('仍有回收品项时返回 400', async () => {
+      prisma.serviceCatalog.count.mockResolvedValue(1);
+      prisma.recyclingItem.count.mockResolvedValue(3);
+
+      await expect(service.remove(1)).rejects.toThrow(
+        new BadRequestException('请先删除该分类下的回收品项'),
+      );
+      expect(prisma.serviceCatalog.delete).not.toHaveBeenCalled();
     });
 
     it('不存在时抛出 NotFoundException', async () => {

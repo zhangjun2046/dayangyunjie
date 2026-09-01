@@ -7,6 +7,7 @@ import { AdminPermissionModule } from './modules/admin-permission/admin-permissi
 import { AddressModule } from './modules/address/address.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ServiceCatalogModule } from './modules/service-catalog/service-catalog.module';
+import { RecyclingItemModule } from './modules/recycling-item/recycling-item.module';
 import { ResidentModule } from './modules/resident/resident.module';
 import { WorkerModule } from './modules/worker/worker.module';
 import { CleaningOrderModule } from './modules/cleaning-order/cleaning-order.module';
@@ -31,6 +32,7 @@ import { ComplaintReasonConfigModule } from './modules/complaint-reason-config/c
     AdminPermissionModule,
     AddressModule,
     ServiceCatalogModule,
+    RecyclingItemModule,
     CleaningOrderModule,
     RecyclingOrderModule,
     ConsultOrderModule,

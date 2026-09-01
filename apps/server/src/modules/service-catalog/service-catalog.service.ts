@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ServiceCatalogDto } from '@dayangyunjie/shared';
 import { Prisma, ServiceCatalog } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -74,6 +74,10 @@ export class ServiceCatalogService {
 
   async remove(id: number) {
     await this.assertExists(id);
+    const itemCount = await this.prismaService.recyclingItem.count({ where: { catalogId: id } });
+    if (itemCount > 0) {
+      throw new BadRequestException('请先删除该分类下的回收品项');
+    }
     await this.prismaService.serviceCatalog.delete({ where: { id } });
     return { id };
   }
