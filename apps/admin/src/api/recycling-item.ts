@@ -28,6 +28,11 @@ export type UpdateRecyclingItemBody = Partial<Omit<CreateRecyclingItemBody, 'ico
 export const fetchRecyclingItems = (params?: QueryRecyclingItemParams) =>
   request.get<ApiResponse<PagedResponse<RecyclingItemItem>>>('/recycling-items', { params });
 
+export const fetchEnabledRecyclingItems = (catalogId: number) =>
+  request.get<ApiResponse<RecyclingItemItem[]>>('/recycling-items/enabled', {
+    params: { catalogId },
+  });
+
 export const createRecyclingItem = (body: CreateRecyclingItemBody) =>
   request.post<ApiResponse<RecyclingItemItem>>('/recycling-items', body);
 

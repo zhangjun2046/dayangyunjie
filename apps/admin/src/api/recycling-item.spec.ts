@@ -3,6 +3,7 @@ import request from './request';
 import {
   createRecyclingItem,
   deleteRecyclingItem,
+  fetchEnabledRecyclingItems,
   fetchRecyclingItems,
   toggleRecyclingItem,
   updateRecyclingItem,
@@ -34,6 +35,13 @@ describe('admin recycling-item API', () => {
     };
     fetchRecyclingItems(params);
     expect(mockedRequest.get).toHaveBeenCalledWith('/recycling-items', { params });
+  });
+
+  it('按 catalogId 拉取启用中的回收品项', () => {
+    fetchEnabledRecyclingItems(4);
+    expect(mockedRequest.get).toHaveBeenCalledWith('/recycling-items/enabled', {
+      params: { catalogId: 4 },
+    });
   });
 
   it('新增品项只提交 catalogId、name、priceText、icon、sortOrder', () => {

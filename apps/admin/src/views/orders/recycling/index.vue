@@ -277,6 +277,76 @@
           </el-col>
         </el-row>
 
+        <el-form-item label="回收物品" required>
+          <el-select
+            v-model="selectedItemIds"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            placeholder="请选择回收物品"
+            :disabled="!createForm.serviceItem"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="item in enabledItems"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            />
+          </el-select>
+          <div
+            v-if="createForm.serviceItem && enabledItems.length === 0"
+            class="text-gray create-empty-tip"
+          >暂无回收物品</div>
+        </el-form-item>
+
+        <div v-if="isCreateLarge && selectedItems.length > 0" class="create-qty-list">
+          <div v-for="row in selectedItems" :key="row.itemId" class="create-qty-row">
+            <span class="create-qty-name">{{ row.name }}</span>
+            <div class="duration-stepper">
+              <el-button
+                circle
+                size="small"
+                @click="changeCreateQuantity(row.itemId, -1)"
+              >-</el-button>
+              <span class="duration-value">{{ row.quantity }}</span>
+              <el-button
+                circle
+                size="small"
+                :disabled="row.quantity >= 99"
+                @click="changeCreateQuantity(row.itemId, 1)"
+              >+</el-button>
+            </div>
+          </div>
+        </div>
+
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="是否有电梯" required>
+              <el-radio-group v-model="hasElevator">
+                <el-radio :value="true">有电梯</el-radio>
+                <el-radio :value="false">无电梯</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+          <el-col v-if="isCreateLarge" :span="12">
+            <el-form-item label="搬运楼层" required>
+              <el-select
+                v-model="carryFloor"
+                placeholder="请选择楼层"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="floor in CARRY_FLOOR_VALUES"
+                  :key="floor"
+                  :label="`${floor}层`"
+                  :value="floor"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
         <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="客户信息" prop="contactName" required>
@@ -541,7 +611,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage, type FormInstance } from 'element-plus';
 import { Search, Plus, Loading } from '@element-plus/icons-vue';
@@ -562,6 +632,7 @@ import {
 } from '@/api/recycling';
 import { fetchWorkers, type WorkerListItem } from '@/api/worker';
 import { fetchServiceCatalogs, type ServiceCatalogItem } from '@/api/service-catalog';
+import { fetchEnabledRecyclingItems, type RecyclingItemItem } from '@/api/recycling-item';
 import { useUserStore } from '@/store';
 import { filterAssignableWorkers, skillLabel } from '@/utils/worker-skill';
 import {
@@ -569,6 +640,14 @@ import {
   formatRecyclingElevatorText,
   formatRecyclingItemNames,
 } from '@dayangyunjie/shared';
+import {
+  CARRY_FLOOR_VALUES,
+  changeSelectedQuantity,
+  getRecyclingCreateBlockMessage,
+  isLargeCatalogName,
+  syncSelectedItems,
+  type CreateSelectedItem,
+} from './create-order-items.utils';
 
 // ─── 状态 Tab ─────────────────────────────────────────────────────────────────
 
@@ -849,6 +928,27 @@ const submitAssign = async () => {
 // ─── 新增订单弹窗 ─────────────────────────────────────────────────────────────
 
 const catalogItems = ref<ServiceCatalogItem[]>([]);
+const enabledItems = ref<RecyclingItemItem[]>([]);
+const selectedItems = ref<CreateSelectedItem[]>([]);
+const hasElevator = ref<boolean | null>(null);
+const carryFloor = ref<number | null>(null);
+
+const selectedItemIds = computed({
+  get: () => selectedItems.value.map((row) => row.itemId),
+  set: (ids: number[]) => {
+    selectedItems.value = syncSelectedItems(selectedItems.value, ids, enabledItems.value);
+  },
+});
+
+function clearItemConditions() {
+  selectedItems.value = [];
+  hasElevator.value = null;
+  carryFloor.value = null;
+}
+
+function changeCreateQuantity(itemId: number, delta: number) {
+  selectedItems.value = changeSelectedQuantity(selectedItems.value, itemId, delta);
+}
 
 const createDialog = reactive({
   visible: false,
@@ -871,6 +971,36 @@ const createForm = reactive<CreateRecyclingOrderDto & { isProxyOrder: boolean }>
   source: 'PHONE',
   remark: '',
 });
+
+const isCreateLarge = computed(() => isLargeCatalogName(createForm.serviceItem));
+
+let loadEnabledItemsSeq = 0;
+
+async function loadEnabledItems() {
+  const seq = ++loadEnabledItemsSeq;
+  const catalog = catalogItems.value.find((item) => item.name === createForm.serviceItem);
+  if (!catalog) {
+    if (seq === loadEnabledItemsSeq) enabledItems.value = [];
+    return;
+  }
+  try {
+    const res = await fetchEnabledRecyclingItems(catalog.id);
+    if (seq !== loadEnabledItemsSeq) return;
+    enabledItems.value = res.data.data ?? [];
+  } catch (e) {
+    if (seq !== loadEnabledItemsSeq) return;
+    enabledItems.value = [];
+    console.error('[RecyclingOrders] load recycling items failed', e);
+  }
+}
+
+watch(
+  () => createForm.serviceItem,
+  () => {
+    clearItemConditions();
+    void loadEnabledItems();
+  },
+);
 
 const createRules = computed(() => ({
   serviceItem: [{ required: true, message: '请选择服务类型', trigger: 'change' }],
@@ -922,11 +1052,24 @@ const resetCreateForm = () => {
     source: 'PHONE',
     remark: '',
   });
+  enabledItems.value = [];
+  clearItemConditions();
 };
 
 const submitCreate = async () => {
   const valid = await createFormRef.value?.validate().catch(() => false);
   if (!valid) return;
+
+  const blockMessage = getRecyclingCreateBlockMessage({
+    selectedCount: selectedItems.value.length,
+    hasElevator: hasElevator.value,
+    carryFloor: carryFloor.value,
+    isLarge: isCreateLarge.value,
+  });
+  if (blockMessage) {
+    ElMessage.warning(blockMessage);
+    return;
+  }
 
   createDialog.submitting = true;
   try {
@@ -941,6 +1084,14 @@ const submitCreate = async () => {
       isProxyOrder: createForm.isProxyOrder,
       source: 'PHONE',
       remark: createForm.remark || undefined,
+      selectedItems: selectedItems.value.map((row) => ({
+        itemId: row.itemId,
+        name: row.name,
+        priceText: row.priceText,
+        quantity: row.quantity,
+      })),
+      hasElevator: hasElevator.value === true,
+      ...(isCreateLarge.value && carryFloor.value != null ? { carryFloor: carryFloor.value } : {}),
     };
     if (createForm.isProxyOrder) {
       payload.serviceContactName = createForm.serviceContactName?.trim();
@@ -1213,6 +1364,33 @@ onMounted(() => {
     font-weight: 500;
     color: #303133;
   }
+}
+
+.create-empty-tip {
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.create-qty-list {
+  margin: -8px 0 16px 130px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.create-qty-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #f5f7fa;
+  border-radius: 4px;
+}
+
+.create-qty-name {
+  font-size: 13px;
+  color: #303133;
 }
 
 // ── 新增订单：时段格子按钮 ─────────────────────────────────────────────────────
