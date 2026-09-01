@@ -78,6 +78,13 @@
             <span>服务配置</span>
           </el-menu-item>
           <el-menu-item
+            v-if="userStore.hasMenu('config.recycling-items')"
+            index="/config/recycling-items"
+          >
+            <el-icon><Box /></el-icon>
+            <span>回收品项</span>
+          </el-menu-item>
+          <el-menu-item
             v-if="userStore.hasMenu('config.review-keywords')"
             index="/config/review-keywords"
           >
@@ -255,7 +262,13 @@ const showOrdersMenu = computed(() =>
 const showDataMenu = computed(() => userStore.hasMenu('data.dashboard'));
 const showStaffMenu = computed(() => userStore.hasMenu('staff.workers'));
 const showConfigMenu = computed(() =>
-  ['config.services', 'config.review-keywords', 'config.operators', 'config.banners'].some((key) =>
+  [
+    'config.services',
+    'config.recycling-items',
+    'config.review-keywords',
+    'config.operators',
+    'config.banners',
+  ].some((key) =>
     userStore.hasMenu(key),
   ),
 );

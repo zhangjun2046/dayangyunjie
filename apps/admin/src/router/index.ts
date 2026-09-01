@@ -69,6 +69,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '服务配置', menuKey: 'config.services' },
       },
       {
+        path: 'config/recycling-items',
+        name: 'ConfigRecyclingItems',
+        component: () => import('@/views/config/recycling-items/index.vue'),
+        meta: { title: '回收品项', menuKey: 'config.recycling-items' },
+      },
+      {
         path: 'config/review-keywords',
         name: 'ConfigReviewKeywords',
         component: () => import('@/views/config/review-keywords/index.vue'),

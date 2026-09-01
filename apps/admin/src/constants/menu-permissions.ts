@@ -45,6 +45,7 @@ export const MENU_TREE: MenuGroupNode[] = [
     label: '配置管理',
     children: [
       { key: 'config.services', label: '服务配置' },
+      { key: 'config.recycling-items', label: '回收品项' },
       { key: 'config.review-keywords', label: '关键词配置' },
       { key: 'config.operators', label: '运营人员配置' },
       { key: 'config.banners', label: '轮播图管理' },
