@@ -93,6 +93,34 @@ const reviewKeywordSeed = ['准时到达', '打扫干净', '态度好', '专业�
     })),
 );
 
+/** 小件回收品项（对齐稿面；表为空才插入） */
+const smallRecyclingItemSeed = [
+  { name: '纸张', priceText: '0.6元/kg', sortOrder: 1 },
+  { name: '金属', priceText: '1元/kg', sortOrder: 2 },
+  { name: '塑料', priceText: '0.6元/kg', sortOrder: 3 },
+  { name: '织物', priceText: '0.2元/kg', sortOrder: 4 },
+  { name: '小家电', priceText: '1.5元/kg', sortOrder: 5 },
+  { name: '一袋式', priceText: '0.6元/kg', sortOrder: 6 },
+] as const;
+
+/** 大件回收品项（对齐稿面胶囊；无稿面单价用面议） */
+const largeRecyclingItemSeed = [
+  { name: '单门柜', priceText: '面议', sortOrder: 1 },
+  { name: '双门柜', priceText: '面议', sortOrder: 2 },
+  { name: '三门及以上柜', priceText: '面议', sortOrder: 3 },
+  { name: '单人沙发', priceText: '面议', sortOrder: 4 },
+  { name: '双人沙发', priceText: '面议', sortOrder: 5 },
+  { name: '三人及以上沙发', priceText: '面议', sortOrder: 6 },
+  { name: '椅子', priceText: '面议', sortOrder: 7 },
+  { name: '茶几', priceText: '面议', sortOrder: 8 },
+  { name: '餐桌', priceText: '面议', sortOrder: 9 },
+  { name: '写字台', priceText: '面议', sortOrder: 10 },
+  { name: '单人无簧垫', priceText: '面议', sortOrder: 11 },
+  { name: '双人无簧垫', priceText: '面议', sortOrder: 12 },
+  { name: '单人弹簧垫', priceText: '面议', sortOrder: 13 },
+  { name: '双人弹簧垫', priceText: '面议', sortOrder: 14 },
+] as const;
+
 /** 默认投诉原因；仅在配置表为空时整体初始化 */
 const complaintReasonConfigSeed = [
   { label: '服务态度差', sortOrder: 1, isEnabled: true },
@@ -130,6 +158,55 @@ async function main() {
     console.info(`[seed] ServiceCatalog created: ${serviceCatalogSeed.length} rows`);
   } else {
     console.info(`[seed] ServiceCatalog skipped (${existingCatalogCount} rows already exist)`);
+  }
+
+  // ─── RecyclingItem（表为空才插入，不覆盖运营已改金额） ─────────────────────
+  const existingRecyclingItemCount = await prisma.recyclingItem.count();
+  if (existingRecyclingItemCount === 0) {
+    const largeCatalog = await prisma.serviceCatalog.findFirst({
+      where: { bizType: 'RECYCLING', name: { contains: '大件' } },
+    });
+    const smallCatalog = await prisma.serviceCatalog.findFirst({
+      where: { bizType: 'RECYCLING', name: { contains: '小件' } },
+    });
+
+    if (!largeCatalog) {
+      console.info('[seed] RecyclingItem skipped large group: no RECYCLING catalog matching 大件');
+    } else {
+      await prisma.recyclingItem.createMany({
+        data: largeRecyclingItemSeed.map((row) => ({
+          catalogId: largeCatalog.id,
+          name: row.name,
+          priceText: row.priceText,
+          sortOrder: row.sortOrder,
+          isEnabled: true,
+        })),
+      });
+      console.info(
+        `[seed] RecyclingItem created under ${largeCatalog.name}: ${largeRecyclingItemSeed.length} rows`,
+      );
+    }
+
+    if (!smallCatalog) {
+      console.info('[seed] RecyclingItem skipped small group: no RECYCLING catalog matching 小件');
+    } else {
+      await prisma.recyclingItem.createMany({
+        data: smallRecyclingItemSeed.map((row) => ({
+          catalogId: smallCatalog.id,
+          name: row.name,
+          priceText: row.priceText,
+          sortOrder: row.sortOrder,
+          isEnabled: true,
+        })),
+      });
+      console.info(
+        `[seed] RecyclingItem created under ${smallCatalog.name}: ${smallRecyclingItemSeed.length} rows`,
+      );
+    }
+  } else {
+    console.info(
+      `[seed] RecyclingItem skipped (${existingRecyclingItemCount} rows already exist)`,
+    );
   }
 
   // ─── ReviewKeyword ─────────────────────────────────────────────────────────

@@ -423,8 +423,29 @@ model ServiceCatalog {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  recyclingItems RecyclingItem[]
+
   @@index([bizType, isEnabled])
   @@map("service_catalogs")
+}
+
+// 废品回收分类下的具体品项（大件：单门柜；小件：纸张）。金额只存展示文案。
+model RecyclingItem {
+  id        Int      @id @default(autoincrement())
+  catalogId Int      @map("catalog_id")
+  name      String   @db.VarChar(64)
+  priceText String   @map("price_text") @db.VarChar(32)
+  icon      String?  @db.VarChar(512)
+  sortOrder Int      @default(0) @map("sort_order")
+  isEnabled Boolean  @default(true) @map("is_enabled")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  catalog ServiceCatalog @relation(fields: [catalogId], references: [id])
+
+  @@unique([catalogId, name])
+  @@index([catalogId, isEnabled, sortOrder])
+  @@map("recycling_items")
 }
 
 // 评价快捷关键词配置：按保洁/废品回收业务分别维护
