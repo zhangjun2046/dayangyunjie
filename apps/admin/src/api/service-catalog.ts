@@ -38,7 +38,9 @@ export interface CreateServiceCatalogBody {
   sortOrder?: number;
 }
 
-export type UpdateServiceCatalogBody = Partial<Omit<CreateServiceCatalogBody, 'icon'>> & {
+export type UpdateServiceCatalogBody = Partial<
+  Omit<CreateServiceCatalogBody, 'icon' | 'priceImageUrl'>
+> & {
   /** 传 null 表示清除已配置的图标。 */
   icon?: string | null;
   /** 传 null 表示清除大件价格海报。 */
