@@ -189,4 +189,48 @@ describe('OrderProgressService', () => {
       role: 'WORKER',
     });
   });
+
+  it('未带 Authorization 时身份为空', async () => {
+    const { service } = makeService();
+    await expect(service.resolveIdentity()).resolves.toBeNull();
+    await expect(service.resolveIdentity('Token x')).resolves.toBeNull();
+  });
+
+  it('Bearer 验签失败时返回 401', async () => {
+    const { service, jwt } = makeService();
+    jwt.verifyAsync.mockRejectedValue(new Error('jwt expired'));
+
+    await expect(service.resolveIdentity('Bearer expired')).rejects.toMatchObject({
+      status: 401,
+      message: '登录已过期，请重新登录',
+    });
+  });
+
+  it('Bearer 载荷无效时返回 401', async () => {
+    const { service, jwt } = makeService();
+    jwt.verifyAsync.mockResolvedValue({ sub: 1, role: 'admin', tokenType: 'refresh' });
+
+    await expect(service.resolveIdentity('Bearer refresh')).rejects.toMatchObject({
+      status: 401,
+      message: '登录已过期，请重新登录',
+    });
+  });
+
+  it('管理员或居民令牌可作为下单操作人', async () => {
+    const { service, jwt } = makeService();
+    jwt.verifyAsync.mockResolvedValue({ sub: 1, role: 'admin', tokenType: 'access' });
+
+    await expect(service.resolveCreateActor('Bearer admin')).resolves.toEqual({
+      id: 1,
+      role: 'ADMIN',
+    });
+  });
+
+  it('无令牌时用 residentId 作为下单操作人', async () => {
+    const { service } = makeService();
+    await expect(service.resolveCreateActor(undefined, 9)).resolves.toEqual({
+      id: 9,
+      role: 'RESIDENT',
+    });
+  });
 });

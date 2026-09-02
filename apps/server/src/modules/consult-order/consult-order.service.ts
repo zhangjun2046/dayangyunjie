@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   ConsultFollowUpDto,
@@ -63,7 +64,7 @@ export class ConsultOrderService {
       actor ??
       (dto.residentId ? { id: dto.residentId, role: 'RESIDENT' as const } : null);
     if (!createActor) {
-      throw new BadRequestException('创建咨询单缺少有效操作人');
+      throw new UnauthorizedException('登录已过期，请重新登录');
     }
 
     if (dto.residentId !== undefined) {

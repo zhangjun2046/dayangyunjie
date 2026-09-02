@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { ProgressNodeDto } from '@dayangyunjie/shared';
 import { EnvConfigService } from '../config/env-config.service';
@@ -90,6 +90,8 @@ const CONSULT_MESSAGES: Record<string, string> = {
   COMPLETED: '咨询已完成',
 };
 
+const AUTH_EXPIRED_MESSAGE = '登录已过期，请重新登录';
+
 @Injectable()
 export class OrderProgressService {
   constructor(
@@ -106,11 +108,17 @@ export class OrderProgressService {
       const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
         secret: this.envConfigService.jwtAccessSecret,
       });
-      if (payload.tokenType !== 'access' || !payload.sub) return null;
+      if (payload.tokenType !== 'access' || !payload.sub) {
+        throw new UnauthorizedException(AUTH_EXPIRED_MESSAGE);
+      }
       const role = this.normalizeRole(payload.role);
-      return role ? { id: payload.sub, role } : null;
-    } catch {
-      return null;
+      if (!role) {
+        throw new UnauthorizedException(AUTH_EXPIRED_MESSAGE);
+      }
+      return { id: payload.sub, role };
+    } catch (err) {
+      if (err instanceof UnauthorizedException) throw err;
+      throw new UnauthorizedException(AUTH_EXPIRED_MESSAGE);
     }
   }
 

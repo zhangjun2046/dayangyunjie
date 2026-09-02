@@ -11,7 +11,7 @@
  *  7. findFollowUps  — 跟进记录列表查询（v2.0）
  */
 
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConsultStatus, Prisma } from '@prisma/client';
 import { ConsultOrderService } from './consult-order.service';
 
@@ -108,6 +108,8 @@ function makeService(prismaOverrides: Record<string, unknown> = {}) {
   return { svc, prisma };
 }
 
+const ADMIN_ACTOR = { id: 10, role: 'ADMIN' as const };
+
 // ─── 1. create ───────────────────────────────────────────────────────────────
 
 describe('ConsultOrderService — create（创建咨询单）', () => {
@@ -120,20 +122,25 @@ describe('ConsultOrderService — create（创建咨询单）', () => {
 
   it('创建成功：订单号以 CNS 开头', async () => {
     const { svc } = makeService();
-    const result = await svc.create(dto);
+    const result = await svc.create(dto, ADMIN_ACTOR);
     expect(result.orderNo).toMatch(/^CNS\d{8}\d{6}$/);
   });
 
   it('创建成功：默认状态为 FOLLOW_UP', async () => {
     const { svc } = makeService();
-    const result = await svc.create(dto);
+    const result = await svc.create(dto, ADMIN_ACTOR);
     expect(result.status).toBe(ConsultStatus.FOLLOW_UP);
   });
 
   it('匿名创建（不传 residentId）：不查询 resident 表', async () => {
     const { svc, prisma } = makeService();
-    await svc.create(dto);
+    await svc.create(dto, ADMIN_ACTOR);
     expect(prisma.resident.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('无操作人且无 residentId 时返回 401', async () => {
+    const { svc } = makeService();
+    await expect(svc.create(dto)).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
   it('绑定居民创建（传入 residentId）：校验居民存在', async () => {
@@ -163,7 +170,7 @@ describe('ConsultOrderService — create（创建咨询单）', () => {
     prisma._tx.consultOrder.create = jest.fn().mockRejectedValue(conflictError);
     // @ts-expect-error — 测试注入
     const svc = new ConsultOrderService(prisma);
-    await expect(svc.create(dto)).rejects.toMatchObject({ message: expect.stringContaining('unique order number') });
+    await expect(svc.create(dto, ADMIN_ACTOR)).rejects.toMatchObject({ message: expect.stringContaining('unique order number') });
   });
 });
 
@@ -331,7 +338,7 @@ describe('ConsultOrderService — create v2.0（代下单字段）', () => {
       serviceContactName: '李阿姨',
       serviceContactPhone: '13900001111',
       serviceAddress: '北京市朝阳区建国路88号',
-    });
+    }, ADMIN_ACTOR);
     expect(prisma._tx.consultOrder.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -360,7 +367,7 @@ describe('ConsultOrderService — create v2.0（代下单字段）', () => {
 
   it('不传 isProxyOrder（默认 false）：不校验代下单字段', async () => {
     const { svc } = makeService();
-    await expect(svc.create(baseDto)).resolves.toBeDefined();
+    await expect(svc.create(baseDto, ADMIN_ACTOR)).resolves.toBeDefined();
   });
 
   it('source 字段写入：返回 DTO 含 source', async () => {
@@ -368,7 +375,7 @@ describe('ConsultOrderService — create v2.0（代下单字段）', () => {
     prisma._tx.consultOrder.create = jest.fn().mockResolvedValue(
       makeOrderRow({ source: 'ADMIN' }),
     );
-    const result = await svc.create({ ...baseDto, source: 'ADMIN' as never });
+    const result = await svc.create({ ...baseDto, source: 'ADMIN' as never }, ADMIN_ACTOR);
     expect(result.source).toBe('ADMIN');
   });
 });

@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import {
   AddressSnapshot,
@@ -55,7 +56,7 @@ export class CleaningOrderService {
         ? { id: createCleaningOrderDto.residentId, role: 'RESIDENT' as const }
         : null);
     if (!createActor) {
-      throw new BadRequestException('创建订单缺少有效操作人');
+      throw new UnauthorizedException('登录已过期，请重新登录');
     }
 
     // 管理后台代下单时 addressSnapshotText 与 addressId 必须二选一
