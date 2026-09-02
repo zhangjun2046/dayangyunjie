@@ -239,7 +239,7 @@
         </view>
       </view>
 
-      <view v-if="store.selectedCatalog && isLargeItem" class="section-wrap">
+      <view v-if="store.selectedCatalog" class="section-wrap">
         <text class="sub-title">搬运楼层</text>
         <picker mode="selector" :range="CARRY_FLOOR_OPTIONS" @change="onCarryFloorChange">
           <view class="floor-picker">
@@ -686,7 +686,6 @@ function nextStep() {
       selectedCount: store.selectedItems.length,
       hasElevator: store.hasElevator,
       carryFloor: store.carryFloor,
-      isLarge: isLargeItem.value,
     });
     if (blockMessage) {
       uni.showToast({ title: blockMessage, icon: 'none' });
@@ -748,7 +747,7 @@ async function submitOrder() {
         quantity: row.quantity,
       })),
       hasElevator: store.hasElevator === true,
-      ...(isLargeItem.value && store.carryFloor != null ? { carryFloor: store.carryFloor } : {}),
+      ...(store.carryFloor != null ? { carryFloor: store.carryFloor } : {}),
     });
 
     console.info('[booking-recycling] order created, orderNo=', result.orderNo);

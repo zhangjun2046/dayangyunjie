@@ -78,7 +78,7 @@ export class CreateRecyclingOrderDto {
   @IsBoolean()
   hasElevator?: boolean;
 
-  @ApiPropertyOptional({ description: '搬运楼层，仅大件，1～30', example: 6, minimum: 1, maximum: 30 })
+  @ApiPropertyOptional({ description: '搬运楼层，大件 / 小件必填，1～30', example: 6, minimum: 1, maximum: 30 })
   @Type(() => Number)
   @IsOptional()
   @IsInt()

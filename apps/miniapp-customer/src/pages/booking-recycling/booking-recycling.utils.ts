@@ -57,11 +57,10 @@ export function getRecyclingStep2BlockMessage(input: {
   selectedCount: number;
   hasElevator: boolean | null;
   carryFloor: number | null;
-  isLarge: boolean;
 }): string | null {
   if (input.selectedCount < 1) return '请选择回收物品';
   if (input.hasElevator !== true && input.hasElevator !== false) return '请选择是否有电梯';
-  if (input.isLarge && (input.carryFloor == null || input.carryFloor < 1)) {
+  if (input.carryFloor == null || input.carryFloor < 1) {
     return '请选择搬运楼层';
   }
   return null;

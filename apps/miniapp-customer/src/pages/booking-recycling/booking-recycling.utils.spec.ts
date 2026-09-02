@@ -54,13 +54,12 @@ describe('booking-recycling Step2 选品工具', () => {
     expect(retainAvailableSelectedItems(current, [8])).toEqual([current[0]]);
   });
 
-  it('nextStep 一次只报一条：物品 → 电梯 → 大件楼层', () => {
+  it('nextStep 一次只报一条：物品 → 电梯 → 楼层（大件 / 小件相同）', () => {
     expect(
       getRecyclingStep2BlockMessage({
         selectedCount: 0,
         hasElevator: null,
         carryFloor: null,
-        isLarge: true,
       }),
     ).toBe('请选择回收物品');
     expect(
@@ -68,7 +67,6 @@ describe('booking-recycling Step2 选品工具', () => {
         selectedCount: 1,
         hasElevator: null,
         carryFloor: null,
-        isLarge: true,
       }),
     ).toBe('请选择是否有电梯');
     expect(
@@ -76,23 +74,13 @@ describe('booking-recycling Step2 选品工具', () => {
         selectedCount: 1,
         hasElevator: false,
         carryFloor: null,
-        isLarge: true,
       }),
     ).toBe('请选择搬运楼层');
     expect(
       getRecyclingStep2BlockMessage({
         selectedCount: 1,
         hasElevator: true,
-        carryFloor: null,
-        isLarge: false,
-      }),
-    ).toBeNull();
-    expect(
-      getRecyclingStep2BlockMessage({
-        selectedCount: 1,
-        hasElevator: true,
         carryFloor: 6,
-        isLarge: true,
       }),
     ).toBeNull();
   });

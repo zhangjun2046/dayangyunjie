@@ -117,7 +117,7 @@ describe('RecyclingOrderService — create 回收品项快照', () => {
     expect(prisma._tx.recyclingOrder.create).not.toHaveBeenCalled();
   });
 
-  it('小件带搬运楼层时入库 carryFloor 为 null', async () => {
+  it('小件带搬运楼层时入库 carryFloor', async () => {
     const prisma = makePrisma({
       liveItems: [{ id: 8, name: '纸张', priceText: '0.6元/kg' }],
     });
@@ -135,14 +135,31 @@ describe('RecyclingOrderService — create 回收品项快照', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           hasElevator: false,
-          carryFloor: null,
+          carryFloor: 6,
           selectedItems: [{ itemId: 8, name: '纸张', priceText: '0.6元/kg', quantity: 1 }],
         }),
       }),
     );
-    expect(dto.carryFloor).toBeNull();
+    expect(dto.carryFloor).toBe(6);
     expect(dto.hasElevator).toBe(false);
     expect(dto.selectedItems?.[0].name).toBe('纸张');
+  });
+
+  it('小件缺少搬运楼层时返回 400', async () => {
+    const prisma = makePrisma({
+      liveItems: [{ id: 8, name: '纸张', priceText: '0.6元/kg' }],
+    });
+    const svc = makeService(prisma);
+
+    await expect(
+      svc.create({
+        ...BASE_DTO,
+        serviceItem: '小件类废品',
+        selectedItems: [{ itemId: 8, name: '纸张', priceText: '0.6元/kg', quantity: 1 }],
+        hasElevator: true,
+      }),
+    ).rejects.toThrow(new BadRequestException('请选择搬运楼层'));
+    expect(prisma._tx.recyclingOrder.create).not.toHaveBeenCalled();
   });
 
   it('大件缺少搬运楼层时返回 400', async () => {

@@ -636,14 +636,11 @@ export class RecyclingOrderService {
 
     const isLarge = dto.serviceItem.includes('大件');
     const isSmall = dto.serviceItem.includes('小件');
-    if (isLarge || isSmall) {
+    const requireAccess = isLarge || isSmall;
+    if (requireAccess) {
       if (dto.hasElevator !== true && dto.hasElevator !== false) {
         throw new BadRequestException('请选择是否有电梯');
       }
-    }
-
-    let carryFloor: number | null = null;
-    if (isLarge) {
       if (
         typeof dto.carryFloor !== 'number' ||
         !Number.isInteger(dto.carryFloor) ||
@@ -652,13 +649,12 @@ export class RecyclingOrderService {
       ) {
         throw new BadRequestException('请选择搬运楼层');
       }
-      carryFloor = dto.carryFloor;
     }
 
     return {
       selectedItems,
-      hasElevator: isLarge || isSmall ? dto.hasElevator! : (dto.hasElevator ?? null),
-      carryFloor,
+      hasElevator: requireAccess ? dto.hasElevator! : (dto.hasElevator ?? null),
+      carryFloor: requireAccess ? dto.carryFloor! : null,
     };
   }
 

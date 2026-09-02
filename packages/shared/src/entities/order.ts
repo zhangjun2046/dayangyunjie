@@ -88,7 +88,7 @@ export interface RecyclingOrderDto {
   selectedItems?: RecyclingOrderSelectedItem[] | null;
   /** 是否有电梯；旧单为 null */
   hasElevator?: boolean | null;
-  /** 搬运楼层，仅大件；小件 / 旧单为 null */
+  /** 搬运楼层；旧单可能为 null */
   carryFloor?: number | null;
   appointDate: string;
   appointTimeSlot: string;

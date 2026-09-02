@@ -38,13 +38,12 @@ describe('PC 代下单选品', () => {
     expect(changeSelectedQuantity(selected, 21, -1)).toEqual([]);
   });
 
-  it('提交一次只报一条：物品 → 电梯 → 大件楼层', () => {
+  it('提交一次只报一条：物品 → 电梯 → 楼层（大件 / 小件相同）', () => {
     expect(
       getRecyclingCreateBlockMessage({
         selectedCount: 0,
         hasElevator: null,
         carryFloor: null,
-        isLarge: true,
       }),
     ).toBe('请选择回收物品');
     expect(
@@ -52,7 +51,6 @@ describe('PC 代下单选品', () => {
         selectedCount: 1,
         hasElevator: null,
         carryFloor: null,
-        isLarge: true,
       }),
     ).toBe('请选择是否有电梯');
     expect(
@@ -60,15 +58,13 @@ describe('PC 代下单选品', () => {
         selectedCount: 1,
         hasElevator: false,
         carryFloor: null,
-        isLarge: true,
       }),
     ).toBe('请选择搬运楼层');
     expect(
       getRecyclingCreateBlockMessage({
         selectedCount: 1,
         hasElevator: true,
-        carryFloor: null,
-        isLarge: false,
+        carryFloor: 6,
       }),
     ).toBeNull();
   });

@@ -329,7 +329,7 @@
               </el-radio-group>
             </el-form-item>
           </el-col>
-          <el-col v-if="isCreateLarge" :span="12">
+          <el-col :span="12">
             <el-form-item label="搬运楼层" required>
               <el-select
                 v-model="carryFloor"
@@ -1064,7 +1064,6 @@ const submitCreate = async () => {
     selectedCount: selectedItems.value.length,
     hasElevator: hasElevator.value,
     carryFloor: carryFloor.value,
-    isLarge: isCreateLarge.value,
   });
   if (blockMessage) {
     ElMessage.warning(blockMessage);
@@ -1091,7 +1090,7 @@ const submitCreate = async () => {
         quantity: row.quantity,
       })),
       hasElevator: hasElevator.value === true,
-      ...(isCreateLarge.value && carryFloor.value != null ? { carryFloor: carryFloor.value } : {}),
+      ...(carryFloor.value != null ? { carryFloor: carryFloor.value } : {}),
     };
     if (createForm.isProxyOrder) {
       payload.serviceContactName = createForm.serviceContactName?.trim();

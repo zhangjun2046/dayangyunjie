@@ -34,7 +34,7 @@ export const useBookingRecyclingStore = defineStore('bookingRecycling', () => {
   /** Step 2: 是否有电梯；未选为 null */
   const hasElevator = ref<boolean | null>(null);
 
-  /** Step 2: 搬运楼层，仅大件；未选为 null */
+  /** Step 2: 搬运楼层；未选为 null */
   const carryFloor = ref<number | null>(null);
 
   /** Step 2: 是否为代家人下单 */
