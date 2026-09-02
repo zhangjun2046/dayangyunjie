@@ -48,6 +48,27 @@ describe('admin service-catalog API — icon flow', () => {
     expect(mockedRequest.post).toHaveBeenCalledWith('/service-catalogs', body);
   });
 
+  it('大件分类新增时可携带价格海报 URL', () => {
+    const body = {
+      bizType: 'RECYCLING' as const,
+      name: '大件类',
+      priceImageUrl: 'https://cdn.example.com/uploads/POSTER_1.webp',
+    };
+    createServiceCatalog(body);
+    expect(mockedRequest.post).toHaveBeenCalledWith('/service-catalogs', body);
+  });
+
+  it('编辑服务时可传 null 清除价格海报', () => {
+    updateServiceCatalog(12, {
+      name: '大件类',
+      priceImageUrl: null,
+    });
+    expect(mockedRequest.put).toHaveBeenCalledWith('/service-catalogs/12', {
+      name: '大件类',
+      priceImageUrl: null,
+    });
+  });
+
   it('编辑服务时可传 null 清除 icon', () => {
     updateServiceCatalog(12, {
       name: '日常清扫',

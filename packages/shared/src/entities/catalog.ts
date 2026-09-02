@@ -7,6 +7,8 @@ export interface ServiceCatalogDto {
   name: string;
   subtitle?: string | null;
   icon?: string | null;
+  /** 大件价格表整图；非大件为 null */
+  priceImageUrl?: string | null;
   sortOrder: number;
   isEnabled: boolean;
   createdAt: string;

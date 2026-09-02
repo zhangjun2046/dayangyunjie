@@ -217,6 +217,29 @@ describe('UploadController — service icon suite', () => {
       expect(resultFilenameIsIcon(save.mock.calls[0][0])).toBe(true);
     });
   });
+
+  describe('uploadPoster', () => {
+    it('长图按宽度约束且不加水印', async () => {
+      save.mockResolvedValue('https://cdn.example.com/uploads/poster.webp');
+      const source = await sharp({
+        create: {
+          width: 1800,
+          height: 3200,
+          channels: 3,
+          background: '#ffffff',
+        },
+      })
+        .png()
+        .toBuffer();
+
+      const result = await controller.uploadPoster(createFile(source));
+      expect(result.data.filename).toMatch(/^POSTER_\d+_[A-Z0-9]{6}\.webp$/);
+      const metadata = await sharp(save.mock.calls[0][1]).metadata();
+      expect(metadata.format).toBe('webp');
+      expect(metadata.width).toBe(1200);
+      expect(metadata.height).toBe(2133);
+    });
+  });
 });
 
 function resultFilenameIsIcon(filename: string): boolean {

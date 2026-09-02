@@ -22,6 +22,7 @@ function makeRow(overrides: Record<string, unknown> = {}) {
     name: '普通保洁',
     subtitle: null,
     icon: null,
+    priceImageUrl: null,
     sortOrder: 0,
     isEnabled: true,
     specialTips: null,
@@ -136,10 +137,36 @@ describe('ServiceCatalogService', () => {
           name: '日常清扫',
           subtitle: undefined,
           icon,
+          priceImageUrl: null,
           sortOrder: 0,
         },
       });
       expect(result.icon).toBe(icon);
+    });
+
+    it('大件分类创建时可写入价格海报', async () => {
+      const poster = 'https://cdn.example.com/uploads/POSTER_1.webp';
+      prisma.serviceCatalog.create.mockResolvedValue(
+        makeRow({ bizType: 'RECYCLING', name: '大件类', priceImageUrl: poster }),
+      );
+
+      const result = await service.create({
+        bizType: 'RECYCLING',
+        name: '大件类',
+        priceImageUrl: poster,
+      });
+
+      expect(prisma.serviceCatalog.create).toHaveBeenCalledWith({
+        data: {
+          bizType: 'RECYCLING',
+          name: '大件类',
+          subtitle: undefined,
+          icon: undefined,
+          priceImageUrl: poster,
+          sortOrder: 0,
+        },
+      });
+      expect(result.priceImageUrl).toBe(poster);
     });
   });
 
@@ -147,7 +174,7 @@ describe('ServiceCatalogService', () => {
 
   describe('update', () => {
     it('存在时更新并返回新 DTO', async () => {
-      prisma.serviceCatalog.count.mockResolvedValue(1);
+      prisma.serviceCatalog.findUnique.mockResolvedValue(makeRow());
       const updated = makeRow({ name: '精品保洁' });
       prisma.serviceCatalog.update.mockResolvedValue(updated);
 
@@ -157,19 +184,51 @@ describe('ServiceCatalogService', () => {
     });
 
     it('传入 null 时清除已配置的图标', async () => {
-      prisma.serviceCatalog.count.mockResolvedValue(1);
+      prisma.serviceCatalog.findUnique.mockResolvedValue(makeRow({ icon: 'https://cdn.example.com/a.webp' }));
       prisma.serviceCatalog.update.mockResolvedValue(makeRow({ icon: null }));
 
       await service.update(1, { icon: null });
 
       expect(prisma.serviceCatalog.update).toHaveBeenCalledWith({
         where: { id: 1 },
-        data: { icon: null },
+        data: { icon: null, priceImageUrl: null },
+      });
+    });
+
+    it('大件分类可写入价格海报', async () => {
+      const poster = 'https://cdn.example.com/uploads/POSTER_1.webp';
+      prisma.serviceCatalog.findUnique.mockResolvedValue(
+        makeRow({ bizType: 'RECYCLING', name: '大件类' }),
+      );
+      prisma.serviceCatalog.update.mockResolvedValue(
+        makeRow({ bizType: 'RECYCLING', name: '大件类', priceImageUrl: poster }),
+      );
+
+      const result = await service.update(1, { priceImageUrl: poster });
+
+      expect(prisma.serviceCatalog.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { priceImageUrl: poster },
+      });
+      expect(result.priceImageUrl).toBe(poster);
+    });
+
+    it('非大件分类即使传入海报也不保存', async () => {
+      prisma.serviceCatalog.findUnique.mockResolvedValue(makeRow({ bizType: 'RECYCLING', name: '小件类' }));
+      prisma.serviceCatalog.update.mockResolvedValue(
+        makeRow({ bizType: 'RECYCLING', name: '小件类', priceImageUrl: null }),
+      );
+
+      await service.update(1, { priceImageUrl: 'https://cdn.example.com/poster.webp' });
+
+      expect(prisma.serviceCatalog.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { priceImageUrl: null },
       });
     });
 
     it('不存在时抛出 NotFoundException', async () => {
-      prisma.serviceCatalog.count.mockResolvedValue(0);
+      prisma.serviceCatalog.findUnique.mockResolvedValue(null);
 
       await expect(service.update(999, { name: '精品保洁' })).rejects.toThrow(NotFoundException);
     });

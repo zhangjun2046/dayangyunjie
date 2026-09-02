@@ -48,6 +48,8 @@ apps/server/prisma/migrations/*
 !apps/server/prisma/migrations/20260901040000_add_recycling_items/migration.sql
 !apps/server/prisma/migrations/20260901053000_add_recycling_order_snapshot/
 !apps/server/prisma/migrations/20260901053000_add_recycling_order_snapshot/migration.sql
+!apps/server/prisma/migrations/20260901080000_add_service_catalog_price_image/
+!apps/server/prisma/migrations/20260901080000_add_service_catalog_price_image/migration.sql
 
 # Uploads (local dev)
 uploads/

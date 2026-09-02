@@ -420,6 +420,8 @@ model ServiceCatalog {
   name        String   @db.VarChar(64)
   subtitle    String?  @db.VarChar(128)
   icon        String?  @db.VarChar(512)
+  /** 大件价格表整图 URL；小件 / 保洁 / 咨询为空 */
+  priceImageUrl String? @map("price_image_url") @db.VarChar(512)
   sortOrder   Int      @default(0) @map("sort_order")
   isEnabled   Boolean  @default(true) @map("is_enabled")
   specialTips String?  @map("special_tips") @db.VarChar(256) // ⚠️ 封存，管理后台不展示

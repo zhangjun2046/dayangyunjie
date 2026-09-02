@@ -51,6 +51,7 @@ export class ServiceCatalogService {
         name: dto.name,
         subtitle: dto.subtitle,
         icon: dto.icon,
+        priceImageUrl: this.resolvePriceImageUrl(dto.bizType, dto.name, dto.priceImageUrl),
         sortOrder: dto.sortOrder ?? 0,
       },
     });
@@ -58,7 +59,12 @@ export class ServiceCatalogService {
   }
 
   async update(id: number, dto: UpdateServiceCatalogDto) {
-    await this.assertExists(id);
+    const existing = await this.prismaService.serviceCatalog.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`ServiceCatalog ${id} not found`);
+    }
+    const bizType = dto.bizType ?? existing.bizType;
+    const name = dto.name ?? existing.name;
     const row = await this.prismaService.serviceCatalog.update({
       where: { id },
       data: {
@@ -66,6 +72,11 @@ export class ServiceCatalogService {
         ...(dto.name !== undefined ? { name: dto.name } : {}),
         ...(dto.subtitle !== undefined ? { subtitle: dto.subtitle } : {}),
         ...(dto.icon !== undefined ? { icon: dto.icon } : {}),
+        priceImageUrl: this.resolvePriceImageUrl(
+          bizType,
+          name,
+          dto.priceImageUrl !== undefined ? dto.priceImageUrl : existing.priceImageUrl,
+        ),
         ...(dto.sortOrder !== undefined ? { sortOrder: dto.sortOrder } : {}),
       },
     });
@@ -108,10 +119,24 @@ export class ServiceCatalogService {
       name: row.name,
       subtitle: row.subtitle ?? null,
       icon: row.icon ?? null,
+      priceImageUrl: row.priceImageUrl ?? null,
       sortOrder: row.sortOrder,
       isEnabled: row.isEnabled,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };
+  }
+
+  /** 仅废品回收大件可保存价格海报，其它分类一律清空 */
+  private resolvePriceImageUrl(
+    bizType: string,
+    name: string,
+    url?: string | null,
+  ): string | null {
+    if (bizType !== 'RECYCLING' || !name.includes('大件')) {
+      return null;
+    }
+    const trimmed = url?.trim();
+    return trimmed || null;
   }
 }

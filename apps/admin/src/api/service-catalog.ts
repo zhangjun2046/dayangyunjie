@@ -10,6 +10,7 @@ export interface ServiceCatalogItem {
   name: string;
   subtitle?: string | null;
   icon?: string | null;
+  priceImageUrl?: string | null;
   sortOrder: number;
   isEnabled: boolean;
   createdAt: string;
@@ -33,12 +34,15 @@ export interface CreateServiceCatalogBody {
   name: string;
   subtitle?: string;
   icon?: string;
+  priceImageUrl?: string;
   sortOrder?: number;
 }
 
 export type UpdateServiceCatalogBody = Partial<Omit<CreateServiceCatalogBody, 'icon'>> & {
   /** 传 null 表示清除已配置的图标。 */
   icon?: string | null;
+  /** 传 null 表示清除大件价格海报。 */
+  priceImageUrl?: string | null;
 };
 
 // ─── API 方法 ─────────────────────────────────────────────────────────────────

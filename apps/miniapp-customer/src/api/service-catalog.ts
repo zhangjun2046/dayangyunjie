@@ -11,6 +11,7 @@ export interface ServiceCatalogDto {
   name: string;
   subtitle: string;
   icon: string | null;
+  priceImageUrl?: string | null;
   sortOrder: number;
   isEnabled: boolean;
 }
@@ -60,4 +61,9 @@ export async function fetchConsultCatalogs(): Promise<ServiceCatalogDto[]> {
     pageSize: 50,
   });
   return result.items ?? [];
+}
+
+/** 查询服务目录详情（大件价格表海报） */
+export function fetchServiceCatalog(id: number): Promise<ServiceCatalogDto> {
+  return request<ServiceCatalogDto>('GET', `/service-catalogs/${id}`);
 }

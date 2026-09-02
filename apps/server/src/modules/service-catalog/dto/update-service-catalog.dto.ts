@@ -1,6 +1,6 @@
 import { BizType } from '@dayangyunjie/shared';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, MaxLength, Min, ValidateIf } from 'class-validator';
 
 const BIZ_TYPE_VALUES = Object.values(BizType);
 
@@ -27,6 +27,13 @@ export class UpdateServiceCatalogDto {
   @IsString()
   @MaxLength(512)
   icon?: string | null;
+
+  @ApiPropertyOptional({ description: '大件价格表整图 URL；传 null 可清除', nullable: true })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsString()
+  @MaxLength(512)
+  priceImageUrl?: string | null;
 
   @ApiPropertyOptional({ description: '排序权重', example: 0 })
   @IsOptional()

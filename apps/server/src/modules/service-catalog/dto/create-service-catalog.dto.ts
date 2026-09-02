@@ -26,6 +26,12 @@ export class CreateServiceCatalogDto {
   @MaxLength(512)
   icon?: string;
 
+  @ApiPropertyOptional({ description: '大件价格表整图 URL', example: 'https://cdn.example.com/poster.webp' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(512)
+  priceImageUrl?: string;
+
   @ApiPropertyOptional({ description: '排序权重（越小越靠前）', example: 0, default: 0 })
   @IsOptional()
   @IsInt()

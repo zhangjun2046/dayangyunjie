@@ -69,6 +69,18 @@
             <span v-else class="text-placeholder">—</span>
           </template>
         </el-table-column>
+        <el-table-column label="价格海报" width="90" align="center">
+          <template #default="{ row }">
+            <img
+              v-if="row.priceImageUrl"
+              :src="row.priceImageUrl"
+              class="poster-thumb"
+              alt="价格海报"
+              @error="onIconError"
+            />
+            <span v-else class="text-placeholder">—</span>
+          </template>
+        </el-table-column>
         <el-table-column label="排序" prop="sortOrder" width="75" align="center" />
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
@@ -115,7 +127,7 @@
     <el-dialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑服务' : '新增服务'"
-      width="480px"
+      width="520px"
       destroy-on-close
       @close="resetForm"
     >
@@ -192,6 +204,46 @@
             </div>
           </div>
         </el-form-item>
+        <el-form-item v-if="showPricePosterUpload" label="价格海报">
+          <div class="icon-upload-row">
+            <button
+              type="button"
+              class="poster-upload-box"
+              :class="{ 'is-uploading': posterUploading }"
+              :disabled="posterUploading"
+              @click="triggerPosterUpload"
+            >
+              <img
+                v-if="form.priceImageUrl"
+                :src="form.priceImageUrl"
+                class="poster-upload-preview"
+                alt="价格海报"
+              />
+              <template v-else>
+                <el-icon :size="24" color="#c0c4cc"><Plus /></el-icon>
+                <span>{{ posterUploading ? '上传中' : '选择图片' }}</span>
+              </template>
+            </button>
+            <input
+              ref="posterFileInput"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              class="hidden-input"
+              @change="onPosterFileChange"
+            />
+            <div class="icon-upload-info">
+              <span>大件价格表整图，支持 jpg、png、webp，不超过 10MB</span>
+              <div v-if="form.priceImageUrl" class="icon-upload-actions">
+                <el-button type="primary" link :disabled="posterUploading" @click="triggerPosterUpload">
+                  重新上传
+                </el-button>
+                <el-button type="danger" link :disabled="posterUploading" @click="clearPoster">
+                  清除
+                </el-button>
+              </div>
+            </div>
+          </div>
+        </el-form-item>
         <el-form-item label="排序" prop="sortOrder">
           <el-input-number
             v-model="form.sortOrder"
@@ -208,7 +260,7 @@
         <el-button
           type="primary"
           :loading="submitLoading"
-          :disabled="iconUploading"
+          :disabled="iconUploading || posterUploading"
           @click="onSubmit"
         >
           确定
@@ -219,7 +271,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
 import { Plus, Search } from '@element-plus/icons-vue';
 import request from '@/api/request';
@@ -238,6 +290,10 @@ import {
   extractUploadedIconUrl,
   validateServiceIconFile,
 } from './service-icon.utils';
+import {
+  isLargeRecyclingCatalog,
+  validatePricePosterFile,
+} from './service-price-poster.utils';
 
 // ─── 业务类型映射 ─────────────────────────────────────────────────────────────
 
@@ -359,19 +415,23 @@ const dialogVisible = ref(false);
 const isEdit = ref(false);
 const submitLoading = ref(false);
 const iconUploading = ref(false);
+const posterUploading = ref(false);
 const formRef = ref<FormInstance>();
 const editingId = ref<number | null>(null);
 const iconFileInput = ref<HTMLInputElement>();
+const posterFileInput = ref<HTMLInputElement>();
 
-const FORM_DEFAULT: CreateServiceCatalogBody & { subtitle: string; icon: string } = {
+const FORM_DEFAULT: CreateServiceCatalogBody & { subtitle: string; icon: string; priceImageUrl: string } = {
   bizType: 'CLEANING',
   name: '',
   subtitle: '',
   icon: '',
+  priceImageUrl: '',
   sortOrder: 0,
 };
 
 const form = reactive({ ...FORM_DEFAULT });
+const showPricePosterUpload = computed(() => isLargeRecyclingCatalog(form.bizType, form.name));
 
 const formRules: FormRules = {
   bizType: [{ required: true, message: '请选择所属业务', trigger: 'change' }],
@@ -398,6 +458,7 @@ const openEditDialog = (row: ServiceCatalogItem) => {
   form.name = row.name;
   form.subtitle = row.subtitle ?? '';
   form.icon = row.icon ?? '';
+  form.priceImageUrl = row.priceImageUrl ?? '';
   form.sortOrder = row.sortOrder;
   dialogVisible.value = true;
 };
@@ -406,6 +467,7 @@ const resetForm = () => {
   formRef.value?.clearValidate();
   Object.assign(form, FORM_DEFAULT);
   if (iconFileInput.value) iconFileInput.value.value = '';
+  if (posterFileInput.value) posterFileInput.value.value = '';
 };
 
 // ─── 服务图标上传 ─────────────────────────────────────────────────────────────
@@ -458,9 +520,55 @@ const onIconFileChange = async (event: Event) => {
   }
 };
 
+const triggerPosterUpload = () => {
+  if (!posterUploading.value) posterFileInput.value?.click();
+};
+
+const clearPoster = () => {
+  form.priceImageUrl = '';
+  if (posterFileInput.value) posterFileInput.value.value = '';
+};
+
+const onPosterFileChange = async (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  const validation = validatePricePosterFile(file);
+  if (!validation.ok) {
+    ElMessage.error(validation.message);
+    input.value = '';
+    return;
+  }
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('file', file);
+  posterUploading.value = true;
+  try {
+    const res = await request.post<{ code: number; data: { url: string } }>(
+      '/upload/poster',
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    );
+    const uploadedUrl = extractUploadedIconUrl(res.data);
+    if (!uploadedUrl) {
+      ElMessage.error('上传接口未返回海报地址');
+      throw new Error('上传接口未返回海报地址');
+    }
+
+    form.priceImageUrl = uploadedUrl;
+    ElMessage.success('价格海报上传成功');
+    console.info('[ServiceConfig] poster upload success url=%s', uploadedUrl);
+  } catch (error) {
+    console.error('[ServiceConfig] poster upload error', error);
+  } finally {
+    posterUploading.value = false;
+    input.value = '';
+  }
+};
+
 const onSubmit = async () => {
-  if (iconUploading.value) {
-    ElMessage.warning('请等待图标上传完成');
+  if (iconUploading.value || posterUploading.value) {
+    ElMessage.warning('请等待图片上传完成');
     return;
   }
   const valid = await formRef.value?.validate().catch(() => false);
@@ -473,6 +581,9 @@ const onSubmit = async () => {
       name: form.name,
       subtitle: form.subtitle || undefined,
       icon: buildCreateIconPayload(form.icon),
+      priceImageUrl: showPricePosterUpload.value
+        ? buildCreateIconPayload(form.priceImageUrl)
+        : undefined,
       sortOrder: form.sortOrder,
     };
 
@@ -480,6 +591,9 @@ const onSubmit = async () => {
       await updateServiceCatalog(editingId.value, {
         ...payload,
         icon: buildUpdateIconPayload(form.icon),
+        priceImageUrl: showPricePosterUpload.value
+          ? buildUpdateIconPayload(form.priceImageUrl)
+          : null,
       });
       ElMessage.success('编辑成功');
       console.info('[ServiceConfig] update id=%d', editingId.value);
@@ -537,6 +651,14 @@ onMounted(loadData);
   width: 36px;
   height: 36px;
   object-fit: contain;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+.poster-thumb {
+  width: 36px;
+  height: 48px;
+  object-fit: cover;
   border-radius: 4px;
   vertical-align: middle;
 }
@@ -602,6 +724,41 @@ onMounted(loadData);
 }
 
 .icon-upload-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.poster-upload-box {
+  width: 96px;
+  height: 136px;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: #909399;
+  font-size: 12px;
+  background: #fafafa;
+  border: 1px dashed #dcdfe6;
+  border-radius: 6px;
+  cursor: pointer;
+
+  &:hover {
+    color: #409eff;
+    border-color: #409eff;
+  }
+
+  &.is-uploading {
+    cursor: wait;
+    opacity: 0.65;
+  }
+}
+
+.poster-upload-preview {
   width: 100%;
   height: 100%;
   object-fit: contain;

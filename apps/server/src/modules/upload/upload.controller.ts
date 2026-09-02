@@ -55,6 +55,12 @@ function buildIconFilename(): string {
   return `ICON_${ts}_${rand}.webp`;
 }
 
+function buildPosterFilename(): string {
+  const ts = Date.now();
+  const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `POSTER_${ts}_${rand}.webp`;
+}
+
 /**
  * 在图片右下角叠加水印文字（SVG composite，无需系统字体）
  * 水印内容：{orderNo} {YYYY-MM-DD HH:mm:ss}（orderNo 缺省时只显示时间）
@@ -168,6 +174,78 @@ export class UploadController {
     const url = await this.storageService.save(filename, iconBuffer);
 
     this.logger.log(`Service icon uploaded successfully: ${url}`);
+
+    return {
+      code: 0,
+      message: 'ok',
+      data: { url, filename },
+    };
+  }
+
+  /**
+   * 上传价格表海报（无水印，保留长图比例）
+   */
+  @Post('poster')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: MAX_FILE_SIZE },
+    }),
+  )
+  @ApiOperation({
+    summary: '上传价格表海报（无水印）',
+    description: '接受长图海报，按宽度约束到 1200 以内后存储，返回可访问 URL',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: '价格表海报（JPEG/PNG/WebP，≤10MB）',
+        },
+      },
+      required: ['file'],
+    },
+  })
+  async uploadPoster(
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<{ code: number; message: string; data: UploadImageResponseDto }> {
+    if (!file) {
+      throw new BadRequestException('未接收到文件，请确认请求包含 file 字段');
+    }
+    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      throw new BadRequestException(
+        `不支持的文件类型 ${file.mimetype}，仅允许 JPEG / PNG / WebP`,
+      );
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      throw new BadRequestException('价格海报大小不能超过 10MB');
+    }
+
+    this.logger.log(
+      `Uploading price poster: originalName=${file.originalname}, size=${file.size}`,
+    );
+
+    let posterBuffer: Buffer;
+    try {
+      posterBuffer = await sharp(file.buffer)
+        .rotate()
+        .resize({
+          width: 1200,
+          withoutEnlargement: true,
+        })
+        .webp({ quality: 85, alphaQuality: 100 })
+        .toBuffer();
+    } catch {
+      throw new BadRequestException('图片内容无效或已损坏');
+    }
+
+    const filename = buildPosterFilename();
+    const url = await this.storageService.save(filename, posterBuffer);
+
+    this.logger.log(`Price poster uploaded successfully: ${url}`);
 
     return {
       code: 0,
