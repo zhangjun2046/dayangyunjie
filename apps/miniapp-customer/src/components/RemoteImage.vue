@@ -36,6 +36,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   tap: [];
+  error: [];
 }>();
 
 const displaySrc = ref(props.src);
@@ -52,6 +53,7 @@ watch(
     } catch (e) {
       console.info('[RemoteImage] load failed', url, e);
       displaySrc.value = url;
+      emit('error');
     }
   },
   { immediate: true },
@@ -59,6 +61,7 @@ watch(
 
 function onError() {
   console.info('[RemoteImage] image error', displaySrc.value);
+  emit('error');
 }
 
 function onTap() {

@@ -183,7 +183,7 @@
             @tap="toggleItem(item)"
           >
             <view class="item-icon-wrap">
-              <image
+              <RemoteImage
                 v-if="itemIconUrl(item)"
                 class="item-icon-img"
                 :src="itemIconUrl(item)!"
@@ -416,6 +416,7 @@ import {
   serviceCatalogFallbackEmoji,
 } from '@/utils/service-catalog-icon';
 import BookingSuccessOverlay from '@/components/BookingSuccessOverlay.vue';
+import RemoteImage from '@/components/RemoteImage.vue';
 import {
   formatRecyclingCarryFloorText,
   formatRecyclingElevatorText,
