@@ -22,6 +22,8 @@ export interface CreateRecyclingOrderDto {
   selectedItems?: RecyclingOrderSelectedItem[];
   hasElevator?: boolean;
   carryFloor?: number;
+  /** 物品照片 URL，选填 */
+  itemPhotoUrl?: string;
 }
 
 /** 废品订单列表筛选 */

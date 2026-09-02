@@ -251,6 +251,38 @@
         </picker>
       </view>
 
+      <view v-if="store.selectedCatalog" class="section-wrap">
+        <text class="sub-title">上传图片</text>
+        <view class="image-section">
+          <view v-if="store.itemPhotoLocal || store.itemPhotoUrl" class="img-item">
+            <image
+              v-if="store.itemPhotoLocal"
+              class="img-thumb"
+              :src="store.itemPhotoLocal"
+              mode="aspectFill"
+              @tap="onPreviewItemPhoto"
+            />
+            <RemoteImage
+              v-else-if="store.itemPhotoUrl"
+              class="img-thumb"
+              :src="store.itemPhotoUrl"
+              mode="aspectFill"
+              variant="thumbnail"
+              @tap="onPreviewItemPhoto"
+            />
+            <view class="img-delete" @tap.stop="onRemoveItemPhoto">
+              <text class="img-delete-icon">×</text>
+            </view>
+          </view>
+          <view v-else class="img-add" @tap="onChooseItemPhoto">
+            <image class="img-add-icon" src="/static/icons/add-photo.png" mode="aspectFit" />
+          </view>
+        </view>
+        <view v-if="store.itemPhotoUploading" class="uploading-tip">
+          <text class="uploading-text">图片上传中…</text>
+        </view>
+      </view>
+
       <!-- 代家人下单 -->
       <view class="section-wrap proxy-section">
         <text class="sub-title">是否为代家人下单</text>
@@ -321,6 +353,24 @@
           <view v-if="confirmCarryFloorText" class="order-row">
             <text class="order-key">搬运楼层</text>
             <text class="order-val">{{ confirmCarryFloorText }}</text>
+          </view>
+          <view v-if="store.itemPhotoLocal || store.itemPhotoUrl" class="order-row order-row-photo">
+            <text class="order-key">上传图片</text>
+            <image
+              v-if="store.itemPhotoLocal"
+              class="confirm-photo"
+              :src="store.itemPhotoLocal"
+              mode="aspectFill"
+              @tap="onPreviewItemPhoto"
+            />
+            <RemoteImage
+              v-else-if="store.itemPhotoUrl"
+              class="confirm-photo"
+              :src="store.itemPhotoUrl"
+              mode="aspectFill"
+              variant="thumbnail"
+              @tap="onPreviewItemPhoto"
+            />
           </view>
           <view class="order-row">
             <text class="order-key">预约时间</text>
@@ -408,6 +458,7 @@ import { useAuthStore } from '@/store/auth';
 import { fetchRecyclingCatalogs, type ServiceCatalogDto } from '@/api/service-catalog';
 import { fetchAddresses } from '@/api/address';
 import { createRecyclingOrder } from '@/api/recycling-order';
+import { uploadImage } from '@/api/upload';
 import { fetchEnabledRecyclingItems } from '@/api/recycling-item';
 import { getSolarToLunar } from '@/utils/lunar';
 import { openCreatedOrderDetail } from '@/utils/order-navigation';
@@ -417,6 +468,7 @@ import {
 } from '@/utils/service-catalog-icon';
 import BookingSuccessOverlay from '@/components/BookingSuccessOverlay.vue';
 import RemoteImage from '@/components/RemoteImage.vue';
+import { previewNetworkImages } from '@/utils/remote-image';
 import {
   formatRecyclingCarryFloorText,
   formatRecyclingElevatorText,
@@ -636,6 +688,50 @@ function onCarryFloorChange(event: { detail: { value: string } }) {
   store.carryFloor = Number(event.detail.value) + 1;
 }
 
+function onChooseItemPhoto() {
+  if (store.itemPhotoUploading) return;
+  uni.chooseImage({
+    count: 1,
+    sizeType: ['compressed'],
+    sourceType: ['album', 'camera'],
+    success: async (res) => {
+      const path = res.tempFilePaths[0];
+      if (!path) return;
+      store.itemPhotoLocal = path;
+      store.itemPhotoUrl = null;
+      store.itemPhotoUploading = true;
+      try {
+        store.itemPhotoUrl = await uploadImage(path);
+        console.info('[booking-recycling] item photo uploaded', store.itemPhotoUrl);
+      } catch (e) {
+        store.itemPhotoLocal = null;
+        store.itemPhotoUrl = null;
+        const msg = e instanceof Error ? e.message : '上传失败';
+        uni.showToast({ title: msg, icon: 'none' });
+      } finally {
+        store.itemPhotoUploading = false;
+      }
+    },
+  });
+}
+
+function onRemoveItemPhoto() {
+  store.itemPhotoLocal = null;
+  store.itemPhotoUrl = null;
+  store.itemPhotoUploading = false;
+}
+
+function onPreviewItemPhoto() {
+  const local = store.itemPhotoLocal;
+  if (local) {
+    uni.previewImage({ current: local, urls: [local] });
+    return;
+  }
+  if (store.itemPhotoUrl) {
+    void previewNetworkImages([store.itemPhotoUrl], 0);
+  }
+}
+
 // ───────────────────── Step 3 显示计算 ─────────────────────
 const appointTimeDisplay = computed(() => {
   if (!store.selectedDate || !store.selectedTime) return '-';
@@ -686,6 +782,7 @@ function nextStep() {
       selectedCount: store.selectedItems.length,
       hasElevator: store.hasElevator,
       carryFloor: store.carryFloor,
+      itemPhotoUploading: store.itemPhotoUploading,
     });
     if (blockMessage) {
       uni.showToast({ title: blockMessage, icon: 'none' });
@@ -721,6 +818,10 @@ async function submitOrder() {
       return;
     }
   }
+  if (store.itemPhotoUploading) {
+    uni.showToast({ title: '请等待图片上传完成', icon: 'none' });
+    return;
+  }
 
   submitting.value = true;
   let orderCreated = false;
@@ -747,6 +848,7 @@ async function submitOrder() {
         quantity: row.quantity,
       })),
       hasElevator: store.hasElevator === true,
+      itemPhotoUrl: store.itemPhotoUrl ?? undefined,
       ...(store.carryFloor != null ? { carryFloor: store.carryFloor } : {}),
     });
 
@@ -1421,6 +1523,81 @@ onUnload(() => {
 
 .floor-text.placeholder {
   color: #999;
+}
+
+.image-section {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.img-item {
+  position: relative;
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+
+.img-thumb {
+  width: 100%;
+  height: 100%;
+}
+
+.img-delete {
+  position: absolute;
+  top: 4rpx;
+  right: 4rpx;
+  width: 40rpx;
+  height: 40rpx;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.img-delete-icon {
+  font-size: 28rpx;
+  color: #fff;
+  line-height: 1;
+}
+
+.img-add {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 12rpx;
+  border: 2rpx dashed #d9d9d9;
+  background: #f9f9f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.img-add-icon {
+  width: 60rpx;
+  height: 60rpx;
+}
+
+.uploading-tip {
+  margin-top: 12rpx;
+}
+
+.uploading-text {
+  font-size: 24rpx;
+  color: #fa8c16;
+}
+
+.order-row-photo {
+  align-items: flex-start;
+}
+
+.confirm-photo {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 12rpx;
+  background: #f5f5f5;
 }
 
 /* ── 代下单单选 ── */

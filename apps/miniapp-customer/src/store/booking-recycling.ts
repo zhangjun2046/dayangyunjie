@@ -37,6 +37,15 @@ export const useBookingRecyclingStore = defineStore('bookingRecycling', () => {
   /** Step 2: 搬运楼层；未选为 null */
   const carryFloor = ref<number | null>(null);
 
+  /** Step 2: 物品照片服务端 URL */
+  const itemPhotoUrl = ref<string | null>(null);
+
+  /** Step 2: 物品照片本地预览路径 */
+  const itemPhotoLocal = ref<string | null>(null);
+
+  /** Step 2: 物品照片是否正在上传 */
+  const itemPhotoUploading = ref<boolean>(false);
+
   /** Step 2: 是否为代家人下单 */
   const isProxy = ref<boolean>(false);
 
@@ -74,6 +83,9 @@ export const useBookingRecyclingStore = defineStore('bookingRecycling', () => {
     serviceContactName.value = '';
     serviceContactPhone.value = '';
     remark.value = '';
+    itemPhotoUrl.value = null;
+    itemPhotoLocal.value = null;
+    itemPhotoUploading.value = false;
     clearItemConditions();
     console.info('[booking-recycling-store] reset');
   }
@@ -93,6 +105,9 @@ export const useBookingRecyclingStore = defineStore('bookingRecycling', () => {
     selectedItems,
     hasElevator,
     carryFloor,
+    itemPhotoUrl,
+    itemPhotoLocal,
+    itemPhotoUploading,
     isProxy,
     serviceContactName,
     serviceContactPhone,

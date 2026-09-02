@@ -51,6 +51,7 @@ export class RecyclingOrderService {
     actor?: RequestIdentity | null,
   ): Promise<RecyclingOrderDto> {
     this.validateProxyFields(createRecyclingOrderDto);
+    const itemPhotoUrl = this.resolveItemPhotoUrl(createRecyclingOrderDto);
     const createActor =
       actor ??
       (createRecyclingOrderDto.residentId
@@ -116,6 +117,7 @@ export class RecyclingOrderService {
                 : Prisma.DbNull,
               hasElevator: snapshot.hasElevator,
               carryFloor: snapshot.carryFloor,
+              itemPhotoUrl,
               appointDate,
               appointTimeSlot: createRecyclingOrderDto.appointTimeSlot,
               addressSnapshot,
@@ -592,6 +594,10 @@ export class RecyclingOrderService {
     }
   }
 
+  private resolveItemPhotoUrl(dto: CreateRecyclingOrderDto): string | null {
+    return dto.itemPhotoUrl?.trim() || null;
+  }
+
   private async resolveRecyclingSnapshot(
     tx: Prisma.TransactionClient,
     dto: CreateRecyclingOrderDto,
@@ -716,6 +722,7 @@ export class RecyclingOrderService {
       selectedItems: this.toSelectedItemsSnapshot(row.selectedItems),
       hasElevator: row.hasElevator,
       carryFloor: row.carryFloor,
+      itemPhotoUrl: row.itemPhotoUrl,
       appointDate: row.appointDate.toISOString(),
       appointTimeSlot: row.appointTimeSlot,
       addressSnapshot: row.addressSnapshot as unknown as AddressSnapshot,

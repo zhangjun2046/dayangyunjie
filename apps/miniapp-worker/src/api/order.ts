@@ -260,6 +260,7 @@ export interface OrderDetailDto {
   selectedItems?: RecyclingOrderSelectedItem[] | null;
   hasElevator?: boolean | null;
   carryFloor?: number | null;
+  itemPhotoUrl?: string | null;
   appointDate: string;
   appointTimeSlot: string;
   contactName: string;

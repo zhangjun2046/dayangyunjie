@@ -148,6 +148,12 @@
           <text class="info-label">备注信息</text>
           <text class="info-value remark-value">{{ order.remark }}</text>
         </view>
+        <view v-if="recyclingItemPhotoUrl" class="info-row">
+          <text class="info-label">物品照片</text>
+          <view class="photo-thumb-wrap" @tap="previewPhotos([recyclingItemPhotoUrl], recyclingItemPhotoUrl)">
+            <image class="photo-thumb" :src="recyclingItemPhotoUrl" mode="aspectFill" />
+          </view>
+        </view>
       </view>
 
       <view class="info-card">
@@ -403,6 +409,7 @@ const recyclingElevatorText = computed(() =>
 const recyclingCarryFloorText = computed(() =>
   formatRecyclingCarryFloorText(recyclingSnapshot.value?.carryFloor),
 );
+const recyclingItemPhotoUrl = computed(() => recyclingSnapshot.value?.itemPhotoUrl?.trim() || '');
 
 const appointTimeText = computed(() => {
   if (!order.value) return '';

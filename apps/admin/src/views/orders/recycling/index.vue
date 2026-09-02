@@ -501,6 +501,14 @@
             <el-descriptions-item v-if="detailDrawer.order.remark" label="备注信息" :span="2">
               {{ detailDrawer.order.remark }}
             </el-descriptions-item>
+            <el-descriptions-item v-if="detailDrawer.order.itemPhotoUrl" label="物品照片" :span="2">
+              <el-image
+                :src="detailDrawer.order.itemPhotoUrl"
+                :preview-src-list="[detailDrawer.order.itemPhotoUrl]"
+                fit="cover"
+                class="photo-thumb"
+              />
+            </el-descriptions-item>
           </el-descriptions>
         </el-card>
 

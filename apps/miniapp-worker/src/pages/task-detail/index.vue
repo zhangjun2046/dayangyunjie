@@ -153,6 +153,16 @@
           <text class="info-label">备注信息</text>
           <text class="info-value remark-value">{{ order.remark || order.notes }}</text>
         </view>
+        <view v-if="recyclingItemPhotoUrl" class="info-row info-row-photo">
+          <text class="info-label">物品照片</text>
+          <RemoteImage
+            class="item-photo-thumb"
+            :src="recyclingItemPhotoUrl"
+            mode="aspectFill"
+            variant="thumbnail"
+            @tap="previewWorkPhotos([recyclingItemPhotoUrl], 0)"
+          />
+        </view>
       </view>
 
       <!-- ===== 服务进度时间轴 ===== -->
@@ -502,6 +512,9 @@ const recyclingElevatorText = computed(() =>
 );
 const recyclingCarryFloorText = computed(() =>
   orderType.value === 'recycling' ? formatRecyclingCarryFloorText(order.value?.carryFloor) : null,
+);
+const recyclingItemPhotoUrl = computed(
+  () => (orderType.value === 'recycling' ? order.value?.itemPhotoUrl?.trim() || '' : ''),
 );
 
 // ===== 路由参数加载 =====
@@ -1514,6 +1527,10 @@ async function handleStartService(): Promise<void> {
 .photo-thumb {
   width: 100%;
   height: 100%;
+}
+
+.item-photo-thumb {
+  margin-top: 8rpx;
 }
 
 .photo-delete-btn {

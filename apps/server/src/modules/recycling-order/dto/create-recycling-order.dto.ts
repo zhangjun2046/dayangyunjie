@@ -86,6 +86,15 @@ export class CreateRecyclingOrderDto {
   @Max(30)
   carryFloor?: number;
 
+  @ApiPropertyOptional({
+    description: '物品照片 URL，选填',
+    example: 'https://example.com/uploads/item.jpg',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(512)
+  itemPhotoUrl?: string;
+
   @ApiProperty({ description: '预约日期（ISO 日期）', example: '2026-06-08' })
   @IsDateString()
   appointDate!: string;

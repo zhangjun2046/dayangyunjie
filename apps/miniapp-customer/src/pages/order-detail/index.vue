@@ -153,6 +153,16 @@
 					  <text class="info-label">备注</text>
 					  <text class="info-value">{{ (order as RecyclingOrderDto).remark }}</text>
 					</view>
+          <view v-if="recyclingItemPhotoUrl" class="info-row info-row-photo">
+            <text class="info-label">物品照片</text>
+            <RemoteImage
+              class="item-photo-thumb"
+              :src="recyclingItemPhotoUrl"
+              mode="aspectFill"
+              variant="thumbnail"
+              @tap="onPreviewItemPhoto"
+            />
+          </view>
         </template>
 
         <!-- 家政咨询订单信息 -->
@@ -491,6 +501,7 @@ const recyclingElevatorText = computed(() =>
 const recyclingCarryFloorText = computed(() =>
   formatRecyclingCarryFloorText(recyclingSnapshot.value?.carryFloor),
 );
+const recyclingItemPhotoUrl = computed(() => recyclingSnapshot.value?.itemPhotoUrl?.trim() || '');
 
 /** 服务人员头像：女 icon_photo_n，男 icon_photo_p；未知性别沿用默认头像 */
 function getWorkerAvatar(gender?: string | null): string {
@@ -629,6 +640,11 @@ function onPreviewWorkPhoto(photos: WorkPhotoDto[], startIdx: number) {
   if (!photos.length) return;
   void previewNetworkImages(photos.map((p) => p.url), startIdx);
   console.info('[order-detail] preview work photo, count=', photos.length);
+}
+
+function onPreviewItemPhoto() {
+  if (!recyclingItemPhotoUrl.value) return;
+  void previewNetworkImages([recyclingItemPhotoUrl.value], 0);
 }
 
 /** 跳转投诉进度详情页 */
@@ -1327,5 +1343,9 @@ function getComplaintStatusClass(status: string): string {
   height: 160rpx;
   border-radius: 12rpx;
   background: #f5f5f5;
+}
+
+.item-photo-thumb {
+  margin-top: 8rpx;
 }
 </style>

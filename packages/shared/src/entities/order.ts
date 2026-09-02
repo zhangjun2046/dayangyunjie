@@ -90,6 +90,8 @@ export interface RecyclingOrderDto {
   hasElevator?: boolean | null;
   /** 搬运楼层；旧单可能为 null */
   carryFloor?: number | null;
+  /** 下单物品照片，选填；未上传为 null */
+  itemPhotoUrl?: string | null;
   appointDate: string;
   appointTimeSlot: string;
   addressSnapshot: AddressSnapshot;

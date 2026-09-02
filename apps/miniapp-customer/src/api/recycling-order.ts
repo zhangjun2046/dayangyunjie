@@ -22,6 +22,7 @@ export interface CreateRecyclingOrderParams {
   selectedItems?: RecyclingOrderSelectedItem[];
   hasElevator?: boolean;
   carryFloor?: number;
+  itemPhotoUrl?: string;
 }
 
 /** 服务作业照片（服务前/服务后） */
@@ -41,6 +42,7 @@ export interface RecyclingOrderDto {
   selectedItems?: RecyclingOrderSelectedItem[] | null;
   hasElevator?: boolean | null;
   carryFloor?: number | null;
+  itemPhotoUrl?: string | null;
   appointDate: string;
   appointTimeSlot: string;
   status: string;

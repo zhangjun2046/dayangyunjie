@@ -54,7 +54,7 @@ describe('booking-recycling Step2 选品工具', () => {
     expect(retainAvailableSelectedItems(current, [8])).toEqual([current[0]]);
   });
 
-  it('nextStep 一次只报一条：物品 → 电梯 → 楼层（大件 / 小件相同）', () => {
+  it('nextStep 一次只报一条：物品 → 电梯 → 楼层（图片选填）', () => {
     expect(
       getRecyclingStep2BlockMessage({
         selectedCount: 0,
@@ -83,6 +83,14 @@ describe('booking-recycling Step2 选品工具', () => {
         carryFloor: 6,
       }),
     ).toBeNull();
+    expect(
+      getRecyclingStep2BlockMessage({
+        selectedCount: 1,
+        hasElevator: true,
+        carryFloor: 6,
+        itemPhotoUploading: true,
+      }),
+    ).toBe('请等待图片上传完成');
   });
 
   it('楼层选项为 1～30 层', () => {

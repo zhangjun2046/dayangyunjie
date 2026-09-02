@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { OrderSource } from '@dayangyunjie/shared';
 import { GeoService } from '../../common/geo/geo.service';
 import { RecyclingOrderService } from './recycling-order.service';
 import { CreateRecyclingOrderDto } from './dto/create-recycling-order.dto';
@@ -30,6 +31,7 @@ function makeCreatedRow(data: Record<string, unknown>) {
     selectedItems: data.selectedItems ?? null,
     hasElevator: data.hasElevator ?? null,
     carryFloor: data.carryFloor ?? null,
+    itemPhotoUrl: data.itemPhotoUrl ?? null,
     appointDate: data.appointDate ?? new Date('2026-09-10'),
     appointTimeSlot: data.appointTimeSlot ?? '14:00',
     addressSnapshot: {},
@@ -81,6 +83,8 @@ function makeService(prisma: ReturnType<typeof makePrisma>) {
   return svc;
 }
 
+const ITEM_PHOTO_URL = 'http://example.com/uploads/item.jpg';
+
 const BASE_DTO: CreateRecyclingOrderDto = {
   residentId: 1,
   serviceItem: '小件类废品',
@@ -129,6 +133,7 @@ describe('RecyclingOrderService — create 回收品项快照', () => {
       selectedItems: [{ itemId: 8, name: '旧名', priceText: '旧价', quantity: 1 }],
       hasElevator: false,
       carryFloor: 6,
+      itemPhotoUrl: ITEM_PHOTO_URL,
     });
 
     expect(prisma._tx.recyclingOrder.create).toHaveBeenCalledWith(
@@ -136,12 +141,14 @@ describe('RecyclingOrderService — create 回收品项快照', () => {
         data: expect.objectContaining({
           hasElevator: false,
           carryFloor: 6,
+          itemPhotoUrl: ITEM_PHOTO_URL,
           selectedItems: [{ itemId: 8, name: '纸张', priceText: '0.6元/kg', quantity: 1 }],
         }),
       }),
     );
     expect(dto.carryFloor).toBe(6);
     expect(dto.hasElevator).toBe(false);
+    expect(dto.itemPhotoUrl).toBe(ITEM_PHOTO_URL);
     expect(dto.selectedItems?.[0].name).toBe('纸张');
   });
 
@@ -157,6 +164,7 @@ describe('RecyclingOrderService — create 回收品项快照', () => {
         serviceItem: '小件类废品',
         selectedItems: [{ itemId: 8, name: '纸张', priceText: '0.6元/kg', quantity: 1 }],
         hasElevator: true,
+        itemPhotoUrl: ITEM_PHOTO_URL,
       }),
     ).rejects.toThrow(new BadRequestException('请选择搬运楼层'));
     expect(prisma._tx.recyclingOrder.create).not.toHaveBeenCalled();
@@ -174,6 +182,7 @@ describe('RecyclingOrderService — create 回收品项快照', () => {
         serviceItem: '大件类废品',
         selectedItems: [{ itemId: 1, name: '单门柜', priceText: '面议', quantity: 2 }],
         hasElevator: true,
+        itemPhotoUrl: ITEM_PHOTO_URL,
       }),
     ).rejects.toThrow(new BadRequestException('请选择搬运楼层'));
     expect(prisma._tx.recyclingOrder.create).not.toHaveBeenCalled();
@@ -188,6 +197,7 @@ describe('RecyclingOrderService — create 回收品项快照', () => {
         ...BASE_DTO,
         selectedItems: [{ itemId: 99, name: '纸张', priceText: '0.6元/kg', quantity: 1 }],
         hasElevator: true,
+        itemPhotoUrl: ITEM_PHOTO_URL,
       }),
     ).rejects.toThrow(new BadRequestException('请重新选择回收物品'));
   });
@@ -198,6 +208,7 @@ describe('RecyclingOrderService — create 回收品项快照', () => {
       selectedItems: [{ itemId: 1, name: '单门柜', priceText: '面议', quantity: 2 }],
       hasElevator: true,
       carryFloor: 8,
+      itemPhotoUrl: ITEM_PHOTO_URL,
     });
     const prisma = {
       recyclingOrder: { findUnique: jest.fn().mockResolvedValue(row) },
@@ -210,6 +221,50 @@ describe('RecyclingOrderService — create 回收品项快照', () => {
     ]);
     expect(dto.hasElevator).toBe(true);
     expect(dto.carryFloor).toBe(8);
+    expect(dto.itemPhotoUrl).toBe(ITEM_PHOTO_URL);
     expect(dto.estimatedWeight).toBe(10);
+  });
+
+  it('小程序选品下单不传物品照片仍可创建', async () => {
+    const prisma = makePrisma({
+      liveItems: [{ id: 8, name: '纸张', priceText: '0.6元/kg' }],
+    });
+    const svc = makeService(prisma);
+
+    const dto = await svc.create({
+      ...BASE_DTO,
+      selectedItems: [{ itemId: 8, name: '纸张', priceText: '0.6元/kg', quantity: 1 }],
+      hasElevator: true,
+      carryFloor: 6,
+    });
+
+    expect(prisma._tx.recyclingOrder.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ itemPhotoUrl: null }),
+      }),
+    );
+    expect(dto.itemPhotoUrl).toBeNull();
+  });
+
+  it('电话代下单不传物品照片仍可创建', async () => {
+    const prisma = makePrisma({
+      liveItems: [{ id: 8, name: '纸张', priceText: '0.6元/kg' }],
+    });
+    const svc = makeService(prisma);
+
+    const dto = await svc.create({
+      ...BASE_DTO,
+      source: OrderSource.PHONE,
+      selectedItems: [{ itemId: 8, name: '纸张', priceText: '0.6元/kg', quantity: 1 }],
+      hasElevator: true,
+      carryFloor: 6,
+    });
+
+    expect(prisma._tx.recyclingOrder.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ itemPhotoUrl: null }),
+      }),
+    );
+    expect(dto.itemPhotoUrl).toBeNull();
   });
 });

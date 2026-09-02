@@ -247,6 +247,7 @@ model RecyclingOrder {
   selectedItems       Json?         @map("selected_items")
   hasElevator         Boolean?      @map("has_elevator")
   carryFloor          Int?          @map("carry_floor")
+  itemPhotoUrl        String?       @map("item_photo_url") @db.VarChar(512)
   appointDate         DateTime      @map("appoint_date") @db.Date
   appointTimeSlot     String        @map("appoint_time_slot") @db.VarChar(32)
   addressSnapshot     Json          @map("address_snapshot")
