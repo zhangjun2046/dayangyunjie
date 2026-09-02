@@ -114,7 +114,12 @@
           <el-input :model-value="BIZ_TYPE_FIXED_LABEL" disabled />
         </el-form-item>
         <el-form-item label="服务名称" prop="catalogId">
-          <el-select v-model="form.catalogId" placeholder="请选择废品回收分类" style="width: 100%">
+          <el-select
+            v-model="form.catalogId"
+            placeholder="请选择废品回收分类"
+            style="width: 100%"
+            @change="onCatalogChange"
+          >
             <el-option
               v-for="catalog in recyclingCatalogs"
               :key="catalog.id"
@@ -126,7 +131,7 @@
         <el-form-item label="名称" prop="name">
           <el-input v-model="form.name" placeholder="请输入品项名称" maxlength="64" show-word-limit />
         </el-form-item>
-        <el-form-item label="金额" prop="priceText">
+        <el-form-item v-if="showPriceAndIcon" label="金额" prop="priceText">
           <el-input
             v-model="form.priceText"
             placeholder="例如 0.6元/kg 或 面议"
@@ -135,7 +140,7 @@
           />
           <span class="form-tip form-tip-block">{{ PRICE_TEXT_HINT }}</span>
         </el-form-item>
-        <el-form-item label="图标" prop="icon">
+        <el-form-item v-if="showPriceAndIcon" label="图标" prop="icon">
           <div class="icon-upload-row">
             <button
               type="button"
@@ -197,7 +202,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus';
 import { Plus, Search } from '@element-plus/icons-vue';
 import request from '@/api/request';
@@ -220,6 +225,7 @@ import {
   buildCreateRecyclingItemBody,
   buildUpdateRecyclingItemBody,
   getNoRecyclingCatalogMessage,
+  isSmallRecyclingCatalogName,
   type RecyclingItemFormState,
 } from './recycling-items.utils';
 
@@ -345,18 +351,36 @@ const FORM_DEFAULT: RecyclingItemFormState = {
 
 const form = reactive({ ...FORM_DEFAULT });
 
-const formRules: FormRules = {
+const selectedCatalogName = computed(() => {
+  const catalog = recyclingCatalogs.value.find((item) => item.id === form.catalogId);
+  return catalog?.name ?? null;
+});
+
+const showPriceAndIcon = computed(() => isSmallRecyclingCatalogName(selectedCatalogName.value));
+
+const formRules = computed<FormRules>(() => ({
   catalogId: [{ required: true, message: '请选择服务名称', trigger: 'change' }],
   name: [
     { required: true, message: '请输入品项名称', trigger: 'blur' },
     { max: 64, message: '最多 64 个字符', trigger: 'blur' },
   ],
-  priceText: [
-    { required: true, message: '请输入金额展示文案', trigger: 'blur' },
-    { max: 32, message: '最多 32 个字符', trigger: 'blur' },
-  ],
-  icon: [{ max: 512, message: '最多 512 个字符', trigger: 'blur' }],
+  priceText: showPriceAndIcon.value
+    ? [
+        { required: true, message: '请输入金额展示文案', trigger: 'blur' },
+        { max: 32, message: '最多 32 个字符', trigger: 'blur' },
+      ]
+    : [],
+  icon: showPriceAndIcon.value
+    ? [
+        { required: true, message: '请上传图标', trigger: 'change' },
+        { max: 512, message: '最多 512 个字符', trigger: 'change' },
+      ]
+    : [],
   sortOrder: [{ type: 'number', min: 0, message: '排序值不能小于 0', trigger: 'change' }],
+}));
+
+const onCatalogChange = () => {
+  formRef.value?.clearValidate(['priceText', 'icon']);
 };
 
 const toastIfNoRecyclingCatalog = () => {
@@ -449,10 +473,13 @@ const onSubmit = async () => {
   submitLoading.value = true;
   try {
     if (isEdit.value && editingId.value !== null) {
-      await updateRecyclingItem(editingId.value, buildUpdateRecyclingItemBody(form));
+      await updateRecyclingItem(
+        editingId.value,
+        buildUpdateRecyclingItemBody(form, selectedCatalogName.value),
+      );
       ElMessage.success('编辑成功');
     } else {
-      await createRecyclingItem(buildCreateRecyclingItemBody(form));
+      await createRecyclingItem(buildCreateRecyclingItemBody(form, selectedCatalogName.value));
       ElMessage.success('新增成功');
     }
     dialogVisible.value = false;
