@@ -250,7 +250,12 @@
                 :key="url"
                 class="photo-thumb-wrap"
               >
-                <image class="photo-thumb" :src="url" mode="aspectFill" />
+                <RemoteImage
+                  class="photo-thumb"
+                  :src="url"
+                  mode="aspectFill"
+                  @tap="previewWorkPhotos(beforePhotos, idx)"
+                />
                 <view class="photo-delete-btn" @tap="removePhoto('before', idx)">
                   <text class="photo-delete-icon">✕</text>
                 </view>
@@ -281,7 +286,12 @@
                 :key="url"
                 class="photo-thumb-wrap"
               >
-                <image class="photo-thumb" :src="url" mode="aspectFill" />
+                <RemoteImage
+                  class="photo-thumb"
+                  :src="url"
+                  mode="aspectFill"
+                  @tap="previewWorkPhotos(afterPhotos, idx)"
+                />
                 <view class="photo-delete-btn" @tap="removePhoto('after', idx)">
                   <text class="photo-delete-icon">✕</text>
                 </view>
@@ -315,11 +325,12 @@
             </view>
             <view v-else class="photo-grid">
               <view
-                v-for="photo in beforeWorkPhotos"
+                v-for="(photo, idx) in beforeWorkPhotos"
                 :key="photo.id"
                 class="photo-thumb-wrap"
+                @tap="previewWorkPhotos(beforeWorkPhotos.map((p) => p.url), idx)"
               >
-                <image class="photo-thumb" :src="photo.url" mode="aspectFill" />
+                <RemoteImage class="photo-thumb" :src="photo.url" mode="aspectFill" />
               </view>
             </view>
           </view>
@@ -338,11 +349,12 @@
             </view>
             <view v-else class="photo-grid">
               <view
-                v-for="photo in afterWorkPhotos"
+                v-for="(photo, idx) in afterWorkPhotos"
                 :key="photo.id"
                 class="photo-thumb-wrap"
+                @tap="previewWorkPhotos(afterWorkPhotos.map((p) => p.url), idx)"
               >
-                <image class="photo-thumb" :src="photo.url" mode="aspectFill" />
+                <RemoteImage class="photo-thumb" :src="photo.url" mode="aspectFill" />
               </view>
             </view>
           </view>
@@ -377,9 +389,9 @@
             v-for="(imgUrl, idx) in review.images"
             :key="idx"
             class="photo-thumb-wrap"
-            @tap="previewReviewImage(imgUrl)"
+            @tap="previewReviewImage(idx)"
           >
-            <image class="photo-thumb" :src="imgUrl" mode="aspectFill" />
+            <RemoteImage class="photo-thumb" :src="imgUrl" mode="aspectFill" />
           </view>
         </view>
 
@@ -448,6 +460,8 @@ import { uploadImage } from '@/api/upload';
 import { fetchOrderReview } from '@/api/review';
 import type { ReviewDto } from '@/api/review';
 import { getOrderBadgeClass, getOrderBadgeLabel } from '@/constants/order-status';
+import RemoteImage from '@/components/RemoteImage.vue';
+import { previewNetworkImages } from '@/utils/remote-image';
 import {
   formatRecyclingCarryFloorText,
   formatRecyclingElevatorText,
@@ -670,12 +684,19 @@ function formatTs(ts: string | undefined | null): string {
   return `${beijing.getUTCFullYear()}-${pad(beijing.getUTCMonth() + 1)}-${pad(beijing.getUTCDate())} ${pad(beijing.getUTCHours())}:${pad(beijing.getUTCMinutes())}:${pad(beijing.getUTCSeconds())}`;
 }
 
-// ===== 评价辅助 =====
+// ===== 评价 / 作业照片预览 =====
 
-/** 预览评价图片（单图预览） */
-function previewReviewImage(url: string): void {
+/** 预览服务前/后照片：先转成本地路径，避免体验版 downloadFile 拦截 http://IP */
+function previewWorkPhotos(urls: string[], startIdx: number): void {
+  if (!urls.length) return;
+  void previewNetworkImages(urls, startIdx);
+}
+
+/** 预览评价图片 */
+function previewReviewImage(startIdx: number): void {
   const urls = review.value?.images ?? [];
-  uni.previewImage({ current: url, urls: urls.length > 0 ? urls : [url] });
+  if (!urls.length) return;
+  void previewNetworkImages(urls, startIdx);
 }
 
 // ===== 操作函数 =====
