@@ -76,6 +76,7 @@ npx prisma migrate deploy   # 应用已有迁移（测试/生产推荐）
 | [`docs/CodingPlan.md`](./docs/CodingPlan.md) | 分阶段开发计划与验收（Cursor Agent 主稿） |
 | [`docs/tech.md`](./docs/tech.md) | 技术选型 |
 | [`docs/TencentCloud-Test-Deploy.md`](./docs/TencentCloud-Test-Deploy.md) | 腾讯云测试环境装机与运维 |
+| [`docs/Remote-Server-Update.md`](./docs/Remote-Server-Update.md) | 远程 Linux 服务器日常代码更新 |
 | [`plan/wechat-notify-auth-roadmap.md`](./plan/wechat-notify-auth-roadmap.md) | 微信订单通知方案 |
 | [`plan/appoint-time-lead-validation.md`](./plan/appoint-time-lead-validation.md) | 预约时间过期与派单缓冲校验 |
 | [`plan/biz-dict.md`](./plan/biz-dict.md) | 管理端业务字典 |

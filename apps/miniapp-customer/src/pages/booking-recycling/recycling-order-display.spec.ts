@@ -6,13 +6,21 @@ import {
 } from '@dayangyunjie/shared';
 
 describe('recycling order display', () => {
-  it('回收物品按选中顺序用顿号拼接名称，不含价格和数量', () => {
+  it('小件只拼名称，大件才带数量', () => {
+    const items = [
+      { itemId: 1, name: '纸张', priceText: '0.6元/kg', quantity: 1 },
+      { itemId: 2, name: '金属', priceText: '1元/kg', quantity: 3 },
+    ];
+    expect(formatRecyclingItemNames(items, '小件类')).toBe('纸张、金属');
     expect(
-      formatRecyclingItemNames([
-        { itemId: 1, name: '纸张', priceText: '0.6元/kg', quantity: 1 },
-        { itemId: 2, name: '金属', priceText: '1元/kg', quantity: 3 },
-      ]),
-    ).toBe('纸张、金属');
+      formatRecyclingItemNames(
+        [
+          { itemId: 21, name: '桌子', priceText: '面议', quantity: 1 },
+          { itemId: 22, name: '椅子', priceText: '面议', quantity: 2 },
+        ],
+        '大件类',
+      ),
+    ).toBe('桌子*1、椅子*2');
   });
 
   it('旧单无快照或空数组不展示', () => {

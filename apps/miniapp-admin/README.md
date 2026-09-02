@@ -17,8 +17,13 @@ npm run build:h5 --workspace=@dayangyunjie/miniapp-admin
 
 产物目录：`apps/miniapp-admin/dist/build/h5`（hash 路由）。
 
-生产默认按同域子路径 **`/admin/`** 托管（生产构建时 `vite.config.ts` 的 `base` 为 `/admin/`；本地 `dev` 仍为 `/`）。  
-测试机访问示例：`http://118.195.149.50/admin/`；API 仍走同域 `/api/v1`（Nginx 反代到 Nest）。
+| 项 | 值 |
+|----|-----|
+| Nginx 静态目录 | `/var/www/dayangyunjie-miniapp-admin/` |
+| 测试机访问 | `http://118.195.149.50/admin/` |
 
-测试机装机与 Nginx 见 [`docs/TencentCloud-Test-Deploy.md`](../../docs/TencentCloud-Test-Deploy.md)。  
+生产默认按同域子路径 **`/admin/`** 托管（生产构建时 `vite.config.ts` 的 `base` 为 `/admin/`；本地 `dev` 仍为 `/`）。  
+API 仍走同域 `/api/v1`（Nginx 反代到 Nest）。
+
+测试机装机、Nginx 与发版见 [`docs/TencentCloud-Test-Deploy.md`](../../docs/TencentCloud-Test-Deploy.md) 6.5 节、[`docs/Remote-Server-Update.md`](../../docs/Remote-Server-Update.md) 第三节。  
 若前后端不同域，构建前配置 `VITE_API_BASE`，并保证服务端 `CORS_ORIGIN` 允许该域名。

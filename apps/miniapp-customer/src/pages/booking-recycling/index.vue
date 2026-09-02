@@ -68,7 +68,7 @@
           <view
             class="ctrl-btn-1"
             :class="{ disabled: store.estimatedWeight <= 5 }"
-            @tap="changeWeight(-5)"
+            @tap="changeWeight(-1)"
           >
             <text>-</text>
           </view>
@@ -76,7 +76,7 @@
             <text class="val-num">{{ store.estimatedWeight }}</text>
             <text class="val-unit">kg</text>
           </view>
-          <view class="ctrl-btn" @tap="changeWeight(5)">
+          <view class="ctrl-btn" :class="{ disabled: store.estimatedWeight >= 200 }" @tap="changeWeight(1)">
             <text class="ctrl-text">+</text>
           </view>
         </view>
@@ -201,9 +201,17 @@
           <view v-for="row in store.selectedItems" :key="row.itemId" class="qty-row">
             <text class="qty-name">{{ row.name }}</text>
             <view class="qty-ctrl">
-              <view class="qty-btn" @tap="changeItemQty(row.itemId, -1)"><text>-</text></view>
+              <view class="qty-btn" @tap.stop="changeItemQty(row.itemId, -1)">
+                <text class="qty-btn-text">−</text>
+              </view>
               <text class="qty-num">{{ row.quantity }}</text>
-              <view class="qty-btn plus" @tap="changeItemQty(row.itemId, 1)"><text>+</text></view>
+              <view
+                class="qty-btn"
+                :class="{ disabled: row.quantity >= 99 }"
+                @tap.stop="changeItemQty(row.itemId, 1)"
+              >
+                <text class="qty-btn-text">+</text>
+              </view>
             </view>
           </view>
         </view>
@@ -490,7 +498,7 @@ function selectCatalog(item: ServiceCatalogDto) {
 
 function changeWeight(delta: number) {
   const next = store.estimatedWeight + delta;
-  if (next >= 5) {
+  if (next >= 5 && next <= 200) {
     store.estimatedWeight = next;
   }
 }
@@ -639,7 +647,9 @@ const appointAddrDisplay = computed(() => {
   return `${store.selectedAddress.district} ${store.selectedAddress.detail}`;
 });
 
-const confirmItemNames = computed(() => formatRecyclingItemNames(store.selectedItems));
+const confirmItemNames = computed(() =>
+  formatRecyclingItemNames(store.selectedItems, store.selectedCatalog?.name),
+);
 const confirmElevatorText = computed(() => formatRecyclingElevatorText(store.hasElevator));
 const confirmCarryFloorText = computed(() => formatRecyclingCarryFloorText(store.carryFloor));
 
@@ -1341,53 +1351,60 @@ onUnload(() => {
 }
 
 .qty-list {
-  margin-top: 24rpx;
-  padding-top: 8rpx;
-  border-top: 1rpx solid #f7f9fa;
+  margin-top: 8rpx;
 }
 
 .qty-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18rpx 0;
+  padding: 24rpx 0 8rpx;
 }
 
 .qty-name {
   font-size: 28rpx;
   color: #333;
+  flex: 1;
+  padding-right: 24rpx;
 }
 
 .qty-ctrl {
   display: flex;
-  align-items: center;
-  gap: 20rpx;
+  align-items: stretch;
+  height: 52rpx;
+  border: 1rpx solid #d9d9d9;
+  border-radius: 8rpx;
+  overflow: hidden;
+  background: #fff;
 }
 
 .qty-btn {
-  width: 48rpx;
-  height: 48rpx;
-  border-radius: 50%;
-  background: #f2f3fc;
-  color: #236eff;
+  width: 56rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32rpx;
-  font-weight: 600;
+  background: #fff;
 }
 
-.qty-btn.plus {
-  background: #236eff;
-  color: #fff;
+.qty-btn.disabled {
+  opacity: 0.35;
+}
+
+.qty-btn-text {
+  font-size: 32rpx;
+  line-height: 1;
+  color: #333;
 }
 
 .qty-num {
-  min-width: 40rpx;
+  min-width: 64rpx;
+  padding: 0 8rpx;
   text-align: center;
-  font-size: 30rpx;
+  font-size: 28rpx;
+  line-height: 52rpx;
   color: #333;
-  font-weight: 600;
+  border-left: 1rpx solid #d9d9d9;
+  border-right: 1rpx solid #d9d9d9;
 }
 
 .floor-picker {

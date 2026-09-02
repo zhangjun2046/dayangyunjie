@@ -1,12 +1,26 @@
 import type { RecyclingOrderSelectedItem } from '../entities/order';
 
-/** 确认/详情：只拼名称，顿号分隔；无快照则不展示 */
+export function shouldShowRecyclingItemQuantity(catalogName?: string | null): boolean {
+  return Boolean(catalogName?.includes('大件'));
+}
+
+/** 确认/详情：顿号拼接名称；大件带 *数量；无快照则不展示 */
 export function formatRecyclingItemNames(
-  items?: Array<Pick<RecyclingOrderSelectedItem, 'name'>> | null,
+  items?: Array<Pick<RecyclingOrderSelectedItem, 'name' | 'quantity'>> | null,
+  catalogName?: string | null,
 ): string | null {
   if (!items?.length) return null;
-  const names = items.map((item) => item.name?.trim()).filter((name): name is string => Boolean(name));
-  return names.length > 0 ? names.join('、') : null;
+  const showQuantity = shouldShowRecyclingItemQuantity(catalogName);
+  const parts = items
+    .map((item) => {
+      const name = item.name?.trim();
+      if (!name) return null;
+      if (!showQuantity) return name;
+      const quantity = Number.isInteger(item.quantity) && item.quantity > 0 ? item.quantity : 1;
+      return `${name}*${quantity}`;
+    })
+    .filter((part): part is string => Boolean(part));
+  return parts.length > 0 ? parts.join('、') : null;
 }
 
 export function formatRecyclingElevatorText(hasElevator?: boolean | null): string | null {

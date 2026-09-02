@@ -16,7 +16,7 @@ export const useBookingRecyclingStore = defineStore('bookingRecycling', () => {
   /** Step 1: 选择的废品回收类目 */
   const selectedCatalog = ref<ServiceCatalogDto | null>(null);
 
-  /** Step 1: 预估重量（kg，整数，步长 5，最小 5） */
+  /** Step 1: 预估重量（kg，整数，步长 1，最小 5，最大 200） */
   const estimatedWeight = ref<number>(5);
 
   /** Step 2: 选择的日期 YYYY-MM-DD */

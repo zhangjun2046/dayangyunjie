@@ -479,7 +479,9 @@ const navColor = computed(() => (navDark.value ? '#000000' : '#ffffff'));
 const navBgColor = computed(() => (navDark.value ? '#ffffff' : 'transparent'));
 
 const recyclingItemNames = computed(() =>
-  orderType.value === 'recycling' ? formatRecyclingItemNames(order.value?.selectedItems) : null,
+  orderType.value === 'recycling'
+    ? formatRecyclingItemNames(order.value?.selectedItems, order.value?.serviceItem)
+    : null,
 );
 const recyclingElevatorText = computed(() =>
   orderType.value === 'recycling' ? formatRecyclingElevatorText(order.value?.hasElevator) : null,

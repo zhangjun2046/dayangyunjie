@@ -135,10 +135,16 @@ function linkApp(appName) {
   // there due to vite peer-dep version conflict (root .bin/uni won't exist then).
   const rootBinUni = path.join(repoRoot, 'node_modules', '.bin', 'uni');
   const localBinUni = path.join(binLocal, 'uni');
+  const rootUniJs = path.join(repoRoot, 'node_modules', '@dcloudio', 'vite-plugin-uni', 'bin', 'uni.js');
   if (fs.existsSync(rootBinUni)) {
     const rel = path.join('..', '..', '..', '..', 'node_modules', '.bin', 'uni');
     linkPath(rel, localBinUni);
     console.log(`[ok] apps/${appName}/node_modules/.bin/uni`);
+  } else if (fs.existsSync(rootUniJs)) {
+    // Linux 服务器 npm 有时不会生成根 .bin/uni，直接链到 uni.js 即可
+    const rel = path.join('..', '..', '..', '..', 'node_modules', '@dcloudio', 'vite-plugin-uni', 'bin', 'uni.js');
+    linkPath(rel, localBinUni);
+    console.log(`[ok] apps/${appName}/node_modules/.bin/uni (via vite-plugin-uni/bin/uni.js)`);
   } else {
     // Accept an existing workspace-local .bin/uni created by npm
     try {

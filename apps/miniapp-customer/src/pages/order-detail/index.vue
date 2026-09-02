@@ -480,7 +480,10 @@ const recyclingSnapshot = computed(() => {
   return order.value as RecyclingOrderDto;
 });
 const recyclingItemNames = computed(() =>
-  formatRecyclingItemNames(recyclingSnapshot.value?.selectedItems),
+  formatRecyclingItemNames(
+    recyclingSnapshot.value?.selectedItems,
+    recyclingSnapshot.value?.serviceItem,
+  ),
 );
 const recyclingElevatorText = computed(() =>
   formatRecyclingElevatorText(recyclingSnapshot.value?.hasElevator),

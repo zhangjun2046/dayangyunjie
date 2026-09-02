@@ -1124,7 +1124,10 @@ const detailDrawer = reactive<{
 });
 
 const detailItemNames = computed(() =>
-  formatRecyclingItemNames(detailDrawer.order?.selectedItems),
+  formatRecyclingItemNames(
+    detailDrawer.order?.selectedItems,
+    detailDrawer.order?.serviceItem,
+  ),
 );
 const detailElevatorText = computed(() =>
   formatRecyclingElevatorText(detailDrawer.order?.hasElevator),

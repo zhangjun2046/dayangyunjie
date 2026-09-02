@@ -34,7 +34,8 @@
 | 组件 | 路径 | 部署方式 |
 |------|------|----------|
 | NestJS API | `apps/server` | PM2 常驻进程，监听 `3000`，Nginx 反代 |
-| 管理后台 | `apps/admin` | `vite build` 静态产物，Nginx 托管 |
+| PC 管理后台 | `apps/admin` | `vite build` 静态产物 → `/var/www/dayangyunjie-admin/`，Nginx 根路径 `/` |
+| 管理端 H5 | `apps/miniapp-admin` | `npm run build:miniapp-admin` → `/var/www/dayangyunjie-miniapp-admin/`，Nginx 子路径 `/admin/` |
 | 居民端小程序 | `apps/miniapp-customer` | 微信开发者工具直接编译预览，`VITE_API_BASE` 指向云端 |
 | 员工端小程序 | `apps/miniapp-worker` | 同上 |
 | MySQL 8 | Prisma | 服务器本机安装（不使用独立 TencentDB） |
@@ -622,7 +623,36 @@ sudo cp -r /opt/dayangyunjie-code/apps/admin/dist/* /var/www/dayangyunjie-admin/
 ls /var/www/dayangyunjie-admin/index.html
 ```
 
-> 此时管理后台仅能通过 Nginx 对外访问，需完成 **第七节** 配置后方可浏览器访问 `http://118.195.149.50/`。
+> 此时 PC 管理后台仅能通过 Nginx 对外访问，需完成 **第七节** 配置后方可浏览器访问 `http://118.195.149.50/`。
+
+### 6.5 部署管理端 H5 静态资源
+
+管理端 H5（`apps/miniapp-admin`）供运营在手机浏览器查看订单、派单；与 PC 管理后台（`apps/admin`）是不同应用。
+
+```bash
+cd /opt/dayangyunjie-code
+npm run build:miniapp-admin
+sudo mkdir -p /var/www/dayangyunjie-miniapp-admin
+sudo cp -r apps/miniapp-admin/dist/build/h5/* /var/www/dayangyunjie-miniapp-admin/
+```
+
+| 项 | 值 |
+|----|-----|
+| 构建命令 | `npm run build:miniapp-admin`（根目录） |
+| 产物目录 | `apps/miniapp-admin/dist/build/h5/` |
+| Nginx 静态目录 | `/var/www/dayangyunjie-miniapp-admin/` |
+| 访问地址 | `http://118.195.149.50/admin/`（hash 路由，`base` 为 `/admin/`） |
+
+验证：
+
+```bash
+ls /var/www/dayangyunjie-miniapp-admin/index.html
+curl -I http://118.195.149.50/admin/
+```
+
+> 若在服务器 build 报 `Cannot find module @rollup/rollup-linux-x64-gnu`，见 [`Remote-Server-Update.md`](./Remote-Server-Update.md) 第二节「一次性补 Linux 原生包」。**rollup 装一次即可**，后续 build 不必重复。也可在本机 Windows/Mac build 后 `scp` 到服务器。
+>
+> 日常发版步骤见 [`Remote-Server-Update.md`](./Remote-Server-Update.md)。
 
 ---
 
@@ -643,6 +673,12 @@ server {
 
     location / {
         try_files $uri $uri/ /index.html;
+    }
+
+    # 管理端 H5（apps/miniapp-admin，hash 路由）
+    location /admin/ {
+        alias /var/www/dayangyunjie-miniapp-admin/;
+        index index.html;
     }
 
     location /api/ {
@@ -686,13 +722,16 @@ systemctl reload nginx
 
 ```bash
 curl -I http://118.195.149.50/
+curl -I http://118.195.149.50/admin/
 curl -I http://118.195.149.50/api/docs
 ls -la /var/www/dayangyunjie-admin/index.html
+ls -la /var/www/dayangyunjie-miniapp-admin/index.html
 ```
 
 浏览器访问：
 
-- 管理后台：`http://118.195.149.50/`（登录：`admin@dayunyunjie.com` / `admin123`）
+- PC 管理后台：`http://118.195.149.50/`（登录：`admin@dayunyunjie.com` / `admin123`）
+- 管理端 H5：`http://118.195.149.50/admin/`（同上 Admin 账号）
 - Swagger：`http://118.195.149.50/api/docs`
 
 ---
@@ -887,6 +926,8 @@ npm run dev:mp-weixin --workspace=@dayangyunjie/miniapp-customer
 
 ## 十二、常用运维命令速查
 
+> **日常发版**：见 [`Remote-Server-Update.md`](./Remote-Server-Update.md)（标准流程、`--ignore-scripts` 兜底、原生包补装、H5 发布与验收）。
+
 ```bash
 # 查看后端进程状态
 pm2 status
@@ -894,16 +935,22 @@ pm2 logs dayangyunjie-api
 
 # 重启后端（更新代码后）
 cd /opt/dayangyunjie-code
+echo 'cache=/root/.npm' > .npmrc
 git restore package.json package-lock.json   # 若 status 显示这两文件被 npm 改过
-git pull
-npm ci   # 或 npm install；装完不要把 lock 提交回 GitHub
-cd apps/server && npx prisma migrate deploy && cd ../..
-npm run build
+git pull origin master
+npm ci || npm install
+cd apps/server && npx prisma generate && npx prisma migrate deploy && cd ../..
+npm run build --workspace=@dayangyunjie/shared
+npm run build --workspace=@dayangyunjie/server
+npm run build --workspace=@dayangyunjie/admin
 pm2 restart dayangyunjie-api
 
-# 重新发布管理后台
-cd apps/admin && npm run build && cd ../..
+# 重新发布 PC 管理后台
 sudo cp -r apps/admin/dist/* /var/www/dayangyunjie-admin/
+
+# 重新发布管理端 H5
+npm run build:miniapp-admin
+sudo cp -r apps/miniapp-admin/dist/build/h5/* /var/www/dayangyunjie-miniapp-admin/
 
 # 查看 Nginx 状态与日志
 sudo systemctl status nginx
@@ -933,8 +980,9 @@ systemctl status mysqld
 | 6b | 6.1 节：`prisma db push` + `db seed` | ✅ 已完成 |
 | 6c | 6.2 节：`npm run build` | ✅ 已完成 |
 | 6d | 6.3 节：PM2 启动后端（online + 开机自启） | ✅ 已完成 |
-| 6e | 6.4 节：管理后台静态资源 → `/var/www/dayangyunjie-admin` | ✅ 已完成 |
-| 7 | 第七节：Nginx 反代 + 管理后台登录 | ✅ 已完成 |
+| 6e | 6.4 节：PC 管理后台静态资源 → `/var/www/dayangyunjie-admin` | ✅ 已完成 |
+| 6f | 6.5 节：管理端 H5 → `/var/www/dayangyunjie-miniapp-admin`，访问 `/admin/` | ✅ 已完成 |
+| 7 | 第七节：Nginx 反代 + PC 管理后台登录 + `/admin/` H5 | ✅ 已完成 |
 | 7b | 第八节：CORS 修复 + `admin-login` 验证 | ✅ 已完成 |
 | 8 | 第九节：小程序开发者工具联调（本机 `.env.production` + `build:mp-weixin`） | ✅ 已完成（2026-07-28） |
 | 9 | 第十节：部署验收（环境就绪 + 开发者工具可打开双端） | ✅ 已完成 |
