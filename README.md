@@ -56,7 +56,7 @@ npx prisma migrate deploy   # 应用已有迁移（测试/生产推荐）
 - MySQL **8**
 - npm workspaces（根目录一次 `npm install` 即可）
 
-> Windows 开发机历史上曾将 npm 缓存设为 `D:\npm-cache`（见根目录 `.npmrc`）。Linux/macOS 服务器部署请覆盖为本地缓存路径，详见 [`docs/TencentCloud-Test-Deploy.md`](./docs/TencentCloud-Test-Deploy.md)。
+> Windows 开发机历史上曾将 npm 缓存设为 `D:\npm-cache`（见根目录 `.npmrc`）。Linux 新环境部署见 [`docs/TencentCloud-Linux-Fresh-Install.md`](./docs/TencentCloud-Linux-Fresh-Install.md)。
 
 ## 应用入口速查
 
@@ -75,7 +75,8 @@ npx prisma migrate deploy   # 应用已有迁移（测试/生产推荐）
 | ---- | ---- |
 | [`docs/CodingPlan.md`](./docs/CodingPlan.md) | 分阶段开发计划与验收（Cursor Agent 主稿） |
 | [`docs/tech.md`](./docs/tech.md) | 技术选型 |
-| [`docs/TencentCloud-Test-Deploy.md`](./docs/TencentCloud-Test-Deploy.md) | 腾讯云测试环境装机与运维 |
+| [`docs/TencentCloud-Linux-Fresh-Install.md`](./docs/TencentCloud-Linux-Fresh-Install.md) | 腾讯云 Linux **新环境**首次部署 |
+| [`docs/TencentCloud-Test-Deploy.md`](./docs/TencentCloud-Test-Deploy.md) | 既有测试机部署记录（勿当新机清单） |
 | [`docs/Remote-Server-Update.md`](./docs/Remote-Server-Update.md) | 远程 Linux 服务器日常代码更新 |
 | [`plan/wechat-notify-auth-roadmap.md`](./plan/wechat-notify-auth-roadmap.md) | 微信订单通知方案 |
 | [`plan/appoint-time-lead-validation.md`](./plan/appoint-time-lead-validation.md) | 预约时间过期与派单缓冲校验 |

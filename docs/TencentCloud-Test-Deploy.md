@@ -1,5 +1,7 @@
 # 腾讯云测试环境部署方案
 
+> **新 Linux 从零部署请改用** [`TencentCloud-Linux-Fresh-Install.md`](./TencentCloud-Linux-Fresh-Install.md)。本文是既有测试机（`118.195.149.50`）的操作记录，其中「已完成」勾选与写死的 IP **不要**抄到新机器。日常发版见 [`Remote-Server-Update.md`](./Remote-Server-Update.md)。
+
 > **文档版本**：v1.15
 > **编制日期**：2026-07-28（v1.15 确认小程序开发者工具联调环境就绪）
 > **适用范围**：大洋云洁 (dayangyunjie-code) 一期 MVP —— 腾讯云**测试环境**部署（非正式生产）
