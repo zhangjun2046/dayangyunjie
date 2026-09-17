@@ -5,6 +5,7 @@
  */
 
 import { useAuthStore } from '@/store/auth';
+import { parseResidentDeepLinkUrl, savePendingResidentDeepLink } from '@/utils/resident-deeplink';
 
 /** 不需要登录即可访问的页面路径前缀（浏览服务内容无需登录，下单时再鉴权） */
 const PUBLIC_PAGES = [
@@ -19,13 +20,20 @@ function isProtected(url: string): boolean {
   return !PUBLIC_PAGES.some((p) => path.startsWith(p));
 }
 
+function rememberBlockedUrl(url: string): void {
+  const link = parseResidentDeepLinkUrl(url);
+  if (link) {
+    savePendingResidentDeepLink(link);
+  }
+}
+
 function handleBlock() {
   uni.showToast({
     title: '请先登录',
     icon: 'none',
     duration: 1500,
   });
-  // 跳回首页 Tab
+  // 跳回首页 Tab，登录后由 pending 深链接回详情/评价
   setTimeout(() => {
     uni.switchTab({ url: '/pages/index/index' });
   }, 300);
@@ -38,6 +46,7 @@ export function useRouteGuard() {
         const authStore = useAuthStore();
         if (!authStore.isLoggedIn && isProtected(args.url)) {
           console.info('[route-guard] blocked:', args.url);
+          rememberBlockedUrl(args.url);
           handleBlock();
           // 返回 false 阻止跳转（uni-app interceptor 协议）
           return false;

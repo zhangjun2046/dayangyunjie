@@ -8,6 +8,8 @@ export * from './entities/address';
 export * from './entities/order';
 export * from './entities/review';
 export * from './entities/review-keyword';
+export * from './entities/appoint-time-slot';
+export * from './utils/appoint-time';
 export * from './entities/complaint-reason-config';
 export * from './entities/complaint';
 export * from './entities/catalog';

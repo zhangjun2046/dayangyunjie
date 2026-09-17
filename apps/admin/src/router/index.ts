@@ -81,6 +81,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '关键词配置', menuKey: 'config.review-keywords' },
       },
       {
+        path: 'config/appoint-time-slots',
+        name: 'ConfigAppointTimeSlots',
+        component: () => import('@/views/config/appoint-time-slots/index.vue'),
+        meta: { title: '预约时段', menuKey: 'config.appoint-time-slots' },
+      },
+      {
         path: 'config/operators',
         name: 'ConfigOperators',
         component: () => import('@/views/config/operators/index.vue'),

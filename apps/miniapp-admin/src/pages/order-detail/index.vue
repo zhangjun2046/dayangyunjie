@@ -333,6 +333,7 @@ import { ref, computed, nextTick } from 'vue';
 import { onLoad, onShow, onPageScroll } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/store/auth';
 import { ensureAuthed } from '@/composables/useRouteGuard';
+import { captureAdminOrderDeepLink } from '@/utils/admin-deeplink';
 import { fetchCleaningOrderDetail } from '@/api/cleaning';
 import type { CleaningOrderDetail } from '@/api/cleaning';
 import { fetchRecyclingOrderDetail } from '@/api/recycling';
@@ -446,6 +447,10 @@ onLoad((query) => {
   const type = (query?.type ?? query?.orderType) as string;
   orderType.value = type === 'recycling' ? 'recycling' : 'cleaning';
   console.info('[order-detail] onLoad', orderId.value, orderType.value);
+  captureAdminOrderDeepLink({
+    path: 'pages/order-detail/index',
+    query: { id: orderId.value, type: orderType.value },
+  });
 });
 
 onShow(async () => {

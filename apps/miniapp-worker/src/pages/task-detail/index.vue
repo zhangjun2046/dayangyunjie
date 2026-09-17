@@ -478,6 +478,8 @@ import {
   formatRecyclingItemNames,
 } from '@dayangyunjie/shared';
 
+import { parseWorkerTaskQuery, savePendingWorkerTask, workerLoginUrl } from '@/utils/worker-deeplink';
+
 const authStore = useAuthStore();
 
 const orderId = ref<number>(0);
@@ -517,13 +519,32 @@ const recyclingItemPhotoUrl = computed(
   () => (orderType.value === 'recycling' ? order.value?.itemPhotoUrl?.trim() || '' : ''),
 );
 
-// ===== 路由参数加载 =====
+// ===== 路由参数加载（服务号模板：orderId / orderType） =====
 onLoad((query) => {
-  orderId.value = Number(query?.orderId ?? 0);
-  orderType.value = (query?.orderType as 'cleaning' | 'recycling') ?? 'cleaning';
+  const parsed = parseWorkerTaskQuery(query ?? {});
+  if (parsed) {
+    orderId.value = parsed.orderId;
+    orderType.value = parsed.orderType;
+  } else {
+    orderId.value = Number(query?.orderId ?? 0);
+  }
   console.info('[task-detail] onLoad, orderId=', orderId.value, 'orderType=', orderType.value);
-  loadDetail();
+  void bootDetail(parsed);
 });
+
+async function bootDetail(parsed: ReturnType<typeof parseWorkerTaskQuery>): Promise<void> {
+  const ok = await authStore.ensureSession();
+  if (!ok) {
+    if (parsed) {
+      savePendingWorkerTask(parsed);
+    }
+    setTimeout(() => {
+      uni.reLaunch({ url: workerLoginUrl() });
+    }, 50);
+    return;
+  }
+  await loadDetail();
+}
 
 async function loadDetail(): Promise<void> {
   if (!orderId.value) return;

@@ -8,10 +8,13 @@ import { AdminJwtStrategy } from './strategies/admin-jwt.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { WorkerJwtStrategy } from './strategies/worker-jwt.strategy';
 import { WechatCustomerService } from './wechat-customer.service';
+import { WechatWorkerService } from './wechat-worker.service';
+import { WechatOaModule } from '../wechat-oa/wechat-oa.module';
 
 @Module({
   imports: [
     EnvConfigModule,
+    WechatOaModule,
     JwtModule.registerAsync({
       imports: [EnvConfigModule],
       inject: [EnvConfigService],
@@ -22,7 +25,14 @@ import { WechatCustomerService } from './wechat-customer.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, WechatCustomerService, JwtStrategy, WorkerJwtStrategy, AdminJwtStrategy],
+  providers: [
+    AuthService,
+    WechatCustomerService,
+    WechatWorkerService,
+    JwtStrategy,
+    WorkerJwtStrategy,
+    AdminJwtStrategy,
+  ],
   exports: [AuthService],
 })
 export class AuthModule {}

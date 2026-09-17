@@ -327,7 +327,7 @@
         <el-form-item label="服务时段" prop="appointTimeSlot" required>
           <div class="time-slot-grid">
             <span
-              v-for="t in TIME_SLOTS"
+              v-for="t in timeSlots"
               :key="t"
               class="time-slot-btn"
               :class="{ 'time-slot-btn--active': createForm.appointTimeSlot === t }"
@@ -539,6 +539,7 @@ import {
 } from '@/api/cleaning';
 import { fetchWorkers, type WorkerListItem } from '@/api/worker';
 import { fetchServiceCatalogs, type ServiceCatalogItem } from '@/api/service-catalog';
+import { fetchEnabledAppointTimeSlots } from '@/api/appoint-time-slot';
 import { useUserStore } from '@/store';
 import { filterAssignableWorkers, skillLabel } from '@/utils/worker-skill';
 
@@ -557,8 +558,18 @@ const STATUS_TABS: { label: string; value: TabValue }[] = [
   { label: '已取消', value: 'CANCELLED' },
 ];
 
-// ─── 新增订单：可选开始时间（与小程序 TIME_SLOTS 完全一致） ─────────────────────
-const TIME_SLOTS = ['08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'];
+// ─── 新增订单：服务时段来自后台配置 ───────────────────────────────────────────
+const timeSlots = ref<string[]>([]);
+
+async function loadTimeSlots() {
+  try {
+    const res = await fetchEnabledAppointTimeSlots('CLEANING');
+    timeSlots.value = (res.data.data ?? []).map((item) => item.label);
+  } catch (e) {
+    timeSlots.value = [];
+    console.error('[CleaningOrders] load time slots failed', e);
+  }
+}
 
 // ─── 列表数据 ─────────────────────────────────────────────────────────────────
 
@@ -858,6 +869,7 @@ const createRules = computed(() => ({
 
 const openCreateDialog = async () => {
   createDialog.visible = true;
+  await loadTimeSlots();
   if (catalogItems.value.length === 0) {
     try {
       const res = await fetchServiceCatalogs({ bizType: 'CLEANING', isEnabled: true, pageSize: 50 });

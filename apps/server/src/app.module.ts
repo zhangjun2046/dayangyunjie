@@ -21,6 +21,10 @@ import { BannerModule } from './modules/banner/banner.module';
 import { OperatorModule } from './modules/operator/operator.module';
 import { ReviewKeywordModule } from './modules/review-keyword/review-keyword.module';
 import { ComplaintReasonConfigModule } from './modules/complaint-reason-config/complaint-reason-config.module';
+import { AppointTimeSlotModule } from './modules/appoint-time-slot/appoint-time-slot.module';
+import { WechatOaModule } from './modules/wechat-oa/wechat-oa.module';
+import { SmsModule } from './modules/sms/sms.module';
+import { NotifyModule } from './modules/notify/notify.module';
 
 @Module({
   imports: [
@@ -44,6 +48,10 @@ import { ComplaintReasonConfigModule } from './modules/complaint-reason-config/c
     OperatorModule,
     ReviewKeywordModule,
     ComplaintReasonConfigModule,
+    AppointTimeSlotModule,
+    WechatOaModule,
+    SmsModule,
+    NotifyModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -75,7 +75,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
-import { workerLogin } from '@/api/auth';
+import { trySilentWorkerWechatBind, workerLogin } from '@/api/auth';
 import { useAuthStore, STORAGE_KEY } from '@/store/auth';
 import ContactOperatorPicker from '@/components/ContactOperatorPicker.vue';
 import { callContactOperator } from '@/utils/call-contact-operator';
@@ -109,6 +109,7 @@ onShow(async () => {
     const ok = await authStore.ensureSession();
     if (ok) {
       console.info('[login] local session valid, switch to tabs');
+      void trySilentWorkerWechatBind();
       uni.switchTab({ url: '/pages/index/index' });
       return;
     }
@@ -165,7 +166,7 @@ async function onLogin() {
     const result = await workerLogin(phoneVal, passwordVal);
     authStore.login(result);
     console.info('[login] success, workerId=', result.worker.id);
-    // 登录成功后跳转到首页 Tab
+    void trySilentWorkerWechatBind();
     uni.switchTab({ url: '/pages/index/index' });
   } catch (err) {
     const msg = err instanceof Error ? err.message : '登录失败，请重试';

@@ -5,6 +5,7 @@
  */
 
 import { useAuthStore } from '@/store/auth';
+import { parseWorkerTaskUrl, savePendingWorkerTask, workerLoginUrl } from '@/utils/worker-deeplink';
 
 /** 不需要登录即可访问的页面路径（登录页与协议页公开） */
 const PUBLIC_PAGES = ['pages/login/index', 'pages/agreement/index'];
@@ -14,8 +15,15 @@ function isProtected(url: string): boolean {
   return !PUBLIC_PAGES.some((p) => path.startsWith(p));
 }
 
+function rememberBlockedUrl(url: string): void {
+  const link = parseWorkerTaskUrl(url);
+  if (link) {
+    savePendingWorkerTask(link);
+  }
+}
+
 function handleBlock() {
-  uni.reLaunch({ url: '/pages/login/index' });
+  uni.reLaunch({ url: workerLoginUrl() });
 }
 
 /**
@@ -28,7 +36,7 @@ export async function ensureAuthed(): Promise<boolean> {
   if (ok) return true;
   console.info('[worker-route-guard] not logged in, reLaunch login after paint');
   setTimeout(() => {
-    uni.reLaunch({ url: '/pages/login/index' });
+    uni.reLaunch({ url: workerLoginUrl() });
   }, 50);
   return false;
 }
@@ -40,6 +48,7 @@ export function useRouteGuard() {
         const authStore = useAuthStore();
         if (!authStore.isLoggedIn && isProtected(args.url)) {
           console.info('[worker-route-guard] blocked:', args.url);
+          rememberBlockedUrl(args.url);
           handleBlock();
           return false;
         }
@@ -56,6 +65,8 @@ export function useRouteGuard() {
         const authStore = useAuthStore();
         if (!authStore.isLoggedIn && isProtected(args.url)) {
           console.info('[worker-route-guard] redirectTo blocked:', args.url);
+          rememberBlockedUrl(args.url);
+          handleBlock();
           return false;
         }
         return true;

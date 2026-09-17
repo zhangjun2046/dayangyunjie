@@ -365,7 +365,7 @@ cd /opt/dayangyunjie-code
 npm run build --workspace=@dayangyunjie/shared
 npm run build --workspace=@dayangyunjie/server
 npm run build --workspace=@dayangyunjie/admin
-npm run build:miniapp-admin
+VITE_PUBLIC_BASE=/admin/ npm run build:miniapp-admin
 ```
 
 必须先 **shared**，再 server / admin。server 若报 Prisma 类型缺字段，回到 `apps/server` 再执行一次 `npx prisma generate`。

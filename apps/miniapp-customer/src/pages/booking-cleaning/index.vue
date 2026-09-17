@@ -114,11 +114,14 @@
         <text class="sub-title">选择时段</text>
         <view class="time-grid">
           <view
-            v-for="t in TIME_SLOTS"
+            v-for="t in timeSlots"
             :key="t"
             class="time-btn"
-            :class="{ selected: store.selectedTime === t }"
-            @tap="store.selectedTime = t"
+            :class="{
+              selected: store.selectedTime === t,
+              disabled: isSlotDisabled(store.selectedDate, t, leadMinutes),
+            }"
+            @tap="selectTime(t)"
           >
             <text>{{ t }}</text>
           </view>
@@ -282,13 +285,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { onLoad, onShow, onUnload } from '@dcloudio/uni-app';
 import { useBookingCleaningStore } from '@/store/booking-cleaning';
 import { useAuthStore } from '@/store/auth';
 import { fetchCleaningCatalogs, type ServiceCatalogDto } from '@/api/service-catalog';
 import { fetchAddresses } from '@/api/address';
 import { createCleaningOrder } from '@/api/cleaning-order';
+import { fetchEnabledAppointTimeSlots, fetchAppointTimeLead, resolveLeadMinutes } from '@/api/appoint-time-slot';
+import {
+  formatAppointTooSoonMessage,
+  formatChinaYmd,
+  isAppointTooSoon,
+  isDateFullyTooSoon,
+  isSlotDisabled,
+  pickFirstBookableDate,
+} from '@/utils/appoint-time';
 import { getSolarToLunar } from '@/utils/lunar';
 import { openCreatedOrderDetail } from '@/utils/order-navigation';
 import {
@@ -304,7 +316,28 @@ const successOverlayRef = ref<InstanceType<typeof BookingSuccessOverlay> | null>
 // ───────────────────── 常量 ─────────────────────
 const STEP_LABELS = ['选择服务', '预约时间', '确认订单'];
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
-const TIME_SLOTS = ['08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'];
+const timeSlots = ref<string[]>([]);
+const leadMinutes = ref(60);
+
+async function loadTimeSlots() {
+  try {
+    const list = await fetchEnabledAppointTimeSlots('CLEANING');
+    timeSlots.value = list.map((item) => item.label);
+  } catch (e) {
+    timeSlots.value = [];
+    console.info('[booking-cleaning] load time slots failed', e);
+    uni.showToast({ title: '时段加载失败', icon: 'none' });
+  }
+  try {
+    const lead = await fetchAppointTimeLead('CLEANING');
+    leadMinutes.value = resolveLeadMinutes(lead.leadMinutes);
+  } catch (e) {
+    leadMinutes.value = resolveLeadMinutes(undefined);
+    console.info('[booking-cleaning] load lead minutes failed', e);
+  }
+  applyBookableDate();
+}
+
 const SERVICE_NOTICES = [
   '服务人员上门前会电话确认',
   '请提前收纳贵重物品',
@@ -375,6 +408,37 @@ interface CalCell {
   isToday: boolean;
 }
 
+function clearSelectedTimeIfTooSoon() {
+  if (
+    store.selectedTime &&
+    store.selectedDate &&
+    isAppointTooSoon(store.selectedDate, store.selectedTime, leadMinutes.value)
+  ) {
+    store.selectedTime = '';
+  }
+}
+
+function applyBookableDate() {
+  const todayStr = formatChinaYmd();
+  const bookable = pickFirstBookableDate(timeSlots.value, leadMinutes.value);
+  if (
+    !store.selectedDate ||
+    store.selectedDate < todayStr ||
+    isDateFullyTooSoon(store.selectedDate, timeSlots.value, leadMinutes.value)
+  ) {
+    store.selectedDate = bookable;
+    const [y, m] = bookable.split('-').map(Number);
+    calYear.value = y;
+    calMonth.value = m;
+  }
+  clearSelectedTimeIfTooSoon();
+}
+
+function selectTime(slot: string) {
+  if (isSlotDisabled(store.selectedDate, slot, leadMinutes.value)) return;
+  store.selectedTime = slot;
+}
+
 const calCells = computed<CalCell[]>(() => {
   const y = calYear.value;
   const m = calMonth.value;
@@ -387,17 +451,18 @@ const calCells = computed<CalCell[]>(() => {
     cells.push({ day: null, dateStr: '', lunar: '', disabled: false, isToday: false });
   }
 
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const todayStr = formatChinaYmd();
 
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const isPast = dateStr < todayStr;
+    const fullyTooSoon = isDateFullyTooSoon(dateStr, timeSlots.value, leadMinutes.value);
     const { lunarDay } = getSolarToLunar(y, m, d);
     cells.push({
       day: d,
       dateStr,
       lunar: lunarDay,
-      disabled: isPast,
+      disabled: isPast || fullyTooSoon,
       isToday: dateStr === todayStr,
     });
   }
@@ -415,6 +480,7 @@ function changeMonth(delta: number) {
 
 function selectDate(cell: CalCell) {
   store.selectedDate = cell.dateStr;
+  clearSelectedTimeIfTooSoon();
 }
 
 // ───────────────────── Step 2 地址 ─────────────────────
@@ -461,10 +527,7 @@ function nextStep() {
     }
     store.goStep(2);
     loadDefaultAddress();
-    // 默认选今天
-    if (!store.selectedDate) {
-      store.selectedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    }
+    void loadTimeSlots();
     return;
   }
   if (store.step === 2) {
@@ -474,6 +537,10 @@ function nextStep() {
     }
     if (!store.selectedTime) {
       uni.showToast({ title: '请选择预约时段', icon: 'none' });
+      return;
+    }
+    if (isAppointTooSoon(store.selectedDate, store.selectedTime, leadMinutes.value)) {
+      uni.showToast({ title: formatAppointTooSoonMessage(leadMinutes.value), icon: 'none' });
       return;
     }
     if (!store.selectedAddress) {
@@ -509,6 +576,14 @@ async function submitOrder() {
       uni.showToast({ title: '请填写正确的手机号', icon: 'none' });
       return;
     }
+  }
+  if (
+    store.selectedDate &&
+    store.selectedTime &&
+    isAppointTooSoon(store.selectedDate, store.selectedTime, leadMinutes.value)
+  ) {
+    uni.showToast({ title: formatAppointTooSoonMessage(leadMinutes.value), icon: 'none' });
+    return;
   }
 
   submitting.value = true;
@@ -561,6 +636,9 @@ onLoad(() => {
 // 从地址选择页返回后，store.selectedAddress 已被更新，无需额外处理
 onShow(() => {
   console.info('[booking-cleaning] page shown, step=', store.step);
+  if (store.step === 2) {
+    void loadTimeSlots();
+  }
 });
 
 onUnload(() => {
@@ -569,6 +647,13 @@ onUnload(() => {
     navigationTimer = null;
   }
 });
+
+watch(
+  () => store.selectedDate,
+  () => {
+    clearSelectedTimeIfTooSoon();
+  },
+);
 </script>
 
 <style scoped>
@@ -966,6 +1051,12 @@ onUnload(() => {
   border-color: #236EFF;
   color: #236EFF;
   background: #f0f6ff;
+}
+
+.time-btn.disabled {
+  color: #bbb;
+  background: #ececec;
+  font-weight: normal;
 }
 
 /* ── 地址行 ── */

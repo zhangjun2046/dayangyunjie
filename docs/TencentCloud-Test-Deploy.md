@@ -37,7 +37,7 @@
 |------|------|----------|
 | NestJS API | `apps/server` | PM2 常驻进程，监听 `3000`，Nginx 反代 |
 | PC 管理后台 | `apps/admin` | `vite build` 静态产物 → `/var/www/dayangyunjie-admin/`，Nginx 根路径 `/` |
-| 管理端 H5 | `apps/miniapp-admin` | `npm run build:miniapp-admin` → `/var/www/dayangyunjie-miniapp-admin/`，Nginx 子路径 `/admin/` |
+| 管理端 H5 | `apps/miniapp-admin` | `VITE_PUBLIC_BASE=/admin/ npm run build:miniapp-admin` → `/var/www/dayangyunjie-miniapp-admin/`，Nginx 子路径 `/admin/` |
 | 居民端小程序 | `apps/miniapp-customer` | 微信开发者工具直接编译预览，`VITE_API_BASE` 指向云端 |
 | 员工端小程序 | `apps/miniapp-worker` | 同上 |
 | MySQL 8 | Prisma | 服务器本机安装（不使用独立 TencentDB） |
@@ -633,14 +633,14 @@ ls /var/www/dayangyunjie-admin/index.html
 
 ```bash
 cd /opt/dayangyunjie-code
-npm run build:miniapp-admin
+VITE_PUBLIC_BASE=/admin/ npm run build:miniapp-admin
 sudo mkdir -p /var/www/dayangyunjie-miniapp-admin
 sudo cp -r apps/miniapp-admin/dist/build/h5/* /var/www/dayangyunjie-miniapp-admin/
 ```
 
 | 项 | 值 |
 |----|-----|
-| 构建命令 | `npm run build:miniapp-admin`（根目录） |
+| 构建命令 | `VITE_PUBLIC_BASE=/admin/ npm run build:miniapp-admin`（根目录；腾讯云单 IP 与 PC 共站时显式使用子路径） |
 | 产物目录 | `apps/miniapp-admin/dist/build/h5/` |
 | Nginx 静态目录 | `/var/www/dayangyunjie-miniapp-admin/` |
 | 访问地址 | `http://118.195.149.50/admin/`（hash 路由，`base` 为 `/admin/`） |
@@ -951,7 +951,7 @@ pm2 restart dayangyunjie-api
 sudo cp -r apps/admin/dist/* /var/www/dayangyunjie-admin/
 
 # 重新发布管理端 H5
-npm run build:miniapp-admin
+VITE_PUBLIC_BASE=/admin/ npm run build:miniapp-admin
 sudo cp -r apps/miniapp-admin/dist/build/h5/* /var/www/dayangyunjie-miniapp-admin/
 
 # 查看 Nginx 状态与日志

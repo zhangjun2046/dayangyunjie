@@ -3,6 +3,7 @@
  */
 
 import { request } from './request';
+import { needsSilentWechatUnionidBind } from '@/utils/silent-wechat-bind';
 
 export interface LoginResult {
   tokens: {
@@ -43,4 +44,65 @@ export function wechatLogin(
     ...(nickname ? { nickname } : {}),
     ...(avatar ? { avatar } : {}),
   });
+}
+
+export interface ResidentWechatBindStatus {
+  bound: boolean;
+  oaPaired: boolean;
+  subscribed: boolean | null;
+}
+
+export function getResidentWechatBind(): Promise<ResidentWechatBindStatus> {
+  return request<ResidentWechatBindStatus>('GET', '/auth/resident-wechat-bind');
+}
+
+export function bindResidentWechat(code: string): Promise<ResidentWechatBindStatus> {
+  return request<ResidentWechatBindStatus>('POST', '/auth/resident-wechat-bind', { code });
+}
+
+function getWeixinLoginCode(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    uni.login({
+      provider: 'weixin',
+      success(res) {
+        if (res.code) {
+          resolve(res.code);
+          return;
+        }
+        reject(new Error('未获取到微信登录码'));
+      },
+      fail() {
+        reject(new Error('请在微信居民端小程序中打开'));
+      },
+    });
+  });
+}
+
+let silentResidentBindInFlight: Promise<void> | null = null;
+
+/**
+ * 已登录后另取一次 wx.login code 补 unionid。
+ * 不得复用 wechat-login 刚用过的 code。失败不挡业务。
+ */
+export function trySilentResidentWechatBind(): Promise<void> {
+  if (silentResidentBindInFlight) {
+    return silentResidentBindInFlight;
+  }
+  silentResidentBindInFlight = (async () => {
+    try {
+      const status = await getResidentWechatBind();
+      if (!needsSilentWechatUnionidBind(status.bound)) {
+        console.info('[auth] silent wechat bind skip, already bound');
+        return;
+      }
+      const code = await getWeixinLoginCode();
+      await bindResidentWechat(code);
+      console.info('[auth] silent wechat bind ok');
+    } catch (err) {
+      console.info('[auth] silent wechat bind skipped', err);
+    }
+  })().finally(() => {
+    silentResidentBindInFlight = null;
+  });
+  return silentResidentBindInFlight;
 }

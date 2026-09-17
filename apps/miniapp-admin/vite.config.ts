@@ -3,8 +3,8 @@ import { defineConfig } from 'vite';
 import uni from '@dcloudio/vite-plugin-uni';
 
 export default defineConfig({
-  // 生产托管在同域子路径 /admin/
-  base: process.env.NODE_ENV === 'production' ? '/admin/' : '/',
+  // 阿里云正式 H5 托管在 h5 子域根路径；单域名测试环境可用 VITE_PUBLIC_BASE=/admin/ 覆盖。
+  base: process.env.VITE_PUBLIC_BASE || '/',
   plugins: [uni()],
   resolve: {
     alias: {

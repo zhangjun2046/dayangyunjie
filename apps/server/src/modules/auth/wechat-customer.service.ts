@@ -38,7 +38,7 @@ export class WechatCustomerService {
     return this.envConfigService.hasWechatCustomerCredentials;
   }
 
-  async code2Session(jsCode: string): Promise<{ openid: string }> {
+  async code2Session(jsCode: string): Promise<{ openid: string; unionid?: string }> {
     const appId = this.envConfigService.wechatCustomerAppId;
     const secret = this.envConfigService.wechatCustomerSecret;
     if (!appId || !secret) {
@@ -57,7 +57,7 @@ export class WechatCustomerService {
       throw new BadRequestException(data.errmsg || '微信登录失败，请重试');
     }
 
-    return { openid: data.openid };
+    return { openid: data.openid, unionid: data.unionid };
   }
 
   async getPhoneNumber(code: string): Promise<{ phone: string }> {

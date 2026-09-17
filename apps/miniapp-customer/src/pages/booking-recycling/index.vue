@@ -119,11 +119,14 @@
         <text class="sub-title">选择时段</text>
         <view class="time-grid">
           <view
-            v-for="t in TIME_SLOTS"
+            v-for="t in timeSlots"
             :key="t"
             class="time-btn"
-            :class="{ selected: store.selectedTime === t }"
-            @tap="store.selectedTime = t"
+            :class="{
+              selected: store.selectedTime === t,
+              disabled: isSlotDisabled(store.selectedDate, t, leadMinutes),
+            }"
+            @tap="selectTime(t)"
           >
             <text>{{ t }}</text>
           </view>
@@ -451,16 +454,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { onLoad, onShow, onUnload } from '@dcloudio/uni-app';
 import { useBookingRecyclingStore } from '@/store/booking-recycling';
 import { useAuthStore } from '@/store/auth';
 import { fetchRecyclingCatalogs, type ServiceCatalogDto } from '@/api/service-catalog';
 import { fetchAddresses } from '@/api/address';
 import { createRecyclingOrder } from '@/api/recycling-order';
+import { fetchEnabledAppointTimeSlots, fetchAppointTimeLead, resolveLeadMinutes } from '@/api/appoint-time-slot';
 import { uploadImage } from '@/api/upload';
 import { fetchEnabledRecyclingItems } from '@/api/recycling-item';
 import { getSolarToLunar } from '@/utils/lunar';
+import {
+  formatAppointTooSoonMessage,
+  formatChinaYmd,
+  isAppointTooSoon,
+  isDateFullyTooSoon,
+  isSlotDisabled,
+  pickFirstBookableDate,
+} from '@/utils/appoint-time';
 import { openCreatedOrderDetail } from '@/utils/order-navigation';
 import {
   resolveServiceCatalogIcon,
@@ -492,13 +504,33 @@ const successOverlayRef = ref<InstanceType<typeof BookingSuccessOverlay> | null>
 // ───────────────────── 常量 ─────────────────────
 const STEP_LABELS = ['选择服务', '预约时间', '确认订单'];
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
-const TIME_SLOTS = ['08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'];
+const timeSlots = ref<string[]>([]);
+const leadMinutes = ref(60);
 const SERVICE_NOTICES = [
   '回收员上门前会电话确认',
   '大件类需搬运工上门，请确保电梯可用',
   '请合理估算重量，以便确认搬运工具',
   '危险废品、医疗废物等特殊品类不纳入回收范围',
 ];
+
+async function loadTimeSlots() {
+  try {
+    const list = await fetchEnabledAppointTimeSlots('RECYCLING');
+    timeSlots.value = list.map((item) => item.label);
+  } catch (e) {
+    timeSlots.value = [];
+    console.info('[booking-recycling] load time slots failed', e);
+    uni.showToast({ title: '时段加载失败', icon: 'none' });
+  }
+  try {
+    const lead = await fetchAppointTimeLead('RECYCLING');
+    leadMinutes.value = resolveLeadMinutes(lead.leadMinutes);
+  } catch (e) {
+    leadMinutes.value = resolveLeadMinutes(undefined);
+    console.info('[booking-recycling] load lead minutes failed', e);
+  }
+  applyBookableDate();
+}
 
 // ───────────────────── Step 1 ─────────────────────
 const catalogs = ref<ServiceCatalogDto[]>([]);
@@ -569,6 +601,37 @@ interface CalCell {
   isToday: boolean;
 }
 
+function clearSelectedTimeIfTooSoon() {
+  if (
+    store.selectedTime &&
+    store.selectedDate &&
+    isAppointTooSoon(store.selectedDate, store.selectedTime, leadMinutes.value)
+  ) {
+    store.selectedTime = '';
+  }
+}
+
+function applyBookableDate() {
+  const todayStr = formatChinaYmd();
+  const bookable = pickFirstBookableDate(timeSlots.value, leadMinutes.value);
+  if (
+    !store.selectedDate ||
+    store.selectedDate < todayStr ||
+    isDateFullyTooSoon(store.selectedDate, timeSlots.value, leadMinutes.value)
+  ) {
+    store.selectedDate = bookable;
+    const [y, m] = bookable.split('-').map(Number);
+    calYear.value = y;
+    calMonth.value = m;
+  }
+  clearSelectedTimeIfTooSoon();
+}
+
+function selectTime(slot: string) {
+  if (isSlotDisabled(store.selectedDate, slot, leadMinutes.value)) return;
+  store.selectedTime = slot;
+}
+
 const calCells = computed<CalCell[]>(() => {
   const y = calYear.value;
   const m = calMonth.value;
@@ -580,17 +643,18 @@ const calCells = computed<CalCell[]>(() => {
     cells.push({ day: null, dateStr: '', lunar: '', disabled: false, isToday: false });
   }
 
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const todayStr = formatChinaYmd();
 
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const isPast = dateStr < todayStr;
+    const fullyTooSoon = isDateFullyTooSoon(dateStr, timeSlots.value, leadMinutes.value);
     const { lunarDay } = getSolarToLunar(y, m, d);
     cells.push({
       day: d,
       dateStr,
       lunar: lunarDay,
-      disabled: isPast,
+      disabled: isPast || fullyTooSoon,
       isToday: dateStr === todayStr,
     });
   }
@@ -608,6 +672,7 @@ function changeMonth(delta: number) {
 
 function selectDate(cell: CalCell) {
   store.selectedDate = cell.dateStr;
+  clearSelectedTimeIfTooSoon();
 }
 
 // ───────────────────── Step 2 地址 ─────────────────────
@@ -760,9 +825,7 @@ function nextStep() {
     store.goStep(2);
     loadDefaultAddress();
     loadRecyclingItems();
-    if (!store.selectedDate) {
-      store.selectedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    }
+    void loadTimeSlots();
     return;
   }
   if (store.step === 2) {
@@ -772,6 +835,10 @@ function nextStep() {
     }
     if (!store.selectedTime) {
       uni.showToast({ title: '请选择预约时段', icon: 'none' });
+      return;
+    }
+    if (isAppointTooSoon(store.selectedDate, store.selectedTime, leadMinutes.value)) {
+      uni.showToast({ title: formatAppointTooSoonMessage(leadMinutes.value), icon: 'none' });
       return;
     }
     if (!store.selectedAddress) {
@@ -820,6 +887,14 @@ async function submitOrder() {
   }
   if (store.itemPhotoUploading) {
     uni.showToast({ title: '请等待图片上传完成', icon: 'none' });
+    return;
+  }
+  if (
+    store.selectedDate &&
+    store.selectedTime &&
+    isAppointTooSoon(store.selectedDate, store.selectedTime, leadMinutes.value)
+  ) {
+    uni.showToast({ title: formatAppointTooSoonMessage(leadMinutes.value), icon: 'none' });
     return;
   }
 
@@ -883,6 +958,7 @@ onShow(() => {
   console.info('[booking-recycling] page shown, step=', store.step);
   if (store.step === 2) {
     loadRecyclingItems();
+    void loadTimeSlots();
   }
 });
 
@@ -892,6 +968,13 @@ onUnload(() => {
     navigationTimer = null;
   }
 });
+
+watch(
+  () => store.selectedDate,
+  () => {
+    clearSelectedTimeIfTooSoon();
+  },
+);
 </script>
 
 <style scoped>
@@ -1295,6 +1378,12 @@ onUnload(() => {
   border-color: #236EFF;
   color: #236EFF;
   background: #f0f6ff;
+}
+
+.time-btn.disabled {
+  color: #bbb;
+  background: #ececec;
+  font-weight: normal;
 }
 
 /* ── 地址行 ── */

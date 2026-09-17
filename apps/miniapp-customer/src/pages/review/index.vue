@@ -113,6 +113,7 @@ import {
   normalizeReviewOrderType,
   retainAvailableSelectedTags,
 } from './review-keywords.utils';
+import { parseResidentReviewQuery, savePendingResidentDeepLink } from '@/utils/resident-deeplink';
 
 const MAX_IMAGES = 9;
 
@@ -134,11 +135,27 @@ const uploadingCount = ref(0);
 const submitting = ref(false);
 
 onLoad((options) => {
-  const opts = options as Record<string, string>;
-  orderId.value = parseInt(opts?.orderId || '0', 10);
-  orderType.value = normalizeReviewOrderType(opts?.orderType);
-  orderNo.value = opts?.orderNo || '';
+  const opts = (options ?? {}) as Record<string, string>;
+  const parsed = parseResidentReviewQuery(opts);
+  if (parsed) {
+    orderId.value = parsed.orderId;
+    orderType.value = parsed.orderType;
+  } else {
+    orderId.value = parseInt(opts.orderId || '0', 10);
+    orderType.value = normalizeReviewOrderType(opts.orderType);
+  }
+  orderNo.value = opts.orderNo || '';
   console.info(`[review] onLoad orderId=${orderId.value} type=${orderType.value}`);
+  if (!authStore.isLoggedIn) {
+    if (parsed) {
+      savePendingResidentDeepLink(parsed);
+    }
+    uni.showToast({ title: '请先登录后评价', icon: 'none' });
+    setTimeout(() => {
+      uni.switchTab({ url: '/pages/index/index' });
+    }, 300);
+    return;
+  }
   loadReviewKeywords();
 });
 

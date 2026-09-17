@@ -7,15 +7,22 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
+import { CurrentAdminDecorator } from './decorators/current-admin.decorator';
 import { CurrentUserDecorator } from './decorators/current-user.decorator';
+import { CurrentWorkerDecorator } from './decorators/current-worker.decorator';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { ApiResponseDto, LoginResultDto } from './dto/auth-response.dto';
+import { BindWechatDto } from './dto/bind-wechat.dto';
 import { DecryptPhoneDto } from './dto/decrypt-phone.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { WechatLoginDto } from './dto/wechat-login.dto';
 import { WorkerLoginDto } from './dto/worker-login.dto';
+import { AdminJwtAuthGuard } from './guards/admin-jwt-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { WorkerJwtAuthGuard } from './guards/worker-jwt-auth.guard';
+import { AdminCurrentUser } from './interfaces/admin-current-user.interface';
 import { CurrentUser } from './interfaces/current-user.interface';
+import { WorkerCurrentUser } from './interfaces/worker-current-user.interface';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -119,6 +126,35 @@ export class AuthController {
     };
   }
 
+  @Get('worker-wechat-bind')
+  @UseGuards(WorkerJwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '查询当前员工微信（服务号）绑定状态' })
+  @ApiUnauthorizedResponse({ description: '未携带 Worker Token 或 Token 无效' })
+  async getWorkerWechatBind(
+    @CurrentWorkerDecorator() user: WorkerCurrentUser,
+  ): Promise<ApiResponseDto<Awaited<ReturnType<AuthService['getWorkerWechatBindStatus']>>>> {
+    const data = await this.authService.getWorkerWechatBindStatus(user.workerId);
+    return { code: 0, message: 'ok', data };
+  }
+
+  @Post('worker-wechat-bind')
+  @UseGuards(WorkerJwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '用员工端 wx.login code 绑定 unionid',
+    description:
+      '仅使用 WECHAT_WORKER_* 调 code2session；未绑定不挡登录与接单。禁止客户端提交 workerId。',
+  })
+  @ApiUnauthorizedResponse({ description: '未携带 Worker Token 或 Token 无效' })
+  async bindWorkerWechat(
+    @Body() body: BindWechatDto,
+    @CurrentWorkerDecorator() user: WorkerCurrentUser,
+  ): Promise<ApiResponseDto<Awaited<ReturnType<AuthService['bindWorkerWechat']>>>> {
+    const data = await this.authService.bindWorkerWechat(user.workerId, body.code);
+    return { code: 0, message: 'ok', data };
+  }
+
   @Post('admin-login')
   @ApiOperation({ summary: '管理员邮箱+密码登录，签发 Admin JWT' })
   @ApiOkResponse({
@@ -150,6 +186,31 @@ export class AuthController {
     return { code: 0, message: 'ok', data };
   }
 
+  @Get('admin-wechat-bind')
+  @UseGuards(AdminJwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '查询当前运营服务号绑定状态' })
+  async getAdminWechatBind(
+    @CurrentAdminDecorator() user: AdminCurrentUser,
+  ): Promise<ApiResponseDto<Awaited<ReturnType<AuthService['getAdminWechatBindStatus']>>>> {
+    const data = await this.authService.getAdminWechatBindStatus(user.adminId);
+    return { code: 0, message: 'ok', data };
+  }
+
+  @Get('admin-wechat-oauth-url')
+  @UseGuards(AdminJwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '签发服务号 snsapi_base 授权 URL（须在微信内打开 H5）',
+    description: 'state 只存哈希；redirect_uri 为 API 的 oauth/callback，禁止客户端提交 adminId',
+  })
+  async getAdminWechatOauthUrl(
+    @CurrentAdminDecorator() user: AdminCurrentUser,
+  ): Promise<ApiResponseDto<{ url: string }>> {
+    const data = await this.authService.createAdminWechatOauthUrl(user.adminId);
+    return { code: 0, message: 'ok', data };
+  }
+
   @Post('refresh')
   @ApiOperation({ summary: '使用 refresh token 刷新访问令牌' })
   @ApiOkResponse({
@@ -178,6 +239,34 @@ export class AuthController {
       message: 'ok',
       data,
     };
+  }
+
+  @Get('resident-wechat-bind')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '查询当前居民微信（服务号）绑定状态' })
+  @ApiUnauthorizedResponse({ description: '未携带 token 或 token 无效' })
+  async getResidentWechatBind(
+    @CurrentUserDecorator() user: CurrentUser,
+  ): Promise<ApiResponseDto<Awaited<ReturnType<AuthService['getResidentWechatBindStatus']>>>> {
+    const data = await this.authService.getResidentWechatBindStatus(user.residentId);
+    return { code: 0, message: 'ok', data };
+  }
+
+  @Post('resident-wechat-bind')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '用居民端 wx.login code 回填 unionid',
+    description: '只写 unionid 并尝试配对粉丝表，不换 token、不动登录态。认 JWT residentId。',
+  })
+  @ApiUnauthorizedResponse({ description: '未携带 token 或 token 无效' })
+  async bindResidentWechat(
+    @Body() body: BindWechatDto,
+    @CurrentUserDecorator() user: CurrentUser,
+  ): Promise<ApiResponseDto<Awaited<ReturnType<AuthService['bindResidentWechat']>>>> {
+    const data = await this.authService.bindResidentWechat(user.residentId, body.code);
+    return { code: 0, message: 'ok', data };
   }
 
   @Get('profile')

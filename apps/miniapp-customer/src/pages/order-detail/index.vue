@@ -434,6 +434,10 @@ import RemoteImage from '@/components/RemoteImage.vue';
 import { callContactOperator } from '@/utils/call-contact-operator';
 import { previewNetworkImages } from '@/utils/remote-image';
 import {
+  parseResidentDetailQuery,
+  savePendingResidentDeepLink,
+} from '@/utils/resident-deeplink';
+import {
   formatRecyclingCarryFloorText,
   formatRecyclingElevatorText,
   formatRecyclingItemNames,
@@ -512,9 +516,26 @@ function getWorkerAvatar(gender?: string | null): string {
 
 // uni-app 页面参数必须通过 onLoad 获取，onMounted 在 mp-weixin 无法读到路由参数
 onLoad((options) => {
-  orderId.value = parseInt((options as Record<string, string>)?.id || '0', 10);
-  orderType.value = ((options as Record<string, string>)?.type || 'cleaning') as OrderType;
+  const query = (options ?? {}) as Record<string, string>;
+  const parsed = parseResidentDetailQuery(query);
+  if (parsed) {
+    orderId.value = parsed.orderId;
+    orderType.value = parsed.orderType;
+  } else {
+    orderId.value = parseInt(query.id || '0', 10);
+    orderType.value = (query.type || 'cleaning') as OrderType;
+  }
   console.info(`[order-detail] onLoad id=${orderId.value} type=${orderType.value}`);
+  if (!authStore.isLoggedIn) {
+    if (parsed) {
+      savePendingResidentDeepLink(parsed);
+    }
+    uni.showToast({ title: '请先登录后查看订单', icon: 'none' });
+    setTimeout(() => {
+      uni.switchTab({ url: '/pages/index/index' });
+    }, 300);
+    return;
+  }
   loadDetail();
   loadComplaint();
   if (orderType.value !== 'consult') {

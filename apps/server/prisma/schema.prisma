@@ -69,11 +69,21 @@ enum AdminStatus {
   DISABLED
 }
 
+enum WechatOaOauthTargetType {
+  ADMIN
+}
+
+enum NotifyChannel {
+  WECHAT
+  SMS
+}
+
 // ─── 用户模型（3）────────────────────────────────────────
 
 model Resident {
   id        Int      @id @default(autoincrement())
   openid    String   @unique @db.VarChar(64)
+  unionid   String?  @unique @db.VarChar(64)
   nickname  String?  @db.VarChar(64)
   name      String?  @db.VarChar(32)
   phone     String?  @db.VarChar(20)
@@ -81,11 +91,12 @@ model Resident {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  addresses       Address[]
-  cleaningOrders  CleaningOrder[]
-  recyclingOrders RecyclingOrder[]
-  consultOrders   ConsultOrder[]
-  complaints      Complaint[]
+  addresses          Address[]
+  cleaningOrders     CleaningOrder[]
+  recyclingOrders    RecyclingOrder[]
+  consultOrders      ConsultOrder[]
+  complaints         Complaint[]
+  wechatOaFollowers  WechatOaFollower[]
 
   @@map("residents")
 }
@@ -114,12 +125,15 @@ model Worker {
   skillCertUrl     String?      @map("skill_cert_url") @db.VarChar(512)
   skillCertUrls    Json?        @map("skill_cert_urls")
   skillCertExpiry  DateTime?    @map("skill_cert_expiry")
+  unionid          String?      @unique @db.VarChar(64)
+  mpOpenid         String?      @map("mp_openid") @db.VarChar(64)
   createdAt        DateTime     @default(now()) @map("created_at")
   updatedAt        DateTime     @updatedAt @map("updated_at")
 
-  cleaningOrders  CleaningOrder[]
-  recyclingOrders RecyclingOrder[]
-  workPhotos      WorkPhoto[]      @relation("WorkPhotoUploader")
+  cleaningOrders     CleaningOrder[]
+  recyclingOrders    RecyclingOrder[]
+  workPhotos         WorkPhoto[]      @relation("WorkPhotoUploader")
+  wechatOaFollowers  WechatOaFollower[]
 
   // status + skillType 复合索引支撑派单查空闲员工；employmentStatus 支撑在职筛选
   @@index([status, skillType])
@@ -141,7 +155,10 @@ model Admin {
   createdAt    DateTime    @default(now()) @map("created_at")
   updatedAt    DateTime    @updatedAt @map("updated_at")
 
-  permissions AdminPermission[]
+  permissions              AdminPermission[]
+  wechatOaFollowers        WechatOaFollower[]
+  wechatOaOauthStates      WechatOaOauthState[] @relation("OauthStateTarget")
+  wechatOaOauthStatesCreated WechatOaOauthState[] @relation("OauthStateCreator")
 
   @@map("admins")
 }
@@ -469,6 +486,30 @@ model ReviewKeyword {
   @@map("review_keywords")
 }
 
+// 预约时段格子：保洁 / 废品各一套；订单只存 HH:mm 快照，不建外键
+model AppointTimeSlotConfig {
+  id        Int      @id @default(autoincrement())
+  bizType   String   @map("biz_type") @db.VarChar(16)
+  label     String   @db.VarChar(8)
+  sortOrder Int      @default(0) @map("sort_order")
+  isEnabled Boolean  @default(true) @map("is_enabled")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([bizType, label])
+  @@index([bizType, isEnabled, sortOrder])
+  @@map("appoint_time_slot_configs")
+}
+
+// 保洁 / 废品各一条最短提前分钟；缺行时业务兜底 60
+model AppointTimeLeadConfig {
+  bizType     String   @id @map("biz_type") @db.VarChar(16)
+  leadMinutes Int      @map("lead_minutes")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("appoint_time_lead_configs")
+}
+
 // 投诉原因配置：由自增主键标识，标签唯一；投诉侧保存 [{configId,label}] 快照，
 // 不建外键，配置删除不影响历史投诉展示
 model ComplaintReasonConfig {
@@ -528,4 +569,59 @@ model ConsultFollowUp {
 
   @@index([consultId])
   @@map("consult_follow_ups")
+}
+
+// C2：服务号粉丝；绑定外键与 subscribed 解耦，发送前再看 subscribed
+model WechatOaFollower {
+  id              Int       @id @default(autoincrement())
+  oaOpenid        String    @unique @map("oa_openid") @db.VarChar(64)
+  unionid         String?   @db.VarChar(64)
+  subscribed      Boolean   @default(true)
+  subscribedAt    DateTime? @map("subscribed_at")
+  unsubscribedAt  DateTime? @map("unsubscribed_at")
+  adminId         Int?      @unique @map("admin_id")
+  workerId        Int?      @unique @map("worker_id")
+  residentId      Int?      @unique @map("resident_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  admin    Admin?    @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  worker   Worker?   @relation(fields: [workerId], references: [id], onDelete: SetNull)
+  resident Resident? @relation(fields: [residentId], references: [id], onDelete: SetNull)
+
+  @@index([unionid])
+  @@map("wechat_oa_followers")
+}
+
+// C2：运营网页授权一次性 state（库内只存哈希）
+model WechatOaOauthState {
+  id               Int                     @id @default(autoincrement())
+  tokenHash        String                  @unique @map("token_hash") @db.VarChar(64)
+  targetType       WechatOaOauthTargetType @map("target_type")
+  targetId         Int                     @map("target_id")
+  expiresAt        DateTime                @map("expires_at")
+  usedAt           DateTime?               @map("used_at")
+  createdByAdminId Int?                    @map("created_by_admin_id")
+  createdAt        DateTime                @default(now()) @map("created_at")
+
+  target    Admin  @relation("OauthStateTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  createdBy Admin? @relation("OauthStateCreator", fields: [createdByAdminId], references: [id], onDelete: SetNull)
+
+  @@index([expiresAt])
+  @@map("wechat_oa_oauth_states")
+}
+
+// C2：通知幂等（C6t 必用）；唯一键 event + orderType + orderId + channel + recipientKey
+model NotifySendLog {
+  id            Int           @id @default(autoincrement())
+  event         String        @db.VarChar(64)
+  orderType     String        @map("order_type") @db.VarChar(16)
+  orderId       Int           @map("order_id")
+  channel       NotifyChannel
+  recipientKey  String        @map("recipient_key") @db.VarChar(128)
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  @@unique([event, orderType, orderId, channel, recipientKey], map: "notify_send_logs_idempotency_key")
+  @@index([orderType, orderId])
+  @@map("notify_send_logs")
 }

@@ -10,7 +10,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { PrismaService } from './common/prisma/prisma.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
 
   // 静态资源：本地开发时 /uploads/* → apps/server/uploads/ 目录
   const uploadsDir = path.join(process.cwd(), 'uploads');

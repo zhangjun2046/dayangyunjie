@@ -31,6 +31,8 @@ import { QueryCleaningOrderDto } from './dto/query-cleaning-order.dto';
 import { ReassignOrderDto } from './dto/reassign-order.dto';
 import { TransitionOrderDto } from './dto/transition-order.dto';
 import { UpdateCleaningOrderDto } from './dto/update-cleaning-order.dto';
+import { NotifyService } from '../notify/notify.service';
+import { AppointTimeSlotService } from '../appoint-time-slot/appoint-time-slot.service';
 
 const ORDER_NO_PREFIX = 'CLN';
 const ORDER_NO_SEQ_LENGTH = 6;
@@ -43,6 +45,8 @@ export class CleaningOrderService {
     private readonly stateMachine: OrderStateMachineService,
     private readonly geoService: GeoService,
     private readonly orderProgressService?: OrderProgressService,
+    private readonly notifyService?: NotifyService,
+    private readonly appointTimeSlotService?: AppointTimeSlotService,
   ) {}
 
   async create(
@@ -63,6 +67,12 @@ export class CleaningOrderService {
     if (!createCleaningOrderDto.addressId && !createCleaningOrderDto.addressSnapshotText) {
       throw new BadRequestException('addressId 或 addressSnapshotText 必须提供其中之一');
     }
+
+    await this.appointTimeSlotService?.assertAppointNotTooSoon(
+      'CLEANING',
+      createCleaningOrderDto.appointDate,
+      createCleaningOrderDto.appointTimeSlot,
+    );
 
     for (let attempt = 0; attempt < ORDER_NO_RETRY_TIMES; attempt += 1) {
       try {
@@ -148,7 +158,21 @@ export class CleaningOrderService {
           return order;
         });
 
-        return this.toDto(row);
+        const dto = this.toDto(row);
+        this.scheduleNotify((notify) =>
+          notify.notifyOrderCreated({
+            orderId: dto.id,
+            orderType: 'CLEANING',
+            orderNo: dto.orderNo,
+            residentId: dto.residentId,
+            contactPhone: dto.contactPhone,
+            catalogName: dto.serviceItem,
+            appointDate: dto.appointDate,
+            appointTimeSlot: dto.appointTimeSlot,
+            addressSnapshot: dto.addressSnapshot,
+          }),
+        );
+        return dto;
       } catch (error) {
         if (this.isOrderNoConflict(error)) {
           continue;
@@ -365,7 +389,21 @@ export class CleaningOrderService {
       });
     });
 
-    return this.findOne(id, 'ADMIN');
+    const result = await this.findOne(id, 'ADMIN');
+    this.scheduleNotify((notify) =>
+      notify.notifyWorkerAssigned({
+        orderId: result.id,
+        orderType: 'CLEANING',
+        orderNo: result.orderNo,
+        workerId: dto.workerId,
+        workerPhone: result.worker?.phone,
+        catalogName: result.serviceItem,
+        appointDate: result.appointDate,
+        appointTimeSlot: result.appointTimeSlot,
+        addressSnapshot: result.addressSnapshot,
+      }),
+    );
+    return result;
   }
 
   /**
@@ -396,7 +434,22 @@ export class CleaningOrderService {
       });
     });
 
-    return this.findOne(id, 'WORKER', dto.operatorId);
+    const result = await this.findOne(id, 'WORKER', dto.operatorId);
+    this.scheduleNotify((notify) =>
+      notify.notifyOrderAccepted({
+        orderId: result.id,
+        orderType: 'CLEANING',
+        orderNo: result.orderNo,
+        residentId: result.residentId,
+        contactPhone: result.contactPhone,
+        catalogName: result.serviceItem,
+        appointDate: result.appointDate,
+        appointTimeSlot: result.appointTimeSlot,
+        workerName: result.worker?.name ?? '',
+        workerPhone: result.worker?.phone ?? '',
+      }),
+    );
+    return result;
   }
 
   async reassignOrder(id: number, dto: ReassignOrderDto): Promise<CleaningOrderDto> {
@@ -445,7 +498,21 @@ export class CleaningOrderService {
       });
     });
 
-    return this.findOne(id, 'ADMIN');
+    const result = await this.findOne(id, 'ADMIN');
+    this.scheduleNotify((notify) =>
+      notify.notifyWorkerAssigned({
+        orderId: result.id,
+        orderType: 'CLEANING',
+        orderNo: result.orderNo,
+        workerId: dto.workerId,
+        workerPhone: result.worker?.phone,
+        catalogName: result.serviceItem,
+        appointDate: result.appointDate,
+        appointTimeSlot: result.appointTimeSlot,
+        addressSnapshot: result.addressSnapshot,
+      }),
+    );
+    return result;
   }
 
   /**
@@ -538,7 +605,17 @@ export class CleaningOrderService {
       });
     });
 
-    return this.findOne(id, 'WORKER', dto.operatorId);
+    const result = await this.findOne(id, 'WORKER', dto.operatorId);
+    this.scheduleNotify((notify) =>
+      notify.notifyOrderCompleted({
+        orderId: result.id,
+        orderType: 'CLEANING',
+        orderNo: result.orderNo,
+        residentId: result.residentId,
+        catalogName: result.serviceItem,
+      }),
+    );
+    return result;
   }
 
   /**
@@ -559,7 +636,26 @@ export class CleaningOrderService {
       });
     });
 
-    return this.findOne(id, dto.operatorType);
+    const result = await this.findOne(id, dto.operatorType);
+    if (dto.operatorType === 'RESIDENT') {
+      this.scheduleNotify((notify) =>
+        notify.notifyOrderCancelled({
+          orderId: result.id,
+          orderType: 'CLEANING',
+          orderNo: result.orderNo,
+          residentId: result.residentId,
+          catalogName: result.serviceItem,
+        }),
+      );
+    }
+    return result;
+  }
+
+  private scheduleNotify(run: (notify: NotifyService) => Promise<void>): void {
+    if (!this.notifyService) {
+      return;
+    }
+    void run(this.notifyService).catch(() => undefined);
   }
 
   private async findOneOrThrow(id: number) {

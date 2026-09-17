@@ -72,6 +72,12 @@ async function syncStoreFromStorage(): Promise<void> {
 
 async function clearSessionAndGoLogin(): Promise<void> {
   try {
+    const { captureAdminOrderDeepLinkFromCurrentPage } = await import('@/utils/admin-deeplink');
+    captureAdminOrderDeepLinkFromCurrentPage();
+  } catch {
+    // ignore
+  }
+  try {
     uni.removeStorageSync(ADMIN_AUTH_STORAGE_KEY);
   } catch {
     // ignore

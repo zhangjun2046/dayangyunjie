@@ -112,6 +112,8 @@ describe('AuthService.workerLogin', () => {
       jwtMock as any,
       makeEnvConfigMock() as any,
       makeWechatCustomerMock() as any,
+      { isConfigured: false, code2Session: jest.fn() } as any,
+      { createAdminAuthorizeUrl: jest.fn() } as any,
     );
   });
 
@@ -263,6 +265,8 @@ describe('WorkerService.resetPassword', () => {
       jwtMock as any,
       makeEnvConfigMock() as any,
       makeWechatCustomerMock() as any,
+      { isConfigured: false, code2Session: jest.fn() } as any,
+      { createAdminAuthorizeUrl: jest.fn() } as any,
     );
 
     // 用手机号作为密码登录

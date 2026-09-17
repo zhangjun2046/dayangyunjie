@@ -6,7 +6,7 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { wechatLogin as apiWechatLogin } from '@/api/auth';
+import { wechatLogin as apiWechatLogin, trySilentResidentWechatBind } from '@/api/auth';
 
 const STORAGE_KEY = '__auth__';
 
@@ -89,6 +89,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
     persist();
     console.info('[auth-store] wechatLogin success, residentId=', result.resident.id);
+    void trySilentResidentWechatBind();
   }
 
   /**
@@ -103,12 +104,13 @@ export const useAuthStore = defineStore('auth', () => {
     console.info('[auth-store] phone set, phone=', phone.slice(0, 3) + '****');
   }
 
-  /** 退出登录 */
+  /** 退出登录：清空登录态与隐私同意，回首页后会重新弹出协议 */
   function logout() {
     accessToken.value = null;
     refreshToken.value = null;
     resident.value = null;
     hasPhone.value = false;
+    hasAgreedPrivacy.value = false;
     uni.removeStorageSync(STORAGE_KEY);
     console.info('[auth-store] logout');
   }

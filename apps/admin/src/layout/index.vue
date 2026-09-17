@@ -91,6 +91,13 @@
             <el-icon><ChatDotRound /></el-icon>
             <span>关键词配置</span>
           </el-menu-item>
+          <el-menu-item
+            v-if="userStore.hasMenu('config.appoint-time-slots')"
+            index="/config/appoint-time-slots"
+          >
+            <el-icon><Clock /></el-icon>
+            <span>预约时段</span>
+          </el-menu-item>
           <el-menu-item v-if="userStore.hasMenu('config.operators')" index="/config/operators">
             <el-icon><Phone /></el-icon>
             <span>运营人员配置</span>
@@ -213,6 +220,7 @@ import {
   Avatar,
   Box,
   ChatDotRound,
+  Clock,
   DataAnalysis,
   Document,
   Expand,
@@ -266,6 +274,7 @@ const showConfigMenu = computed(() =>
     'config.services',
     'config.recycling-items',
     'config.review-keywords',
+    'config.appoint-time-slots',
     'config.operators',
     'config.banners',
   ].some((key) =>

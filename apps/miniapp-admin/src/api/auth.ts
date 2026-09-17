@@ -28,3 +28,15 @@ export function refreshAdminTokens(refreshToken: string): Promise<{ tokens: Admi
   console.info('[admin-auth] refreshAdminTokens called');
   return request<{ tokens: AdminTokenPair }>('POST', '/auth/refresh', { refreshToken });
 }
+
+export function fetchAdminWechatBind(): Promise<{
+  bound: boolean;
+  oaPaired: boolean;
+  subscribed: boolean | null;
+}> {
+  return request('GET', '/auth/admin-wechat-bind');
+}
+
+export function fetchAdminWechatOauthUrl(): Promise<{ url: string }> {
+  return request('GET', '/auth/admin-wechat-oauth-url');
+}

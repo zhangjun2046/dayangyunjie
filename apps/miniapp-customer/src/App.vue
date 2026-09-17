@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app';
+import { trySilentResidentWechatBind } from '@/api/auth';
 import { useRouteGuard } from '@/composables/useRouteGuard';
+import { useAuthStore } from '@/store/auth';
 
 const { install: installRouteGuard } = useRouteGuard();
 
@@ -15,6 +17,10 @@ onLaunch(() => {
 
 onShow(() => {
   console.info('[App] Show');
+  const authStore = useAuthStore();
+  if (authStore.isLoggedIn) {
+    void trySilentResidentWechatBind();
+  }
 });
 
 onHide(() => {

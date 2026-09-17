@@ -71,6 +71,7 @@ import { ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { adminLogin } from '@/api/auth';
 import { useAuthStore, STORAGE_KEY } from '@/store/auth';
+import { resumeAdminOrderAfterLogin } from '@/utils/admin-deeplink';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -101,7 +102,9 @@ onShow(async () => {
     const ok = await authStore.ensureSession();
     if (ok) {
       console.info('[login] local session valid, go orders');
-      uni.reLaunch({ url: '/pages/orders/index' });
+      if (!resumeAdminOrderAfterLogin()) {
+        uni.reLaunch({ url: '/pages/orders/index' });
+      }
       return;
     }
   } finally {
@@ -147,7 +150,9 @@ async function onLogin() {
     authStore.login(result);
     await authStore.fetchPermissions();
     console.info('[login] success, adminId=', result.admin.id);
-    uni.reLaunch({ url: '/pages/orders/index' });
+    if (!resumeAdminOrderAfterLogin()) {
+      uni.reLaunch({ url: '/pages/orders/index' });
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : '登录失败，请重试';
     uni.showToast({ title: msg, icon: 'none', duration: 2000 });

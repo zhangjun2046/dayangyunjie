@@ -146,10 +146,11 @@ const isLoggedIn = computed(() => authStore.isLoggedIn);
 const hasAgreedPrivacy = computed(() => authStore.hasAgreedPrivacy);
 const defaultAvatar = '/static/images/default-avatar.png';
 
-/** 显示手机号：有号码直接展示，否则用昵称/占位 */
+/** 显示手机号：有号码直接展示，未登录显示占位 */
 const displayPhone = computed(() => {
   if (resident.value?.phone) return resident.value.phone;
-  return resident.value?.nickname || '居民用户';
+  if (isLoggedIn.value) return resident.value?.nickname || '居民用户';
+  return '未登录';
 });
 
 /** 解密前确保本地已有 accessToken（decrypt-phone 需 JWT） */

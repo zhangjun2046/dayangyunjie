@@ -121,6 +121,27 @@ const largeRecyclingItemSeed = [
   { name: '双人弹簧垫', priceText: '面议', sortOrder: 14 },
 ] as const;
 
+/** 保洁 / 废品默认预约时段；仅在配置表为空时整体初始化 */
+const DEFAULT_APPOINT_TIME_SLOT_LABELS = [
+  '08:00',
+  '09:00',
+  '10:00',
+  '11:00',
+  '14:00',
+  '15:00',
+  '16:00',
+  '17:00',
+] as const;
+
+const appointTimeSlotConfigSeed = (['CLEANING', 'RECYCLING'] as const).flatMap((bizType) =>
+  DEFAULT_APPOINT_TIME_SLOT_LABELS.map((label, index) => ({
+    bizType,
+    label,
+    sortOrder: index + 1,
+    isEnabled: true,
+  })),
+);
+
 /** 默认投诉原因；仅在配置表为空时整体初始化 */
 const complaintReasonConfigSeed = [
   { label: '服务态度差', sortOrder: 1, isEnabled: true },
@@ -223,6 +244,31 @@ async function main() {
     });
   }
   console.info(`[seed] ReviewKeyword upserted: ${reviewKeywordSeed.length} rows`);
+
+  // ─── AppointTimeSlotConfig（表为空才插入，不覆盖运营已改时段） ─────────────
+  const existingAppointTimeSlotCount = await prisma.appointTimeSlotConfig.count();
+  if (existingAppointTimeSlotCount === 0) {
+    await prisma.appointTimeSlotConfig.createMany({
+      data: appointTimeSlotConfigSeed.map((row) => ({ ...row })),
+    });
+    console.info(
+      `[seed] AppointTimeSlotConfig created: ${appointTimeSlotConfigSeed.length} rows`,
+    );
+  } else {
+    console.info(
+      `[seed] AppointTimeSlotConfig skipped (${existingAppointTimeSlotCount} rows already exist)`,
+    );
+  }
+
+  // ─── AppointTimeLeadConfig（缺行才写入默认 60，不覆盖运营已改缓冲） ──────────
+  for (const bizType of ['CLEANING', 'RECYCLING'] as const) {
+    await prisma.appointTimeLeadConfig.upsert({
+      where: { bizType },
+      update: {},
+      create: { bizType, leadMinutes: 60 },
+    });
+  }
+  console.info('[seed] AppointTimeLeadConfig upserted: CLEANING/RECYCLING default 60 if missing');
 
   // ─── ComplaintReasonConfig ─────────────────────────────────────────────────
   const existingComplaintReasonCount = await prisma.complaintReasonConfig.count();

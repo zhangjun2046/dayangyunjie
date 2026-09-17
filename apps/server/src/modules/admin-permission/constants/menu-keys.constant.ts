@@ -12,6 +12,7 @@ export const ALL_MENU_KEYS = [
   'config.services',
   'config.recycling-items',
   'config.review-keywords',
+  'config.appoint-time-slots',
   'config.operators',
   'config.banners',
   'system.users',

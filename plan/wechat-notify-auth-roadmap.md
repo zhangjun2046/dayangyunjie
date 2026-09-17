@@ -121,8 +121,8 @@ WECHAT_OA_TMPL_WORKER_ASSIGNED=
 # 可选：改派给原员工「任务已改派」；不配则改派只通知新员工
 WECHAT_OA_TMPL_WORKER_REASSIGNED=
 
-# 运营点击消息落地（须备案 HTTPS，末尾保留 /admin/）
-WECHAT_ADMIN_H5_BASE_URL=https://example.com/admin/
+# 运营点击消息落地（须备案 HTTPS；正式 H5 使用独立子域根路径）
+WECHAT_ADMIN_H5_BASE_URL=https://h5.yunjiezhixiang.cn
 ```
 
 `WECHAT_CUSTOMER_APPID` / `WECHAT_CUSTOMER_SECRET` 已有（居民登录），**本期通知不使用**，不要为此新增 `WECHAT_MP_TMPL_*`。  

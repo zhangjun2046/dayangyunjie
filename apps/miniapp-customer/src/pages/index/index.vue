@@ -145,6 +145,7 @@ import PrivacyModal from '@/components/PrivacyModal.vue';
 import ContactOperatorPicker from '@/components/ContactOperatorPicker.vue';
 import { fetchActiveBanners, type BannerDto } from '@/api/banner';
 import { callContactOperator } from '@/utils/call-contact-operator';
+import { resumeResidentDeepLinkAfterLogin } from '@/utils/resident-deeplink';
 
 const authStore = useAuthStore();
 const profileModalRef = ref<InstanceType<typeof ProfileCompleteModal> | null>(null);
@@ -213,6 +214,10 @@ async function ensureLoginThenShowPhoneModal() {
     console.info('[home] skip phone modal: still not logged in');
     return;
   }
+  if (resumeResidentDeepLinkAfterLogin()) {
+    console.info('[home] resumed notify deep link after login');
+    return;
+  }
   // 登录后若服务端已有手机号，无需再授权
   if (authStore.hasPhone && authStore.resident?.phone) {
     console.info('[home] phone already bound on server, skip phone modal');
@@ -226,6 +231,10 @@ async function ensureLoginThenShowPhoneModal() {
 async function onPrivacyAgreed() {
   authStore.setPrivacyAgreed();
   await ensureLoginThenShowPhoneModal();
+  if (pendingServiceType && authStore.hasPhone) {
+    navigateToServiceDetail(pendingServiceType);
+    pendingServiceType = '';
+  }
 }
 
 /** 用户拒绝隐私协议 */
@@ -234,35 +243,15 @@ function onPrivacyDeclined() {
 }
 
 /**
- * 每次页面显示时检查隐私协议与登录态，并加载首页动态数据
- * onShow 比 onMounted 更适合：重新进入 Tab 时也会触发
+ * 每次页面显示时刷新 Banner；未同意协议则弹 PrivacyModal。
+ * 不在 onShow 自动 wx.login，登录仅在用户同意协议或点击服务时触发。
  */
 onShow(() => {
-  // 无论登录状态如何，每次显示都刷新首页动态数据
   loadPageData();
 
   if (!authStore.hasAgreedPrivacy) {
-    if (!authStore.isLoggedIn) {
-      setTimeout(() => {
-        privacyModalRef.value?.show();
-      }, 300);
-    }
-    return;
-  }
-
-  if (!authStore.isLoggedIn) {
-    void (async () => {
-      await doWechatLogin();
-      if (authStore.isLoggedIn && !authStore.hasPhone) {
-        profileModalRef.value?.show();
-      }
-    })();
-    return;
-  }
-
-  if (!authStore.hasPhone) {
     setTimeout(() => {
-      profileModalRef.value?.show();
+      privacyModalRef.value?.show();
     }, 300);
   }
 });
@@ -285,11 +274,21 @@ function onBannerTap(banner: BannerDto) {
 
 // ── 服务卡片导航 ──────────────────────────────────────────────
 
-/** 点击服务卡片：先确认登录与手机号，再跳转服务详情页 */
+/** 点击服务卡片：先确认协议、登录与手机号，再跳转服务详情页 */
 async function onServiceTap(type: string) {
+  if (!authStore.hasAgreedPrivacy) {
+    pendingServiceType = type;
+    privacyModalRef.value?.show();
+    console.info('[home] privacy required before service, type=', type);
+    return;
+  }
   if (!authStore.hasPhone) {
     pendingServiceType = type;
     await ensureLoginThenShowPhoneModal();
+    if (authStore.hasPhone && pendingServiceType) {
+      navigateToServiceDetail(pendingServiceType);
+      pendingServiceType = '';
+    }
     console.info('[home] profile complete required before viewing service, type=', type);
     return;
   }

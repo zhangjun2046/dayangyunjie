@@ -14,7 +14,12 @@
           </view>
         </view>
         <view v-else class="header-tabs header-tabs--empty" />
-        <text class="nav-logout" @tap.stop="onLogout">退出登录</text>
+        <view class="nav-actions">
+        <view class="nav-actions">
+          <text class="nav-logout" @tap.stop="onBindWechat">绑定微信</text>
+          <text class="nav-logout" @tap.stop="onLogout">退出</text>
+        </view>
+        </view>
       </view>
     </view>
 
@@ -463,6 +468,10 @@ async function onAssignSuccess() {
   }
 }
 
+function onBindWechat() {
+  uni.navigateTo({ url: '/pages/wechat-bind/index' });
+}
+
 function onLogout() {
   uni.showModal({
     title: '确认退出',
@@ -527,6 +536,14 @@ function onLogout() {
 
 .header-tabs--empty {
   flex: 1;
+}
+
+.nav-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 8rpx;
 }
 
 .nav-logout {
