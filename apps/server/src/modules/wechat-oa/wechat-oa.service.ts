@@ -105,6 +105,7 @@ export class WechatOaService {
       return;
     }
     if (!xml?.trim()) {
+      this.logger.warn('OA callback empty body; check text/xml body parser');
       return;
     }
     if (/<Encrypt>/i.test(xml)) {
@@ -118,10 +119,12 @@ export class WechatOaService {
     }
     if (parsed.event === 'subscribe') {
       await this.onSubscribe(parsed.oaOpenid);
+      this.logger.log(`OA subscribe upserted openid=${parsed.oaOpenid.slice(0, 8)}…`);
       return;
     }
     if (parsed.event === 'unsubscribe') {
       await this.onUnsubscribe(parsed.oaOpenid);
+      this.logger.log(`OA unsubscribe openid=${parsed.oaOpenid.slice(0, 8)}…`);
     }
   }
 

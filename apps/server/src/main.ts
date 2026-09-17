@@ -12,6 +12,20 @@ import { PrismaService } from './common/prisma/prisma.service';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
 
+  // 服务号回调多为 text/xml；默认只解析 json/urlencoded，body 为空则关注事件静默丢弃。
+  // 仅挂在回调路径，并接受任意 Content-Type（微信偶发无 charset / 类型不一致）。
+  app.useBodyParser('text', {
+    type: (req: { headers?: { 'content-type'?: string }; originalUrl?: string; url?: string }) => {
+      const url = req.originalUrl ?? req.url ?? '';
+      if (!url.includes('/wechat/oa/callback')) {
+        return false;
+      }
+      // POST 事件才需要 body；GET echostr 无 body
+      return true;
+    },
+    limit: '2mb',
+  });
+
   // 静态资源：本地开发时 /uploads/* → apps/server/uploads/ 目录
   const uploadsDir = path.join(process.cwd(), 'uploads');
   fs.mkdirSync(uploadsDir, { recursive: true });

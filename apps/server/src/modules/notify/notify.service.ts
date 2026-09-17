@@ -729,6 +729,11 @@ export class NotifyService {
   }
 
   workerMiniprogram(pagepath: string): NotifyWechatJump | undefined {
+    if (!this.envConfigService.wechatMpReleased) {
+      // 服务号模板不能跳体验版；未发正式版时去掉 miniprogram，避免整条 40165，通知仍可送达
+      this.logger.log('wechat: omit miniprogram jump (WECHAT_MP_RELEASED!=true)');
+      return undefined;
+    }
     const appid = this.envConfigService.wechatWorkerAppId;
     if (!appid) {
       this.logger.log('wechat skip: worker appid unset reason=no_mp_appid');
@@ -738,6 +743,10 @@ export class NotifyService {
   }
 
   residentMiniprogram(pagepath: string): NotifyWechatJump | undefined {
+    if (!this.envConfigService.wechatMpReleased) {
+      this.logger.log('wechat: omit miniprogram jump (WECHAT_MP_RELEASED!=true)');
+      return undefined;
+    }
     const appid = this.envConfigService.wechatCustomerAppId;
     if (!appid) {
       this.logger.log('wechat skip: customer appid unset reason=no_mp_appid');

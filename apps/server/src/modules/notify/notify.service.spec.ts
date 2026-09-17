@@ -4,6 +4,7 @@ function makeEnv(overrides: Record<string, unknown> = {}) {
   return {
     hasWechatOaCredentials: true,
     hasWechatAdminH5BaseUrl: true,
+    wechatMpReleased: true,
     wechatWorkerAppId: 'wx_worker',
     wechatCustomerAppId: 'wx_customer',
     get serverBaseUrl() {
@@ -147,6 +148,17 @@ describe('NotifyService', () => {
       kind: 'url',
       url: 'https://api.yunjiezhixiang.cn/api/v1/wechat/oa/redirect?type=cleaning&id=8',
     });
+  });
+
+  it('WECHAT_MP_RELEASED!=true 时居民/员工不附带 miniprogram 跳转', () => {
+    const svc = new NotifyService(
+      makeEnv({ wechatMpReleased: false }) as never,
+      makePrisma(null) as never,
+      { sendTemplate: jest.fn() } as never,
+      { send: jest.fn() } as never,
+    );
+    expect(svc.residentMiniprogram('pages/order-detail/index?id=1&type=cleaning')).toBeUndefined();
+    expect(svc.workerMiniprogram('pages/task-detail/index?orderId=1&orderType=cleaning')).toBeUndefined();
   });
 
   it('notifyWorkerAssigned 只打新员工通道，time13 用派单格式', async () => {

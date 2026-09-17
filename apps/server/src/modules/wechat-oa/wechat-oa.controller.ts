@@ -78,6 +78,9 @@ export class WechatOaController {
     if (typeof req.body === 'string') {
       return req.body;
     }
+    if (Buffer.isBuffer(req.body)) {
+      return req.body.toString('utf8');
+    }
     return '';
   }
 }
