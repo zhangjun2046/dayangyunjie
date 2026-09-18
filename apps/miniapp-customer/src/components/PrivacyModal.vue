@@ -17,7 +17,7 @@
 
         <text class="section-title">一、我们收集的信息</text>
         <text class="section-content">
-          为了提供预约服务，我们需要获取您的微信账号基本信息（昵称、头像），以及在您首次下单时获取您的手机号码和姓名，用于联系确认服务。
+          为了提供预约服务，我们需要通过微信登录识别您的账号，并在您首次下单时获取您的手机号码和姓名，用于联系确认服务。
         </text>
 
         <text class="section-title">二、信息使用目的</text>
