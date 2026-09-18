@@ -38,14 +38,14 @@ describe('AppointTimeSlotService', () => {
     service = new AppointTimeSlotService(prisma as any);
   });
 
-  it('公开查询按业务过滤启用项并稳定排序', async () => {
+  it('公开查询按业务过滤启用项并按时段文案排序', async () => {
     prisma.appointTimeSlotConfig.findMany.mockResolvedValue([makeRow()]);
     await expect(service.findEnabled('CLEANING')).resolves.toEqual([
       expect.objectContaining({ id: 1, label: '08:00', bizType: 'CLEANING' }),
     ]);
     expect(prisma.appointTimeSlotConfig.findMany).toHaveBeenCalledWith({
       where: { bizType: 'CLEANING', isEnabled: true },
-      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+      orderBy: [{ label: 'asc' }, { id: 'asc' }],
     });
   });
 
@@ -62,7 +62,7 @@ describe('AppointTimeSlotService', () => {
       where: { bizType: 'RECYCLING', label: { contains: '08' }, isEnabled: true },
       skip: 5,
       take: 5,
-      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+      orderBy: [{ label: 'asc' }, { id: 'asc' }],
     });
   });
 

@@ -60,7 +60,6 @@
       <el-table v-loading="loading" :data="tableData" stripe row-key="id">
         <el-table-column type="index" label="序号" width="70" align="center" />
         <el-table-column prop="label" label="时段" min-width="160" />
-        <el-table-column prop="sortOrder" label="排序" width="100" align="center" />
         <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
             <el-tag
@@ -111,10 +110,6 @@
         </el-form-item>
         <el-form-item label="时段" prop="label">
           <el-input v-model="form.label" placeholder="例如 08:00 或 08:30" maxlength="8" show-word-limit />
-        </el-form-item>
-        <el-form-item label="排序" prop="sortOrder">
-          <el-input-number v-model="form.sortOrder" :min="0" :max="9999" />
-          <span class="form-tip">数值越小越靠前</span>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -277,7 +272,7 @@ const submitting = ref(false);
 const editingId = ref<number | null>(null);
 const dialogBizType = ref<AppointTimeSlotBizType>('CLEANING');
 const formRef = ref<FormInstance>();
-const form = reactive({ label: '', sortOrder: 0 });
+const form = reactive({ label: '' });
 const formRules: FormRules = {
   label: [
     { required: true, whitespace: true, message: '请输入时段', trigger: 'blur' },
@@ -287,14 +282,12 @@ const formRules: FormRules = {
       trigger: 'blur',
     },
   ],
-  sortOrder: [{ type: 'number', min: 0, message: '排序值不能小于 0', trigger: 'change' }],
 };
 
 function openCreateDialog() {
   editingId.value = null;
   dialogBizType.value = activeTab.value;
   form.label = '';
-  form.sortOrder = 0;
   dialogVisible.value = true;
 }
 
@@ -302,14 +295,12 @@ function openEditDialog(row: AppointTimeSlotConfigDto) {
   editingId.value = row.id;
   dialogBizType.value = row.bizType;
   form.label = row.label;
-  form.sortOrder = row.sortOrder;
   dialogVisible.value = true;
 }
 
 function resetForm() {
   formRef.value?.clearValidate();
   form.label = '';
-  form.sortOrder = 0;
   editingId.value = null;
 }
 
@@ -318,7 +309,7 @@ async function onSubmit() {
   if (!valid) return;
   submitting.value = true;
   try {
-    const payload = { label: form.label.trim(), sortOrder: form.sortOrder };
+    const payload = { label: form.label.trim() };
     if (editingId.value === null) {
       await createAppointTimeSlot({
         bizType: dialogBizType.value,

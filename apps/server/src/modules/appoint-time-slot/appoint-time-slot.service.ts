@@ -24,11 +24,11 @@ import { UpdateAppointTimeSlotConfigDto } from './dto/update-appoint-time-slot.d
 export class AppointTimeSlotService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  /** 公开读取某业务已启用时段，按排序返回。 */
+  /** 公开读取某业务已启用时段，按 HH:mm 文案升序返回。 */
   async findEnabled(bizType: AppointTimeSlotConfigDto['bizType']): Promise<AppointTimeSlotConfigDto[]> {
     const rows = await this.prismaService.appointTimeSlotConfig.findMany({
       where: { bizType, isEnabled: true },
-      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+      orderBy: [{ label: 'asc' }, { id: 'asc' }],
     });
     return rows.map((row) => this.toDto(row));
   }
@@ -46,7 +46,7 @@ export class AppointTimeSlotService {
         where,
         skip: (page - 1) * pageSize,
         take: pageSize,
-        orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+        orderBy: [{ label: 'asc' }, { id: 'asc' }],
       }),
       this.prismaService.appointTimeSlotConfig.count({ where }),
     ]);
