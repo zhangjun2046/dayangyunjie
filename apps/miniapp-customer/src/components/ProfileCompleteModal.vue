@@ -5,7 +5,7 @@
         <view class="app-info">
           <image class="app-icon" src="/static/images/default-avatar.png" mode="aspectFill" />
           <text class="app-name">大洋云洁</text>
-          <text class="app-action">申请获取以下信息</text>
+          <text class="app-action">完善联系方式</text>
         </view>
       </view>
 
@@ -17,7 +17,7 @@
           <!-- 微信授权成功：展示脱敏号；手工输入中：始终保留 input，避免 form.phone 非空时被卸载 -->
           <view v-if="phoneFromWechat" class="phone-filled-container">
             <text class="phone-number">{{ maskedPhone }}</text>
-            <text class="phone-tag">微信绑定号码</text>
+            <text class="phone-tag">已获取号码</text>
             <text class="icon-check">✓</text>
             <text class="phone-change" @tap="onChangePhone">修改</text>
           </view>
@@ -28,8 +28,7 @@
               open-type="getPhoneNumber"
               @getphonenumber="onGetPhoneNumber"
             >
-              <image class="wechat-icon" src="data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M8.5 14c-.83 0-1.5-.67-1.5-1.5S7.67 11 8.5 11s1.5.67 1.5 1.5S9.33 14 8.5 14zm7 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm-3.5-8c-4.14 0-7.5 2.8-7.5 6.25 0 1.93 1.03 3.65 2.65 4.81l-.85 2.55 2.95-1.47c.87.24 1.79.36 2.75.36 4.14 0 7.5-2.8 7.5-6.25S16.14 6 12 6z'/%3E%3C/svg%3E" />
-              微信一键授权手机号
+              手机号快捷登录
             </button>
             <view class="manual-toggle" @tap="showManual = true" v-if="!showManual">
               使用其他手机号码
@@ -58,8 +57,8 @@
       </view>
 
       <view class="modal-footer">
-        <button class="btn-reject" @tap="onCancel">拒绝</button>
-        <button class="btn-allow" :disabled="!canSubmit" @tap="onSubmit">允许</button>
+        <button class="btn-reject" @tap="onCancel">暂不填写</button>
+        <button class="btn-allow" :disabled="!canSubmit" @tap="onSubmit">确认</button>
       </view>
     </view>
   </view>
@@ -292,12 +291,6 @@ defineExpose({ show, hide });
   justify-content: center;
   border: none;
   margin-bottom: 24rpx;
-}
-
-.wechat-icon {
-  width: 40rpx;
-  height: 40rpx;
-  margin-right: 12rpx;
 }
 
 .manual-toggle {
