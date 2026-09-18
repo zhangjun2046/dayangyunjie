@@ -32,7 +32,7 @@
 
         <text class="section-title">四、您的权利</text>
         <text class="section-content">
-          您可随时在「我的」页面查看本协议，或通过客服申请删除个人数据。
+          您可随时在「我的」页面查看本协议，或发送邮件至 717085146@qq.com、714707996@qq.com 申请删除个人数据。
         </text>
       </scroll-view>
 
