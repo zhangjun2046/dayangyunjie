@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 600" role="img" aria-label="云洁智享平台系统功能图">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f8fbff"/>
+      <stop offset="100%" stop-color="#f3f6fa"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .t { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+    .head { font-size: 15px; font-weight: 700; }
+    .item { font-size: 12px; fill: #445566; }
+    .group { font-size: 13px; font-weight: 700; fill: #37474f; }
+  </style>
+
+  <rect width="920" height="600" rx="12" fill="url(#bg)" stroke="#d8dee6"/>
+
+  <text x="460" y="36" text-anchor="middle" class="t" font-size="20" font-weight="700" fill="#1f2933">云洁智享平台 · 系统功能图</text>
+  <text x="460" y="58" text-anchor="middle" class="t" font-size="12" fill="#667788">按使用端划分功能范围</text>
+
+  <rect x="30" y="80" width="200" height="270" rx="10" fill="#ffffff" stroke="#7cb8ff" stroke-width="2"/>
+  <rect x="30" y="80" width="200" height="42" rx="10" fill="#e8f2ff" stroke="#7cb8ff" stroke-width="2"/>
+  <text x="130" y="107" text-anchor="middle" class="t head" fill="#1677ff">居民端</text>
+  <g class="t item">
+    <text x="50" y="148">· 保洁预约</text>
+    <text x="50" y="174">· 废品回收预约</text>
+    <text x="50" y="200">· 家政咨询</text>
+    <text x="50" y="226">· 代下单</text>
+    <text x="50" y="252">· 订单查询与取消</text>
+    <text x="50" y="278">· 服务评价</text>
+    <text x="50" y="304">· 投诉反馈</text>
+    <text x="50" y="330">· 地址管理</text>
+  </g>
+
+  <rect x="250" y="80" width="200" height="270" rx="10" fill="#ffffff" stroke="#7ed6a5" stroke-width="2"/>
+  <rect x="250" y="80" width="200" height="42" rx="10" fill="#e8f8ef" stroke="#7ed6a5" stroke-width="2"/>
+  <text x="350" y="107" text-anchor="middle" class="t head" fill="#18a058">员工端</text>
+  <g class="t item">
+    <text x="270" y="148">· 待办与任务列表</text>
+    <text x="270" y="174">· 接单</text>
+    <text x="270" y="200">· GPS 签到</text>
+    <text x="270" y="226">· 作业照片上传</text>
+    <text x="270" y="252">· 完成服务</text>
+    <text x="270" y="278">· 查看居民评价</text>
+    <text x="270" y="304">· 证书查看</text>
+    <text x="270" y="330">· 修改密码</text>
+  </g>
+
+  <rect x="470" y="80" width="200" height="270" rx="10" fill="#ffffff" stroke="#ffb366" stroke-width="2"/>
+  <rect x="470" y="80" width="200" height="42" rx="10" fill="#fff3e5" stroke="#ffb366" stroke-width="2"/>
+  <text x="570" y="107" text-anchor="middle" class="t head" fill="#f08800">管理端 H5</text>
+  <g class="t item">
+    <text x="490" y="148">· 保洁订单查看</text>
+    <text x="490" y="174">· 废品订单查看</text>
+    <text x="490" y="200">· 订单详情</text>
+    <text x="490" y="226">· 状态筛选</text>
+    <text x="490" y="252">· 分配员工</text>
+    <text x="490" y="278">· 改派员工</text>
+    <text x="490" y="304">· 按权限显示模块</text>
+  </g>
+
+  <rect x="690" y="80" width="200" height="270" rx="10" fill="#ffffff" stroke="#b39ddb" stroke-width="2"/>
+  <rect x="690" y="80" width="200" height="42" rx="10" fill="#f2ecfb" stroke="#b39ddb" stroke-width="2"/>
+  <text x="790" y="107" text-anchor="middle" class="t head" fill="#7b4fbf">PC 管理后台</text>
+  <g class="t item">
+    <text x="710" y="148">· 待办首页</text>
+    <text x="710" y="174">· 订单管理与派单</text>
+    <text x="710" y="200">· 家政咨询跟进</text>
+    <text x="710" y="226">· 投诉处理</text>
+    <text x="710" y="252">· 数据看板</text>
+    <text x="710" y="278">· 服务人员管理</text>
+    <text x="710" y="304">· 配置管理</text>
+    <text x="710" y="330">· 用户与权限（超管）</text>
+  </g>
+
+  <rect x="30" y="378" width="860" height="96" rx="10" fill="#ffffff" stroke="#90a4ae" stroke-width="1.8"/>
+  <text x="50" y="404" class="t group">公共能力</text>
+  <g class="t item">
+    <text x="50" y="432">· 微信授权登录（居民）</text>
+    <text x="270" y="432">· 账号密码登录（员工 / 管理员）</text>
+    <text x="530" y="432">· 功能权限控制</text>
+    <text x="710" y="432">· 图片上传与水印</text>
+    <text x="50" y="458">· 订单状态流转</text>
+    <text x="270" y="458">· 服务目录与回收品项配置</text>
+    <text x="530" y="458">· 轮播图与客服电话</text>
+    <text x="710" y="458">· 评价关键词配置</text>
+  </g>
+
+  <rect x="30" y="494" width="860" height="82" rx="10" fill="#eef3f8" stroke="#d0d7de"/>
+  <text x="50" y="520" class="t group">业务范围</text>
+  <g class="t item">
+    <text x="50" y="546">· 保洁服务：预约 → 派单 → 履约 → 评价</text>
+    <text x="450" y="546">· 废品回收：预约 → 派单 → 履约 → 评价</text>
+    <text x="50" y="566">· 家政咨询：登记 → 运营跟进 → 结案（不派单）</text>
+    <text x="450" y="566" fill="#8899aa">· 暂不含在线支付</text>
+  </g>
+</svg>

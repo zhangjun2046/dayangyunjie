@@ -1,0 +1,899 @@
+# 阿里云 ECS（Alibaba Cloud Linux 4）整体部署
+
+> **文档类型**：新机器**首次整机部署**。代码用本机 `tar` + `scp` 上传，**服务器不使用 git**。  
+> **编制**：2026-09-15；修订：2026-09-17（打包排除项、`getent`、sharp `--ignore-scripts`、第十三节日常发版命令）。  
+> 微信服务号 / 短信后台与联调见 [`WeChat-SMS-Notify-After-Aliyun-Deploy.md`](./WeChat-SMS-Notify-After-Aliyun-Deploy.md)。本文只把站和 `.env` 跑起来。
+
+---
+
+## 一、目标
+
+| 组件 | 仓库路径 | 部署到哪里 |
+|------|----------|------------|
+| NestJS API | `apps/server` | 本机 `127.0.0.1:3000`，Nginx 反代 `/api/`、`/uploads/` |
+| PC 管理后台 | `apps/admin` | Nginx 静态目录 |
+| 运营管理端 H5 | `apps/miniapp-admin` | Nginx 静态目录（正式构建 `base` 为 `/`） |
+| MySQL 8 | Prisma | **本机** MySQL（不开放公网 3306） |
+| 上传图片 | `STORAGE_PROVIDER=local` | `apps/server/uploads/`，经 Nginx `/uploads/` 访问 |
+| 居民端 / 员工端小程序 | `apps/miniapp-customer` / `miniapp-worker` | **不上 ECS**；本机 `build:mp-weixin` 后上传微信后台 |
+
+| 用途 | 主机名 |
+|------|--------|
+| PC | `https://admin.yunjiezhixiang.cn/` |
+| 运营 H5 | `https://h5.yunjiezhixiang.cn/` |
+| API | `https://api.yunjiezhixiang.cn`，路径前缀 `/api/v1` |
+
+PC / 运营 H5 **不要**写 `.env.production`（走当前域名下相对 `/api/v1`）。真机小程序打 `https://api.yunjiezhixiang.cn`。
+
+含通知的版本发到**已有库**：必须 `npx prisma db push`（不要 `migrate deploy`、不要再 `db seed`），并**重传居民端/员工端**小程序，否则静默绑定和粉丝表都不存在。
+
+---
+
+## 二、打包策略
+
+| 产物 | 在哪构建 | 传到服务器什么 |
+|------|----------|----------------|
+| `apps/admin` | **本机** `vite build` | 只 `scp` `apps/admin/dist/` |
+| `apps/miniapp-admin` | **本机** `npm run build:miniapp-admin` | 只 `scp` `dist/build/h5/` |
+| API（`shared` + `server`） | 本机 `tar` 源码（**不含** `node_modules`）→ `scp` → **ECS 上** `npm ci` 再编译 | 禁止 `scp -r apps/server` |
+| `miniapp-customer` / `miniapp-worker` | **本机** 微信小程序包 | **不上传 ECS** |
+
+**注意：**
+
+- 不要在 ECS 上跑根目录 `npm run build`（会编 uni-app / Vite）。运营 H5、PC 是纯静态，本机构建后拷过去即可。
+- `sharp`、Prisma engine **按操作系统编译**。把 Mac 的 `node_modules` 拷到 ECS，API 启动即崩。ECS 上只编 `shared` + `server`，不要编 uni-app。
+- 不要只上传 `apps/server/dist` 却不在 Linux 上 `prisma generate`。
+- 不要在 ECS 上构建微信小程序包（本机微信开发者工具完成）。
+
+---
+
+## 三、阿里云控制台准备
+
+### 3.1 本台实例（已拍板，按此部署）
+
+控制台「实例详情」当前值：
+
+| 项 | 值 |
+|----|-----|
+| 地域 | 华北 6（乌兰察布） |
+| 可用区 | 可用区 C |
+| 实例规格 | **4 核 8G**，`ecs.e`，系列 **V** |
+| I/O 优化 | I/O 优化实例 |
+| CPU / 内存 | 4 核 / 8 GB |
+| 系统盘 | ESSD Entry，`/dev/xvda`，**50 GiB** |
+| 带宽 | **3072 Kbps**（3 Mbps）按固定带宽 |
+| 操作系统 | `aliyun_4_x64_20G_alibase_20260801.vhd`，Alibaba Cloud Linux 4，Linux 64 位 |
+| 网络类型 | 专有网络 VPC |
+| 虚拟交换机 | `vsw-0jlsy9eu1khamm8sczmq9` |
+| 公网 | 绑定**弹性公网 IP** |
+| 登录 | 密钥对（推荐）或自定义 root 密码 |
+
+**注意：** 固定带宽 3 Mbps 偏紧，多端同时传图、小程序拉资源可能变慢；不够再升带宽，不要用这个当故障误判成 Nginx/代码坏了。系统盘 50 GiB 够本方案（代码 + MySQL + 本地 `uploads`）；镜像名里的 `20G` 是镜像体积，不是当前磁盘。换机时交换机 ID 会变，以控制台为准。
+
+> 不要再用 CentOS 7 / Node 18 / MySQL 的 `el7` 源。Alibaba Cloud Linux 4 用 **`dnf`**，自带仓库可装 Node 20/22 与 MySQL 8。
+
+### 3.2 安全组（入方向）
+
+| 端口 | 授权对象 | 用途 |
+|------|----------|------|
+| 22 | 仅办公网 / 跳板 IP，不要 `0.0.0.0/0` 长期裸奔 | SSH |
+| 80 | `0.0.0.0/0` | HTTP（证书申请、跳转 HTTPS） |
+| 443 | `0.0.0.0/0` | HTTPS |
+
+**不要**对公网开放 `3306`、`3000`。Node 只听本机，由 Nginx 反代。
+
+### 3.3 域名
+
+根域 `yunjiezhixiang.cn` 须已完成 ICP 备案，且 **DNS 托管在阿里云「云解析 DNS」**（NS 为 `dns*.hichina.com` 或阿里云分配的 DNS）。解析与免费证书自动 DNS 验证都依赖这一点。A 记录见 **第九节 9.1**。
+
+微信公众平台「网页授权域名」填 `api.yunjiezhixiang.cn`（不要 `www`，不要 `admin.` / `h5.`）。
+
+### 3.4 SSH
+
+```bash
+ssh root@<ECS公网IP>
+cat /etc/os-release    # 应看到 Alibaba Cloud Linux / alinux，VERSION_ID=4
+```
+
+---
+
+## 四、系统初始化（Alibaba Cloud Linux 4）
+
+包管理器是 **`dnf`**（`yum` 是兼容命令，下文统一用 `dnf`）。不要装 CentOS 7 / `el7` 的 RPM。
+
+### 4.1 基础包、时区、防火墙
+
+```bash
+dnf update -y
+dnf install -y wget curl tar unzip gcc-c++ make openssl openssl-devel \
+  firewalld policycoreutils-python-utils
+
+timedatectl set-timezone Asia/Shanghai
+
+systemctl enable --now firewalld
+firewall-cmd --permanent --add-service=ssh
+firewall-cmd --permanent --add-service=http
+firewall-cmd --permanent --add-service=https
+firewall-cmd --reload
+```
+
+SELinux 保持 Enforcing 时，Nginx 反代本机 Node 需要：
+
+```bash
+setsebool -P httpd_can_network_connect 1
+```
+
+本方案 `/uploads/` 反代到 Node，一般不必再设 `httpd_read_user_content`。
+
+### 4.2 Node.js（用系统仓库，预期 20/22）
+
+不要再用 NodeSource 的 `setup_18.x`，也不要在本镜像上硬装 CentOS 7 用的 Node 18。
+
+```bash
+dnf install -y nodejs
+# 若 `npm -v` 报没有命令：
+dnf install -y nodejs-npm
+node -v    # 预期 v20 或 v22
+npm -v
+```
+
+```bash
+npm install -g pm2
+```
+
+### 4.3 Nginx
+
+```bash
+dnf install -y nginx
+systemctl enable --now nginx
+```
+
+配置目录：`/etc/nginx/conf.d/`（不是 Ubuntu 的 `sites-available`）。
+
+### 4.4 MySQL 8
+
+优先用 Alibaba Cloud Linux 4 仓库，不要装 `mysql80-community-release-el7`。
+
+```bash
+dnf install -y mysql-server
+systemctl enable --now mysqld
+```
+
+若报找不到 `mysql-server`，再试 `dnf search mysql` 后安装仓库里的 `mysql` / `mysql-community-server`（仍不要选 el7 源）。
+
+初次 root 临时密码（有则用；没有则看 `journalctl -u mysqld` 或直接 `mysql`）：
+
+```bash
+grep 'temporary password' /var/log/mysqld.log
+mysql -uroot -p
+```
+
+```sql
+ALTER USER 'root'@'localhost' IDENTIFIED BY '请换成强密码';
+CREATE DATABASE dayangyunjie CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'dyyj'@'127.0.0.1' IDENTIFIED BY '请换成业务库强密码';
+GRANT ALL ON dayangyunjie.* TO 'dyyj'@'127.0.0.1';
+FLUSH PRIVILEGES;
+```
+
+密码若含 `@` `#` 等，写入 `DATABASE_URL` 时必须 **URL 编码**。
+
+---
+
+## 五、把 API 源码打 tar 后 scp 到服务器
+
+服务器目录：`/opt/dayangyunjie-code`。  
+**`<仓库根>`** = 本机含根 `package.json` 的那一层（能看到 `apps/`、`packages/`、`package-lock.json`）。  
+**所有 tar / 本机构建 / 本机 scp 都在 `<仓库根>` 执行**，不要在 `apps/server` 里打包（会缺 lockfile 和 `packages/shared`）。
+
+**注意：** `apps/server/node_modules` 是本机 OS 编的。整目录 `scp -r apps/server` 上去，Linux 上 API 很容易启动即崩。根 `workspaces` 是 `apps/*` 和 `packages/*`，tar 必须有：
+
+| 必须打进 tar | 原因 |
+|--------------|------|
+| `package.json`、`package-lock.json` | 在仓库根装依赖 |
+| `tsconfig.base.json` | `shared` / `server` 的 `tsconfig` 都 `extends` 它；缺了则 `tsc` / `prisma db seed` 失败 |
+| `packages/shared/` | API 依赖 `@dayangyunjie/shared` |
+| `apps/server/` | Nest 源码、`prisma/` |
+| `apps/admin/`、`apps/miniapp-admin/`、`apps/miniapp-customer/`、`apps/miniapp-worker/` 的**源码** | 满足 workspaces；**不在服务器编译**这些前端。`node_modules`、`dist` 一律排除 |
+
+本机 `.env`、`uploads`、`node_modules`、`dist`、`*.tsbuildinfo`、macOS `._*`、以及误进目录的 `D:\npm-cache` **不要**打进包。  
+（只排除 `dist` 却带上本机 `*.tsbuildinfo` 时，ECS 上 `tsc` 会以为已编译过、退出码 0 却不生成 `packages/shared/dist/`。）
+
+### 5.1 本机打包（在 `<仓库根>`）
+
+```bash
+cd <仓库根>
+
+tar --exclude='node_modules' \
+    --exclude='dist' \
+    --exclude='.env' \
+    --exclude='uploads' \
+    --exclude='*.tsbuildinfo' \
+    --exclude='._*' \
+    --exclude='D:\npm-cache' \
+    -czf /tmp/dayangyunjie-api-src.tgz \
+    package.json \
+    package-lock.json \
+    tsconfig.base.json \
+    packages/shared \
+    apps/server \
+    apps/admin \
+    apps/miniapp-admin \
+    apps/miniapp-customer \
+    apps/miniapp-worker
+```
+
+确认包内没有不该有的内容，且含有 `tsconfig.base.json`：
+
+```bash
+tar -tzf /tmp/dayangyunjie-api-src.tgz | grep -E 'node_modules|tsbuildinfo|D:\\npm-cache|/\._' || true
+# 应无输出
+
+tar -tzf /tmp/dayangyunjie-api-src.tgz | grep -E '^tsconfig\.base\.json$'
+# 应有一行
+```
+
+### 5.2 本机 scp
+
+```bash
+scp /tmp/dayangyunjie-api-src.tgz root@<ECS公网IP>:/tmp/
+```
+
+### 5.3 服务器解压
+
+```bash
+ssh root@<ECS公网IP>
+
+mkdir -p /opt/dayangyunjie-code
+tar -xzf /tmp/dayangyunjie-api-src.tgz -C /opt/dayangyunjie-code
+ls /opt/dayangyunjie-code/package.json \
+   /opt/dayangyunjie-code/tsconfig.base.json \
+   /opt/dayangyunjie-code/apps/server/package.json
+```
+
+以后只更新 API：本机重新 tar → scp。本机打包已 `--exclude='.env'` 和 `--exclude='uploads'`，**正常解压不会覆盖**服务器上已有的 `apps/server/.env` 和 `apps/server/uploads/`（tar 里没有这两样，也不会删服务器上已有文件）。
+
+仍建议先备份，防止某次打包漏了 `--exclude`。本方案服务器上**还要保住的只有这两处**：`.env`（密钥）和 `uploads/`（本地图片）。`node_modules`、`dist` 已从 tar 排除，解压不会删；`dist` 解压后本来就要重新 `build`。不要备份进源码包。
+
+```bash
+cd /opt/dayangyunjie-code
+cp apps/server/.env /root/server.env.bak 2>/dev/null || true
+rm -rf /root/server-uploads.bak
+cp -a apps/server/uploads /root/server-uploads.bak 2>/dev/null || true
+tar -xzf /tmp/dayangyunjie-api-src.tgz -C /opt/dayangyunjie-code
+
+# 以下可不做，看情况如果出现配置文件问题以及图片问题才会恢复解压之前的备份
+cp /root/server.env.bak apps/server/.env 2>/dev/null || true
+mkdir -p apps/server/uploads
+cp -a /root/server-uploads.bak/. apps/server/uploads/ 2>/dev/null || true
+
+# 打包并重启项目
+find packages/shared apps/server -name '*.tsbuildinfo' -delete
+npm run build --workspace=@dayangyunjie/shared
+npm run build --workspace=@dayangyunjie/server
+cd /opt/dayangyunjie-code/apps/server
+npx prisma generate
+pm2 restart dayangyunjie-api
+pm2 status
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3000/api/docs
+
+# 只改了表结构（加表、加列、改索引）
+cd /opt/dayangyunjie-code/apps/server
+npx prisma generate
+npx prisma db push
+pm2 restart dayangyunjie-api
+
+# 新表需要默认数据 
+npx prisma db seed。
+```
+
+---
+
+## 六、后端环境变量
+
+只在 **ECS** 维护：`/opt/dayangyunjie-code/apps/server/.env`（不要打进 tar、不要从本机整份覆盖）。
+
+```bash
+cd /opt/dayangyunjie-code/apps/server
+openssl rand -hex 32    # JWT_ACCESS_SECRET
+openssl rand -hex 32    # JWT_REFRESH_SECRET（必须和 access 不同）
+```
+
+| 变量 | 设什么 | 不设会怎样 |
+|------|--------|------------|
+| `JWT_ACCESS_SECRET` | 上面第一条随机串 | 代码回退开发默认值，**生产不能用** |
+| `JWT_REFRESH_SECRET` | 上面第二条随机串 | 同上 |
+| `JWT_ACCESS_EXPIRES_IN` | 如 `2h`、`8h` | 代码默认 `2h` |
+| `JWT_REFRESH_EXPIRES_IN` | 如 `7d`、`15d` | 代码默认 `7d` |
+
+改这四项后必须 `pm2 restart dayangyunjie-api`。已发出去的旧 token 在过期前仍有效；换 secret 等于让旧 token 全部失效。
+
+`JWT_*_SECRET` 写成 `待补充` **不会**走代码默认值，必须换成上面的随机串。  
+`WECHAT_*` / `SMS_ACCESS_KEY_*` 为 `待补充` 时该通道跳过，不挡业务。  
+`WECHAT_OA_TMPL_*`、`SMS_TMPL_*` 已拍板，不要改；**不要**加 `WECHAT_OA_TMPL_REMINDER_*`（T-30 只发短信）。  
+`STORAGE_PROVIDER=local` 时不要写 `COS_*`。明文模式不要写 `WECHAT_OA_AES_KEY`。不要写 `GITHUB_TOKEN`。  
+`WECHAT_MP_RELEASED=true`：居民/员工模板带正式版小程序跳转。未发正式版时用 `false`：模板仍发，但**不带** `miniprogram`（微信服务号模板不能跳体验版；带了会 40165 导致整条失败）。运营 H5 跳转不受此开关影响。
+`WECHAT_ADMIN_H5_BASE_URL` 为 `待补充` 时跳过运营微信。H5 通了填 `https://h5.yunjiezhixiang.cn`（子域根路径，不加 `/admin/`，**不是** `admin.`）。  
+短信 AccessKey 必须来自**短信账号**，不要用 ECS 主账号。`cat .env` 只在服务器上看，不要贴到公开渠道。
+
+```bash
+cat > /opt/dayangyunjie-code/apps/server/.env << 'EOF'
+DATABASE_URL=mysql://dyyj:X7%2AkP9%21mQvLn@127.0.0.1:3306/dayangyunjie
+
+JWT_ACCESS_SECRET=2bc46db13eb62bc5cae8e10751341888d0eec5d626a312d939564635156fa0bb
+JWT_REFRESH_SECRET=f90f03a913d46be454ce167c92b71d657e9759a808b07de76b1b25eeac80aeb3
+JWT_ACCESS_EXPIRES_IN=6h
+JWT_REFRESH_EXPIRES_IN=7d
+
+WECHAT_MOCK_OPENID_PREFIX=mock_openid_
+WECHAT_CUSTOMER_APPID=wx3767fa12506d8997
+WECHAT_CUSTOMER_SECRET=7680f35bc69e7008d93a1a2d6f9341f0
+
+WECHAT_WORKER_APPID=wxbd085578dda8a2ff
+WECHAT_WORKER_SECRET=64f0781ab7ce26d77f6655a9a59aae21
+
+WECHAT_OA_APPID=wxcd447aa0f2505c09
+WECHAT_OA_SECRET=1eff1a011f64c0e7c5179e14bbce9aea
+WECHAT_OA_TOKEN=DyYjOaTok7kQm2Np9xL4wRc8Ht5vB3
+WECHAT_OA_ENCODING_MODE=plain
+
+WECHAT_OA_TMPL_ORDER_CREATED_RESIDENT=76lGU6M3l0CV9XdSVGvg3AyoCUt-_PK1TZbY-DVbZnU
+WECHAT_OA_TMPL_NEW_ORDER_ADMIN=c3VSz6fV6mqD7Q-gXXlE22Q6zLkanw9c9ntRTHHK41E
+WECHAT_OA_TMPL_WORKER_ASSIGNED=OAuzYglX64w1OIKBB3rQ9NGTHGaNV2ytUTvwacvdONM
+WECHAT_OA_TMPL_ACCEPTED=eX--7A13c7k0HF60IC9RNSJsFkEckAsqp5fbPd9xbA4
+WECHAT_OA_TMPL_COMPLETED_RESIDENT=cRhLoBGqdg7L1dz0x4QwQfhWt5kVmcJGjjm-xtsgdqk
+WECHAT_OA_TMPL_CANCELLED_RESIDENT=dMNDuYBvKOWPj-HJpNbyqazj9VwoDOW_N1E7iHwrpRs
+WECHAT_OA_TMPL_ACCEPT_TIMEOUT_ADMIN=1kdKwgR6Feosro1zA16zpX_4-73HkXm3iWocT7Iwbmg
+
+WECHAT_ADMIN_H5_BASE_URL=https://h5.yunjiezhixiang.cn
+WECHAT_MP_RELEASED=false
+
+STORAGE_PROVIDER=local
+CORS_ORIGIN=https://admin.yunjiezhixiang.cn,https://h5.yunjiezhixiang.cn
+SERVER_BASE_URL=https://api.yunjiezhixiang.cn
+
+SMS_PROVIDER=aliyun
+SMS_ACCESS_KEY_ID=
+SMS_ACCESS_KEY_SECRET=
+SMS_SIGN_NAME=北京大洋云洁
+SMS_ENDPOINT=dysmsapi.aliyuncs.com
+SMS_REGION_ID=cn-hangzhou
+SMS_TMPL_NEW_ORDER_ADMIN=SMS_512410706
+SMS_TMPL_WORKER_ASSIGNED=SMS_512035746
+SMS_TMPL_ACCEPTED_RESIDENT=SMS_512135723
+SMS_TMPL_REMINDER_RESIDENT=SMS_512230700
+SMS_TMPL_REMINDER_WORKER=SMS_512160710
+SMS_TMPL_ACCEPT_TIMEOUT_ADMIN=SMS_512185692
+EOF
+```
+
+`DATABASE_URL` 密码段先 `待补充`，换成真实密码（含 `@` 要 URL 编码）。居民/员工小程序 Secret **不要混用**。`TOKEN` 与公众平台服务器配置一致。
+
+---
+
+## 七、在 ECS 上只构建并启动 API
+
+全部在 **SSH 登录后的服务器**执行。不要编 admin / uni-app。  
+先确认：第五节已解压、第六节已写好 `.env`、MySQL 已启动。`DATABASE_URL` 里的密码不能仍是 `待补充`，否则建表会失败。
+
+```bash
+cd /opt/dayangyunjie-code
+```
+
+### 7.0 安装依赖
+
+```bash
+cd /opt/dayangyunjie-code
+npm ci --ignore-scripts
+```
+
+| 现象 | 不要做什么 | 改怎么做 |
+|------|------------|----------|
+| `npm ci` 因可选依赖 / postinstall 失败 | **不要**再跑无参数 `npm ci`（会清空 `node_modules` 再失败一次） | `npm install --ignore-scripts` |
+| 报缺少某个 workspace 包 | 不要只拷了 `apps/server` | 按第五节把 `apps/*`、`packages/shared`、根 `package-lock.json` 打进 tar 再解压 |
+| 日志出现 `D:\npm-cache` | — | 本机垃圾目录被打进 tar。删掉服务器上的 `**/D:\npm-cache` 与 `._*`，按 5.1 重新打包（已排除该项）后必要时 `rm -rf node_modules apps/*/node_modules packages/*/node_modules` 再 `npm ci --ignore-scripts` |
+
+`--ignore-scripts` 之后 **Prisma Client 和 Linux 版 sharp 往往没装上**，下面 7.1、7.4 会补。
+
+### 7.1 空库首次建表
+
+当前源码里的 `apps/server/prisma/migrations/` **不完整**。空库不要跑 `npx prisma migrate deploy`（会失败或漏表）。
+
+```bash
+cd /opt/dayangyunjie-code/apps/server
+npx prisma generate
+npx prisma db push
+npx prisma db seed
+```
+
+| 现象 | 不要做什么 | 改怎么做 |
+|------|------------|----------|
+| `Can't reach database` / Access denied | — | 检查 MySQL 已 `systemctl start mysqld`；`.env` 的用户、库名、**已 URL 编码的密码** 与第四节建库一致 |
+| `migrate deploy`：No migration found / 表不存在 | 不要用 `migrate deploy` 初始化空库 | 改用上面的 `db push` |
+| seed 报 `admins` 表不存在 | — | `db push` 没成功就 seed 了。先 `db push` 再 `seed` |
+| 以后更新又跑了 `db seed` | 不要在有数据的库上例行 seed | seed **只空库这一次**。会写入管理员 `admin@dayunyunjie.com` / `admin123`（邮箱拼写以 `prisma/seed.ts` 为准）。装完**立刻改密码**；再 seed 会把密码写回 `admin123` |
+
+`db push` 后 `_prisma_migrations` 可能仍为空。以后不要对残缺 migration 跑 `migrate deploy`（「列已存在」或建不出表）。
+
+```bash
+mysql -udyyj -p -e "SHOW TABLES;" dayangyunjie
+```
+
+应能看到 `admins` 等表。含通知的版本 `db push` 后还应有 `wechat_oa_followers`、`wechat_oa_oauth_states`、`notify_send_logs`。
+
+### 7.2 编译 API
+
+必须先编 `shared`，再编 `server`。`--ignore-scripts` 后若还没 `prisma generate`，先做 7.1。
+
+```bash
+cd /opt/dayangyunjie-code
+npm run build --workspace=@dayangyunjie/shared
+npm run build --workspace=@dayangyunjie/server
+```
+
+| 现象 | 不要做什么 | 改怎么做 |
+|------|------------|----------|
+| `Property '…' does not exist on type 'PrismaService'` | 不要删 `package-lock.json` | `cd /opt/dayangyunjie-code/apps/server && npx prisma generate`，再重新 `build` server |
+| `Cannot find module '@dayangyunjie/shared'` | 不要先编 server | 先成功编 shared，并确认 `ls packages/shared/dist/index.js` 存在 |
+| `tsc` 编 shared 退出 0 但没有 `dist/` | 不要反复空跑 `build` | 删本机带上来的增量缓存：`find packages/shared apps/server -name '*.tsbuildinfo' -delete`，再编 shared；下次 tar 按 5.1 排除 `*.tsbuildinfo` |
+| 缺 `tsconfig.base.json` / seed 报 Cannot read file | 不要只拷 `apps/server` | 按 5.1 把根目录 `tsconfig.base.json` 打进 tar，或单独 `scp` 到 `/opt/dayangyunjie-code/` |
+| 想跑根目录 `npm run build` | **不要**（会编小程序/H5） | 只跑上面两条 workspace |
+| 构建时报缺 `@rollup/rollup-linux-x64-gnu` | 不要按报错去删 lock / 整棵 `node_modules` | 你编到前端了。停掉，回到只编 shared + server |
+
+构建里的 Deprecation、chunk 体积警告可忽略。
+
+### 7.3 验证产物
+
+```bash
+ls -l /opt/dayangyunjie-code/packages/shared/dist/index.js
+ls -l /opt/dayangyunjie-code/apps/server/dist/main.js
+```
+
+两条都存在、时间是刚才构建的时间、上一步命令无报错，即产物可用。
+
+### 7.4 启动
+
+必须在 `apps/server` 目录启动（才能加载该目录下的 `.env`）。
+
+```bash
+cd /opt/dayangyunjie-code/apps/server
+mkdir -p uploads
+pm2 delete dayangyunjie-api 2>/dev/null || true
+pm2 start dist/main.js --name dayangyunjie-api --cwd /opt/dayangyunjie-code/apps/server
+pm2 save
+pm2 startup
+```
+
+`pm2 startup` 会打印一条 `sudo env PATH=…` 命令，**原样再执行一次**，开机才会拉起 PM2。
+
+| 现象 | 不要做什么 | 改怎么做 |
+|------|------------|----------|
+| `pm2 status` 为 `errored`，日志 `Could not load the "sharp" module` | **不要**按日志执行 `npm install --include=optional sharp`（`--workspace` 也容易报 npm null） | 在 **`/opt/dayangyunjie-code` 根目录**：`npm install @img/sharp-linux-x64@0.34.5 --no-save --ignore-scripts`（必须加 `--ignore-scripts`，否则会跑 miniapp 的 postinstall 且缺 `scripts/`）。`ls node_modules/@img/sharp-linux-x64/package.json` 有文件后 `pm2 restart dayangyunjie-api` |
+| 仍缺 sharp | — | 确认 `node -v` 为 20/22；再试根目录同上命令。Alibaba Cloud Linux 4 的 glibc 足够跑官方二进制 |
+| 装 sharp 时报 `Cannot find module '.../scripts/link-uni-local-deps.mjs'` | 不要为此去编 uni / 重跑无参 `npm ci` | API 包未含 `scripts/`。加 `--ignore-scripts` 即可；本方案不在 ECS 构建小程序 |
+| 起来马上退出：数据库连不上 | — | 第七节 7.1 的 `DATABASE_URL`；`pm2 logs dayangyunjie-api --lines 80 --nostream` |
+| JWT 仍是 `待补充` | 可以起进程，但登录票据不安全 | 按第六节换成随机串后 `pm2 restart dayangyunjie-api` |
+| 反复 `pm2 restart` 但 ↺ 次数在涨 | 不要无意义重启 | 先看 `~/.pm2/logs/dayangyunjie-api-error.log` |
+
+### 7.5 验证启动
+
+```bash
+pm2 status
+curl -I http://127.0.0.1:3000/api/docs
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3000/api/docs
+```
+
+通过：`dayangyunjie-api` 为 **online**；`/api/docs` 返回 **200**。公网 **不要**直连 3000。
+
+```bash
+pm2 logs dayangyunjie-api --lines 80 --nostream
+```
+
+应有类似 `大洋云洁 Server is running`。有 Prisma / ECONNREFUSED 则回到 7.1、7.4 表格。
+
+---
+
+## 八、本机构建 admin / miniapp-admin 并用 scp 上传
+
+PC 与运营 H5 默认 API 都是相对路径 **`/api/v1`**。浏览器请求**当前域名**下的 `/api/v1`、`/uploads/`，由 Nginx 反代到本机 3000。因此：
+
+- **不要**建 `apps/admin/.env.production` / `apps/miniapp-admin/.env.production`
+- **不要**改 `vite.config.ts` 里的 `base`
+- 静态站**只传 `dist`，不要传 `node_modules`**
+- 本机需已在 `<仓库根>` 做过一次 `npm ci`。开发用的 `.env.development` 不会打进生产包。
+
+**顺序（首次）：服务器建目录 → 本机构建 → 本机 scp。** `scp` 时目标目录必须已存在。日常发版跳过 8.0。
+
+### 8.0 服务器先建静态目录（首次一次）
+
+```bash
+mkdir -p /var/www/dayangyunjie-admin /var/www/dayangyunjie-miniapp-admin
+```
+
+第九节 Nginx 的 `root` 指向这两个目录，**不要再 mkdir**。
+
+### 8.1 PC 管理后台
+
+```bash
+cd <仓库根>
+npm run build --workspace=@dayangyunjie/shared
+npm run build --workspace=@dayangyunjie/admin
+ls apps/admin/dist/index.html
+scp -r apps/admin/dist/* root@<ECS公网IP>:/var/www/dayangyunjie-admin/
+```
+
+访问（Nginx 配好后）：`https://admin.yunjiezhixiang.cn/`
+
+### 8.2 运营 H5
+
+正式 `base` 是 **`/`**。Nginx 把 H5 挂在 `h5.` 子域根路径。
+
+```bash
+cd <仓库根>
+npm run build:miniapp-admin
+ls apps/miniapp-admin/dist/build/h5/index.html
+scp -r apps/miniapp-admin/dist/build/h5/* root@<ECS公网IP>:/var/www/dayangyunjie-miniapp-admin/
+```
+
+访问：`https://h5.yunjiezhixiang.cn`  
+日常发版：8.1 / 8.2 覆盖即可，不必动 Nginx、不必再 `mkdir`。
+
+---
+
+## 九、云解析 DNS、证书与 Nginx
+
+前提：域名已备案，**三张**个人免费证书已签发（`admin.` / `h5.` / `api.` 各一张）。  
+浏览器静态站走相对 `/api/v1`，所以 **admin、h5 两个 HTTPS 站点也必须反代 `/api/` 和 `/uploads/`**，不能只给 `api.` 反代。小程序、服务号回调仍走 `api.yunjiezhixiang.cn`。
+
+```bash
+mv /etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf.bak 2>/dev/null || true
+```
+
+静态目录已在 **8.0** 建好，这里不要再 `mkdir /var/www/...`。
+
+### 9.1 确认云解析
+
+[云解析 DNS](https://dns.console.aliyun.com/) → `yunjiezhixiang.cn`，三条 A 记录都指向该 ECS **弹性公网 IP**（不要填内网 IP）：
+
+| 记录类型 | 主机记录 | 解析到 |
+|----------|----------|--------|
+| A | `admin` | `admin.yunjiezhixiang.cn` |
+| A | `h5` | `h5.yunjiezhixiang.cn` |
+| A | `api` | `api.yunjiezhixiang.cn` |
+
+不要加 `www.admin`、`admin.h5`。NS 须在阿里云，否则免费证书自动 DNS 验证会失败（证书已签过可忽略）。
+
+本机默认**没有** `dig`（属 `bind-utils`，不必为这一步去装）。用系统自带的 `getent` 即可：
+
+```bash
+getent hosts admin.yunjiezhixiang.cn
+getent hosts h5.yunjiezhixiang.cn
+getent hosts api.yunjiezhixiang.cn
+```
+
+三行都应解析到**同一条** ECS 弹性公网 IP（不要内网 IP）。Windows 本机可用 `nslookup`。安全组 / firewalld 已放行 80、443。
+
+### 9.2 证书放到 Nginx 目录
+
+下载类型选 **Nginx**，解压得到 `.pem` + `.key`。私钥不要打进源码 tar。
+
+```bash
+mkdir -p /etc/nginx/ssl/yunjiezhixiang
+chmod 700 /etc/nginx/ssl/yunjiezhixiang
+```
+
+本机（证书解压目录，按实际文件名改）：
+
+```bash
+scp admin.yunjiezhixiang.cn.pem  root@<ECS公网IP>:/etc/nginx/ssl/yunjiezhixiang/admin.pem
+scp admin.yunjiezhixiang.cn.key  root@<ECS公网IP>:/etc/nginx/ssl/yunjiezhixiang/admin.key
+scp h5.yunjiezhixiang.cn.pem     root@<ECS公网IP>:/etc/nginx/ssl/yunjiezhixiang/h5.pem
+scp h5.yunjiezhixiang.cn.key     root@<ECS公网IP>:/etc/nginx/ssl/yunjiezhixiang/h5.key
+scp api.yunjiezhixiang.cn.pem    root@<ECS公网IP>:/etc/nginx/ssl/yunjiezhixiang/api.pem
+scp api.yunjiezhixiang.cn.key    root@<ECS公网IP>:/etc/nginx/ssl/yunjiezhixiang/api.key
+```
+
+服务器：
+
+```bash
+chmod 600 /etc/nginx/ssl/yunjiezhixiang/*.key
+chmod 644 /etc/nginx/ssl/yunjiezhixiang/*.pem
+chcon -t httpd_config_t /etc/nginx/ssl/yunjiezhixiang/* 2>/dev/null || true
+```
+
+90 天到期再领三张新证，同名覆盖后 `nginx -t && systemctl reload nginx`。
+
+### 9.3 Nginx（三主机 HTTPS + 同域反代）
+
+服务号回调：`https://api.yunjiezhixiang.cn/api/v1/wechat/oa/callback`。  
+Swagger：`https://api.yunjiezhixiang.cn/api/docs`。图片公网地址用 `SERVER_BASE_URL=https://api.yunjiezhixiang.cn`（小程序不走 admin/h5）。
+
+Alibaba Cloud Linux 4 的 Nginx 较新，本文仍用 **TLSv1.2**（够用）。不要为了抄旧文档去装 CentOS 7 的 Nginx。  
+`X-Forwarded-Proto` 必须传到 Node。运营 H5 的 `location /` SPA 回退必须保留。
+
+```bash
+cat > /etc/nginx/conf.d/dayangyunjie.conf << 'EOF'
+# HTTP 只跳 HTTPS
+server {
+    listen 80;
+    server_name admin.yunjiezhixiang.cn h5.yunjiezhixiang.cn api.yunjiezhixiang.cn;
+    return 301 https://$host$request_uri;
+}
+
+# PC 管理后台：静态 + 同域 /api /uploads
+server {
+    listen 443 ssl;
+    server_name admin.yunjiezhixiang.cn;
+
+    ssl_certificate     /etc/nginx/ssl/yunjiezhixiang/admin.pem;
+    ssl_certificate_key /etc/nginx/ssl/yunjiezhixiang/admin.key;
+    ssl_protocols       TLSv1.2;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    root /var/www/dayangyunjie-admin;
+    index index.html;
+    client_max_body_size 20m;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+
+    location /uploads/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+
+# 运营 H5：h5 子域根路径静态站 + 同域反代
+server {
+    listen 443 ssl;
+    server_name h5.yunjiezhixiang.cn;
+
+    ssl_certificate     /etc/nginx/ssl/yunjiezhixiang/h5.pem;
+    ssl_certificate_key /etc/nginx/ssl/yunjiezhixiang/h5.key;
+    ssl_protocols       TLSv1.2;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    client_max_body_size 20m;
+
+    root /var/www/dayangyunjie-miniapp-admin;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+
+    location /uploads/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# API / 上传 / 服务号（小程序合法域名用这一台）
+server {
+    listen 443 ssl;
+    server_name api.yunjiezhixiang.cn;
+
+    ssl_certificate     /etc/nginx/ssl/yunjiezhixiang/api.pem;
+    ssl_certificate_key /etc/nginx/ssl/yunjiezhixiang/api.key;
+    ssl_protocols       TLSv1.2;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    client_max_body_size 20m;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+
+    location /uploads/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
+
+nginx -t && systemctl reload nginx
+```
+
+### 9.4 后端 `.env` 与验收
+
+确认 `apps/server/.env`（**不是**前端的 `.env.production`）：
+
+```env
+CORS_ORIGIN=https://admin.yunjiezhixiang.cn,https://h5.yunjiezhixiang.cn
+SERVER_BASE_URL=https://api.yunjiezhixiang.cn
+WECHAT_ADMIN_H5_BASE_URL=https://h5.yunjiezhixiang.cn
+WECHAT_MP_RELEASED=false
+```
+
+```bash
+pm2 restart dayangyunjie-api
+```
+
+```bash
+curl -I https://admin.yunjiezhixiang.cn/
+curl -I https://admin.yunjiezhixiang.cn/api/docs
+curl -I https://h5.yunjiezhixiang.cn/
+curl -I https://h5.yunjiezhixiang.cn/api/docs
+curl -I https://api.yunjiezhixiang.cn/api/docs
+```
+
+通过：`admin.` 与 `h5.` 首页均为 200；两处 `/api/docs` 为 200。浏览器能登录 PC、能在 `h5.` 根路径打开 H5；上传一张图后库里的 URL 主机是 `https://api.yunjiezhixiang.cn`。
+
+---
+
+## 十、居民端 / 员工端小程序（不上 ECS）
+
+这两端**不能**像第八节那样走 Nginx 同域 `/api/v1`：微信要求 request 合法域名是备案 HTTPS 主机，必须直连 **`https://api.yunjiezhixiang.cn`**。  
+因此要写各自目录下的 `.env.production`（不要给 admin / miniapp-admin 写生产 env）。两个应用各自读自己的文件。`npm run build:mp-weixin` 会把 `VITE_API_BASE` 编译进包。
+
+- `apps/miniapp-customer/.env.production`
+- `apps/miniapp-worker/.env.production`
+
+两份都写成（不要填公网 IP、不要填 `admin.` / `h5.`）：
+
+```env
+VITE_API_BASE=https://api.yunjiezhixiang.cn/api/v1
+```
+
+```bash
+cd <仓库根>
+npm run build --workspace=@dayangyunjie/shared
+npm run build:mp-weixin --workspace=@dayangyunjie/miniapp-customer
+npm run build:mp-weixin --workspace=@dayangyunjie/miniapp-worker
+```
+
+微信开发者工具打开：
+
+- `apps/miniapp-customer/dist/build/mp-weixin`
+- `apps/miniapp-worker/dist/build/mp-weixin`
+
+上传到对应小程序账号。合法域名 request / uploadFile / downloadFile：`https://api.yunjiezhixiang.cn`。服务号回调：`https://api.yunjiezhixiang.cn/api/v1/wechat/oa/callback`。
+
+**不要**把微信上传包 `scp` 到 ECS，也不要配 Nginx 去托管小程序包。
+
+---
+
+## 十一、验收清单
+
+- [ ] 安全组仅 22/80/443；3306、3000 不对公网
+- [ ] 云解析三条 A 记录 `admin` / `h5` / `api` 指向 ECS 弹性 IP（`getent hosts` 三条同 IP）
+- [ ] 三张个人免费证书已签发，Nginx 指向对应 `.pem` / `.key`
+- [ ] `pm2 status` 中 `dayangyunjie-api` 为 `online`
+- [ ] `curl -I http://127.0.0.1:3000/api/docs` 与 `curl -I https://api.yunjiezhixiang.cn/api/docs` 成功
+- [ ] 浏览器 HTTPS 打开 PC 后台并登录（seed 后立刻改密）
+- [ ] 浏览器打开 `https://h5.yunjiezhixiang.cn`（运营 H5 在子域根路径）
+- [ ] HTTP 访问三主机返回 301 到 HTTPS
+- [ ] `https://admin.yunjiezhixiang.cn/api/docs` 与 `https://h5.yunjiezhixiang.cn/api/docs` 能反代到 API
+- [ ] 上传一张图，库里的 URL 主机是 `https://api.yunjiezhixiang.cn`，不是 `localhost`
+- [ ] 小程序 `VITE_API_BASE` 为 `https://api.yunjiezhixiang.cn/api/v1` 并能登录、下单
+- [ ] 运营微信基址为 `https://h5.yunjiezhixiang.cn`（仍 `待补充` 则只跳过运营微信）
+
+机器通了之后，微信后台、开放平台、短信账号和人员绑定见 [`WeChat-SMS-Notify-After-Aliyun-Deploy.md`](./WeChat-SMS-Notify-After-Aliyun-Deploy.md)。
+
+---
+
+## 十二、常见问题
+
+| 现象 | 处理 |
+|------|------|
+| `getent hosts` 不到域名 / IP 不对 | NS 未切到阿里云；记录值填了内网 IP；TTL/缓存未过。ECS 上不必装 `dig`；本机可用 `nslookup` |
+| 证书申请 DNS 验证失败 | 域名须在本账号云解析；或手工按控制台提示加 TXT |
+| `nginx -t` 报证书路径 | `.pem`/`.key` 文件名、权限、`chcon`；CSR 非系统生成时包里没有 key |
+| 浏览器证书报错主机名不匹配 | 三个 `server` 必须用**各自**那张单域名证，不能三站共用一张 |
+| HTTPS 能开、接口 CORS 失败 | `CORS_ORIGIN` 含 `https://admin...` 与 `https://h5...`，无尾斜杠 |
+| 管理后台登录 500 | 补 `CORS_ORIGIN` 为浏览器实际 Origin（含协议、无路径） |
+| 小程序/H5 图片全裂 | 补 `SERVER_BASE_URL=https://api.yunjiezhixiang.cn`，重新上传一张图 |
+| Nginx 502 | `setsebool -P httpd_can_network_connect 1`；确认 PM2 在听 3000 |
+| H5 静态 404 / JS 路径错误 | 访问 `https://h5.yunjiezhixiang.cn`；检查 Nginx `root /var/www/dayangyunjie-miniapp-admin` 与 `try_files ... /index.html`，并确认正式构建未设置 `VITE_PUBLIC_BASE=/admin/` |
+| `prisma` 报 engine / openssl | Alibaba Cloud Linux 4 + 系统 Node 20/22 一般可用；仍失败看 `npx prisma --version` 与 Prisma 文档的 OpenSSL 变体 |
+| `scp -r apps/server` 后 API 起不来 | 把本机 `node_modules` 带上去了。删掉服务器 `node_modules`，按第五节重新 tar（排除 `node_modules`）再 `npm ci --ignore-scripts` |
+| `npm ci` 报缺少某个 workspace | tar 漏了 `apps/miniapp-*` 等目录。根 `workspaces` 是 `apps/*`，源码要打全，只是不在 ECS 编译前端 |
+| `npm ci` 在服务器编 uni 失败 | 不要在 ECS 跑根目录 `npm run build`；静态站本机编后 scp `dist` |
+| seed 后登录不上 | 邮箱是 `dayunyunjie` 拼写；或二次 seed 覆盖了你改过的密码 |
+| 空库 `migrate deploy` 失败 | 首次用 `db push`，见第七节 |
+| 误装了 CentOS 7 的 Node 18 / `el7` MySQL 源 | 不要混用。卸掉旧源和包后按第四节用 `dnf` 重装 |
+
+```bash
+pm2 logs dayangyunjie-api --lines 200
+```
+
+---
+
+## 十三、本机 → 服务器文件对照（发版时）
+
+本机 tar/构建/scp 一律 `cd <仓库根>`；解压、`npm ci`、`prisma`、`pm2` 在 ECS。  
+首次部署走第四节～第十二节；**日常发版只看本节**（机器已通、Nginx / 证书不动）。
+
+| 变更 | 本机（`<仓库根>`） | 服务器 |
+|------|---------------------|--------|
+| API 源码 | 第五节 5.1 `tar` → 5.2 `scp /tmp/dayangyunjie-api-src.tgz` | 见下方 **13.1** |
+| PC 后台 | `npm run build --workspace=@dayangyunjie/shared` 后 `npm run build --workspace=@dayangyunjie/admin`，再 `scp -r apps/admin/dist/* root@<IP>:/var/www/dayangyunjie-admin/` | 不要再 mkdir；Nginx 不用改 |
+| 运营 H5 | `npm run build:miniapp-admin` 后 `scp -r apps/miniapp-admin/dist/build/h5/* root@<IP>:/var/www/dayangyunjie-miniapp-admin/` | 不要再 mkdir |
+| customer / worker | 各自 `.env.production` 写 `VITE_API_BASE=https://api.yunjiezhixiang.cn/api/v1`，本机 `build:mp-weixin` 后微信后台上传 | **不上 ECS**；含静默绑定 / 深链的版本必须重传体验版或正式版 |
+
+静态覆盖后 Nginx 一般不必重启；若加了缓存头，可 `nginx -s reload`。
+
+### 13.1 API 日常更新（可复制）
+
+**本机**（`<仓库根>`，用第五节 5.1 的完整 `tar`，含 `tsconfig.base.json` 与排除项）：
+
+```bash
+# 打好 /tmp/dayangyunjie-api-src.tgz 后：
+scp /tmp/dayangyunjie-api-src.tgz root@<ECS公网IP>:/tmp/
+```
+
+**ECS**：
+
+```bash
+cd /opt/dayangyunjie-code
+cp apps/server/.env /root/server.env.bak 2>/dev/null || true
+rm -rf /root/server-uploads.bak; cp -a apps/server/uploads /root/server-uploads.bak 2>/dev/null || true
+
+tar -xzf /tmp/dayangyunjie-api-src.tgz -C /opt/dayangyunjie-code
+cp /root/server.env.bak apps/server/.env 2>/dev/null || true
+mkdir -p apps/server/uploads
+cp -a /root/server-uploads.bak/. apps/server/uploads/ 2>/dev/null || true
+
+# package-lock / 依赖有变才重装；无变可跳过本行
+npm ci --ignore-scripts
+
+# 若此前 sharp 已装过且未删 node_modules，可跳过；否则：
+# npm install @img/sharp-linux-x64@0.34.5 --no-save --ignore-scripts
+
+find packages/shared apps/server -name '*.tsbuildinfo' -delete
+npm run build --workspace=@dayangyunjie/shared
+npm run build --workspace=@dayangyunjie/server
+
+cd /opt/dayangyunjie-code/apps/server
+npx prisma generate
+# 仅 schema 有变更时（含通知相关表 / unionid 等）：
+# npx prisma db push
+# 有数据的库不要再 db seed，也不要 migrate deploy
+
+pm2 restart dayangyunjie-api
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3000/api/docs
+# 期望 200
+```
+
+**不要：** 把本机 `node_modules` / `.env` 打进包；在 ECS 跑根目录 `npm run build`；有业务数据后再 `db seed`。
+
+通知联调仍见 [`WeChat-SMS-Notify-After-Aliyun-Deploy.md`](./WeChat-SMS-Notify-After-Aliyun-Deploy.md)。
