@@ -241,15 +241,23 @@ scp /tmp/dayangyunjie-api-src.tgz root@<ECS公网IP>:/tmp/
 
 ### 5.3 服务器解压
 
+先 SSH 登录：
+
 ```bash
 ssh root@<ECS公网IP>
+```
 
+#### 5.3.1 首次解压 API 源码
+
+```bash
 mkdir -p /opt/dayangyunjie-code
 tar -xzf /tmp/dayangyunjie-api-src.tgz -C /opt/dayangyunjie-code
 ls /opt/dayangyunjie-code/package.json \
    /opt/dayangyunjie-code/tsconfig.base.json \
    /opt/dayangyunjie-code/apps/server/package.json
 ```
+
+#### 5.3.2 日常更新 API 源码
 
 以后只更新 API：本机重新 tar → scp。本机打包已 `--exclude='.env'` 和 `--exclude='uploads'`，**正常解压不会覆盖**服务器上已有的 `apps/server/.env` 和 `apps/server/uploads/`（tar 里没有这两样，也不会删服务器上已有文件）。
 
@@ -286,6 +294,89 @@ pm2 restart dayangyunjie-api
 # 新表需要默认数据 
 npx prisma db seed。
 ```
+
+#### 5.3.3 更新 PC 后台（admin）与运营 H5（miniapp-admin）
+
+静态站在 `/var/www/`，**不要**用 API 那个源码 tar 去覆盖这两处。顺序固定：**先备份现网目录 → 本机上传包 → 服务器解压覆盖**。不要先解压再备份。Nginx 不用改、不要再 `mkdir`。只更新其中一端时，跳过另一端即可。
+
+本机先按 **第八节** 打出 dist，再打成 tar（包根下必须直接是 `index.html`，不要多套一层目录名）：
+
+```bash
+# 本机 <仓库根>
+tar -czf /tmp/dayangyunjie-admin-dist.tgz -C apps/admin/dist .
+tar -czf /tmp/dayangyunjie-miniapp-admin-h5.tgz -C apps/miniapp-admin/dist/build/h5 .
+```
+
+桌面上的 zip（如 `dayangyunjie-miniapp-admin-h5.zip`）也可以，见下方解压注意。
+
+**1）服务器：先备份**
+
+```bash
+ssh root@<ECS公网IP>
+
+STAMP=$(date +%Y%m%d-%H%M%S)
+cp -a /var/www/dayangyunjie-admin /root/dayangyunjie-admin.bak-$STAMP
+cp -a /var/www/dayangyunjie-miniapp-admin /root/dayangyunjie-miniapp-admin.bak-$STAMP
+ls -ld /root/dayangyunjie-admin.bak-$STAMP /root/dayangyunjie-miniapp-admin.bak-$STAMP
+```
+
+记下 `$STAMP`，回滚时要用。
+
+**2）本机：再上传**
+
+```bash
+# 本机
+scp /tmp/dayangyunjie-admin-dist.tgz root@<ECS公网IP>:/tmp/
+scp /tmp/dayangyunjie-miniapp-admin-h5.tgz root@<ECS公网IP>:/tmp/
+```
+
+若用桌面 zip：
+
+```bash
+scp ~/Desktop/dayangyunjie-miniapp-admin-h5.zip root@<ECS公网IP>:/tmp/
+# PC 后台同理，有 dayangyunjie-admin.zip 再 scp
+```
+
+**3）服务器：再解压覆盖**
+
+先清空站点目录再解压，避免留下上一版 `assets/` 里的旧哈希文件。
+
+```bash
+# tar 包（根下直接是 index.html）
+rm -rf /var/www/dayangyunjie-admin/*
+tar -xzf /tmp/dayangyunjie-admin-dist.tgz -C /var/www/dayangyunjie-admin
+ls /var/www/dayangyunjie-admin/index.html
+
+rm -rf /var/www/dayangyunjie-miniapp-admin/*
+tar -xzf /tmp/dayangyunjie-miniapp-admin-h5.tgz -C /var/www/dayangyunjie-miniapp-admin
+ls /var/www/dayangyunjie-miniapp-admin/index.html
+```
+
+zip 若多了一层目录（`unzip -l` 看到 `dayangyunjie-miniapp-admin-h5/index.html`），解到临时目录再把**含 `index.html` 的那一层**拷进去：
+
+```bash
+rm -rf /tmp/h5-unz
+mkdir -p /tmp/h5-unz
+unzip -o /tmp/dayangyunjie-miniapp-admin-h5.zip -d /tmp/h5-unz
+# 确认 index.html 所在目录后：
+rm -rf /var/www/dayangyunjie-miniapp-admin/*
+cp -a /tmp/h5-unz/dayangyunjie-miniapp-admin-h5/. /var/www/dayangyunjie-miniapp-admin/
+ls /var/www/dayangyunjie-miniapp-admin/index.html
+```
+
+覆盖的是目录里的文件，不要变成 `/var/www/dayangyunjie-miniapp-admin/dayangyunjie-miniapp-admin-h5/`，否则页面会 404。
+
+**回滚（解压后页面异常时）**
+
+```bash
+# 把 STAMP 换成备份时的时间戳
+rm -rf /var/www/dayangyunjie-admin
+cp -a /root/dayangyunjie-admin.bak-STAMP /var/www/dayangyunjie-admin
+rm -rf /var/www/dayangyunjie-miniapp-admin
+cp -a /root/dayangyunjie-miniapp-admin.bak-STAMP /var/www/dayangyunjie-miniapp-admin
+```
+
+验收：`https://admin.yunjiezhixiang.cn/` 、`https://h5.yunjiezhixiang.cn/`（浏览器强刷或清缓存）。
 
 ---
 
@@ -536,7 +627,7 @@ scp -r apps/miniapp-admin/dist/build/h5/* root@<ECS公网IP>:/var/www/dayangyunj
 ```
 
 访问：`https://h5.yunjiezhixiang.cn`  
-日常发版：8.1 / 8.2 覆盖即可，不必动 Nginx、不必再 `mkdir`。
+日常发版（含备份 → 上传 → 解压）走 **5.3.3**，不要只 scp 覆盖。首次仍按上面建目录后直接 scp。
 
 ---
 
@@ -846,8 +937,8 @@ pm2 logs dayangyunjie-api --lines 200
 | 变更 | 本机（`<仓库根>`） | 服务器 |
 |------|---------------------|--------|
 | API 源码 | 第五节 5.1 `tar` → 5.2 `scp /tmp/dayangyunjie-api-src.tgz` | 见下方 **13.1** |
-| PC 后台 | `npm run build --workspace=@dayangyunjie/shared` 后 `npm run build --workspace=@dayangyunjie/admin`，再 `scp -r apps/admin/dist/* root@<IP>:/var/www/dayangyunjie-admin/` | 不要再 mkdir；Nginx 不用改 |
-| 运营 H5 | `npm run build:miniapp-admin` 后 `scp -r apps/miniapp-admin/dist/build/h5/* root@<IP>:/var/www/dayangyunjie-miniapp-admin/` | 不要再 mkdir |
+| PC 后台 | 第八节构建 dist 后打 tar，见 **5.3.3** | 先备份 `/var/www/dayangyunjie-admin`，再解压；不要再 mkdir；Nginx 不用改 |
+| 运营 H5 | 第八节构建 h5 后打 tar/zip，见 **5.3.3** | 先备份 `/var/www/dayangyunjie-miniapp-admin`，再解压；不要再 mkdir |
 | customer / worker | 各自 `.env.production` 写 `VITE_API_BASE=https://api.yunjiezhixiang.cn/api/v1`，本机 `build:mp-weixin` 后微信后台上传 | **不上 ECS**；含静默绑定 / 深链的版本必须重传体验版或正式版 |
 
 静态覆盖后 Nginx 一般不必重启；若加了缓存头，可 `nginx -s reload`。
