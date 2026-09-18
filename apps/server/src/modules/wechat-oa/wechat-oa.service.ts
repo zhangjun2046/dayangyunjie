@@ -416,6 +416,18 @@ export class WechatOaService {
     });
   }
 
+  /** 只摘运营挂载，保留粉丝行与关注状态、员工/居民绑定。 */
+  async unbindAdminOpenid(adminId: number): Promise<void> {
+    const follower = await this.prisma.wechatOaFollower.findUnique({ where: { adminId } });
+    if (!follower) {
+      throw new BadRequestException('该账号未绑定微信');
+    }
+    await this.prisma.wechatOaFollower.update({
+      where: { id: follower.id },
+      data: { adminId: null },
+    });
+  }
+
   /**
    * 服务号模板消息。失败只打日志并返回 false，不抛给业务。
    * 调用方须保证 url 与 miniprogram 互斥。

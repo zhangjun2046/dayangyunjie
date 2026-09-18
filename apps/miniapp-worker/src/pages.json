@@ -38,7 +38,9 @@
         "navigationStyle": "custom",
         "navigationBarBackgroundColor": "#ddeeff",
         "navigationBarTextStyle": "black",
-        "disableScroll": true
+        "disableScroll": true,
+        "enableShareAppMessage": true,
+        "enableShareTimeline": true
       }
     },
     {

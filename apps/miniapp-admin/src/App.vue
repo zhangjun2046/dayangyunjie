@@ -33,4 +33,10 @@ page {
   font-size: 28rpx;
   color: #333;
 }
+
+/* 对齐微信原生导航标题：约 17px、中粗 */
+.uni-nav-bar-text {
+  font-size: 32rpx !important;
+  font-weight: 500;
+}
 </style>

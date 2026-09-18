@@ -13,6 +13,7 @@ export interface AdminListItem {
   status: 'ENABLED' | 'DISABLED';
   source: string;
   isSuperAdmin: boolean;
+  wechatBound?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -75,6 +76,10 @@ export const toggleAdminStatus = (id: number) =>
 /** 重置密码为默认密码 Dyyj123.. */
 export const resetAdminPassword = (id: number) =>
   request.post<ApiResponse<AdminDetail>>(`/admins/${id}/reset-password`);
+
+/** 超管代解绑运营服务号 */
+export const unbindAdminWechat = (id: number) =>
+  request.post<ApiResponse<AdminDetail>>(`/admins/${id}/unbind-wechat`);
 
 /** 当前登录用户自助修改密码（顶栏「修改密码」） */
 export const changeAdminPassword = (id: number, payload: ChangeAdminPasswordPayload) =>

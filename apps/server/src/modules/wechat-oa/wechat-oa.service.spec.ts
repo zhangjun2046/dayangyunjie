@@ -53,6 +53,26 @@ describe('WechatOaService oauth / redirect', () => {
     expect(prisma.wechatOaOauthState.update).not.toHaveBeenCalled();
   });
 
+  it('解绑运营只清 adminId，未绑定则失败', async () => {
+    const prisma = {
+      wechatOaFollower: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce({ id: 4, adminId: 9, subscribed: true, workerId: 2 }),
+        update: jest.fn().mockResolvedValue({}),
+      },
+    };
+    const svc = new WechatOaService(env as never, prisma as never);
+
+    await expect(svc.unbindAdminOpenid(9)).rejects.toThrow('该账号未绑定微信');
+    await expect(svc.unbindAdminOpenid(9)).resolves.toBeUndefined();
+    expect(prisma.wechatOaFollower.update).toHaveBeenCalledWith({
+      where: { id: 4 },
+      data: { adminId: null },
+    });
+  });
+
   it('中转 Location 只拼本站 H5 详情', () => {
     const svc = new WechatOaService(env as never, {} as never);
     expect(svc.adminOrderRedirectLocation('cleaning', '8')).toBe(

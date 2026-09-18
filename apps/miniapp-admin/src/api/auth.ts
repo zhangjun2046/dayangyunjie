@@ -40,3 +40,11 @@ export function fetchAdminWechatBind(): Promise<{
 export function fetchAdminWechatOauthUrl(): Promise<{ url: string }> {
   return request('GET', '/auth/admin-wechat-oauth-url');
 }
+
+export function unbindAdminWechat(): Promise<{
+  bound: boolean;
+  oaPaired: boolean;
+  subscribed: boolean | null;
+}> {
+  return request('POST', '/auth/admin-wechat-unbind');
+}

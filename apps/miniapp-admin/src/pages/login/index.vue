@@ -74,6 +74,25 @@ import { useAuthStore, STORAGE_KEY } from '@/store/auth';
 import { resumeAdminOrderAfterLogin } from '@/utils/admin-deeplink';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const LOGIN_REMEMBER_KEY = '__admin_login_last__';
+
+function loadRememberedLogin(): { email: string; password: string } {
+  try {
+    const raw = uni.getStorageSync(LOGIN_REMEMBER_KEY);
+    if (!raw) return { email: '', password: '' };
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return {
+      email: typeof parsed?.email === 'string' ? parsed.email : '',
+      password: typeof parsed?.password === 'string' ? parsed.password : '',
+    };
+  } catch {
+    return { email: '', password: '' };
+  }
+}
+
+function saveRememberedLogin(emailVal: string, passwordVal: string): void {
+  uni.setStorageSync(LOGIN_REMEMBER_KEY, JSON.stringify({ email: emailVal, password: passwordVal }));
+}
 
 function hasPersistedSession(): boolean {
   try {
@@ -83,8 +102,9 @@ function hasPersistedSession(): boolean {
   }
 }
 
-const email = ref('');
-const password = ref('');
+const remembered = loadRememberedLogin();
+const email = ref(remembered.email);
+const password = ref(remembered.password);
 const showPassword = ref(false);
 const agreed = ref(true);
 const loading = ref(false);
@@ -94,6 +114,9 @@ const authStore = useAuthStore();
 
 onShow(async () => {
   if (!hasPersistedSession() && !authStore.isLoggedIn) {
+    const last = loadRememberedLogin();
+    email.value = last.email;
+    password.value = last.password;
     checkingSession.value = false;
     return;
   }
@@ -107,6 +130,9 @@ onShow(async () => {
       }
       return;
     }
+    const last = loadRememberedLogin();
+    email.value = last.email;
+    password.value = last.password;
   } finally {
     checkingSession.value = false;
   }
@@ -147,6 +173,7 @@ async function onLogin() {
   try {
     console.info('[login] attempting admin login, email=', emailVal);
     const result = await adminLogin(emailVal, passwordVal);
+    saveRememberedLogin(emailVal, passwordVal);
     authStore.login(result);
     await authStore.fetchPermissions();
     console.info('[login] success, adminId=', result.admin.id);

@@ -374,6 +374,11 @@ export class AuthService {
     return { url };
   }
 
+  async unbindAdminWechat(adminId: number): Promise<AdminWechatBindStatus> {
+    await this.wechatOaService.unbindAdminOpenid(adminId);
+    return this.getAdminWechatBindStatus(adminId);
+  }
+
   async getProfile(user: CurrentUser): Promise<{
     resident: ResidentProfile;
   }> {

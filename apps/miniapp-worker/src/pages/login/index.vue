@@ -74,7 +74,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { onShow } from '@dcloudio/uni-app';
+import { onShareAppMessage, onShareTimeline, onShow } from '@dcloudio/uni-app';
 import { trySilentWorkerWechatBind, workerLogin } from '@/api/auth';
 import { useAuthStore, STORAGE_KEY } from '@/store/auth';
 import ContactOperatorPicker from '@/components/ContactOperatorPicker.vue';
@@ -117,6 +117,15 @@ onShow(async () => {
     checkingSession.value = false;
   }
 });
+
+onShareAppMessage(() => ({
+  title: '大洋云洁员工端',
+  path: '/pages/login/index',
+}));
+
+onShareTimeline(() => ({
+  title: '大洋云洁员工端',
+}));
 
 function onPhoneInput(e: { detail: { value: string } }) {
   // 只保留数字

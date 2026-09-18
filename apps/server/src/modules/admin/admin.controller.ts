@@ -110,6 +110,17 @@ export class AdminController {
     return { code: 0, message: 'ok', data };
   }
 
+  @Post(':id/unbind-wechat')
+  @UseGuards(SuperAdminGuard)
+  @ApiOperation({ summary: '代解绑运营服务号（仅超级管理员；只清 adminId）' })
+  @ApiOkResponse({ description: '已解绑' })
+  async unbindWechat(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ApiResponseDto<Awaited<ReturnType<AdminService['unbindWechat']>>>> {
+    const data = await this.adminService.unbindWechat(id);
+    return { code: 0, message: 'ok', data };
+  }
+
   @Put(':id/change-password')
   @ApiOperation({ summary: '当前登录用户自助修改密码（顶栏「修改密码」）' })
   @ApiOkResponse({ description: '密码修改成功' })

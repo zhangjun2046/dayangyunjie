@@ -137,7 +137,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { onShow } from '@dcloudio/uni-app';
+import { onShareAppMessage, onShareTimeline, onShow } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/store/auth';
 import RemoteImage from '@/components/RemoteImage.vue';
 import ProfileCompleteModal from '@/components/ProfileCompleteModal.vue';
@@ -255,6 +255,15 @@ onShow(() => {
     }, 300);
   }
 });
+
+onShareAppMessage(() => ({
+  title: '大洋云洁·智享社区',
+  path: '/pages/index/index',
+}));
+
+onShareTimeline(() => ({
+  title: '大洋云洁·智享社区',
+}));
 
 // ── Banner 交互 ───────────────────────────────────────────────
 

@@ -211,6 +211,17 @@ export class AuthController {
     return { code: 0, message: 'ok', data };
   }
 
+  @Post('admin-wechat-unbind')
+  @UseGuards(AdminJwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '解绑当前运营服务号（只清 adminId，不解关注）' })
+  async unbindAdminWechat(
+    @CurrentAdminDecorator() user: AdminCurrentUser,
+  ): Promise<ApiResponseDto<Awaited<ReturnType<AuthService['unbindAdminWechat']>>>> {
+    const data = await this.authService.unbindAdminWechat(user.adminId);
+    return { code: 0, message: 'ok', data };
+  }
+
   @Post('refresh')
   @ApiOperation({ summary: '使用 refresh token 刷新访问令牌' })
   @ApiOkResponse({

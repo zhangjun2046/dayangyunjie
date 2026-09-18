@@ -7,8 +7,16 @@
       <text class="hint">
         请用微信打开本页。关注服务号「北京大洋云洁」后点下方按钮完成授权，即可收到保洁 / 废品订单的服务号通知。家政咨询单不发通知。未关注也可以先绑定。
       </text>
-      <button class="btn" :disabled="loading" @tap="onBind">
+      <button class="btn" :disabled="loading || unbinding" @tap="onBind">
         {{ loading ? '跳转中…' : bindButtonText }}
+      </button>
+      <button
+        v-if="bound"
+        class="btn btn-unbind"
+        :disabled="loading || unbinding"
+        @tap="onUnbind"
+      >
+        {{ unbinding ? '解绑中…' : '解绑微信' }}
       </button>
     </view>
   </view>
@@ -17,10 +25,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
-import { fetchAdminWechatBind, fetchAdminWechatOauthUrl } from '@/api/auth';
+import { fetchAdminWechatBind, fetchAdminWechatOauthUrl, unbindAdminWechat } from '@/api/auth';
 import { ensureAuthed } from '@/composables/useRouteGuard';
 
 const loading = ref(false);
+const unbinding = ref(false);
 const bound = ref(false);
 const subscribed = ref<boolean | null>(null);
 const oauthResult = ref<'ok' | 'error' | ''>('');
@@ -50,7 +59,7 @@ function oauthReasonLabel(reason: string): string {
     return '授权已过期，请重新点绑定。';
   }
   if (reason === 'conflict') {
-    return '该微信已绑定其他运营账号。';
+    return '该微信已绑定其他运营账号。请原账号在本页解绑，或请超级管理员在用户管理中代为解绑。';
   }
   if (reason === 'oauth_failed' || reason === 'missing_code') {
     return '微信授权失败，请在微信内重试。';
@@ -89,11 +98,46 @@ onShow(async () => {
 });
 
 function onBack() {
-  uni.navigateBack({
-    fail: () => {
-      uni.reLaunch({ url: '/pages/orders/index' });
-    },
+  // H5 上 navigateBack 在无上一页时经常不进 fail（会走浏览器 history.back）。
+  // OAuth 整页跳转回来后栈只有绑定页，必须 reLaunch 回订单首页。
+  if (oauthResult.value || getCurrentPages().length <= 1) {
+    uni.reLaunch({ url: '/pages/orders/index' });
+    return;
+  }
+  uni.navigateBack({ delta: 1 });
+}
+
+async function onUnbind() {
+  if (unbinding.value || loading.value) {
+    return;
+  }
+  const confirmed = await new Promise<boolean>((resolve) => {
+    uni.showModal({
+      title: '确认解绑',
+      content: '解绑后这只微信不再收到运营派单通知。确认解绑？',
+      confirmText: '解绑',
+      cancelText: '取消',
+      success: (res) => resolve(!!res.confirm),
+      fail: () => resolve(false),
+    });
   });
+  if (!confirmed) {
+    return;
+  }
+  unbinding.value = true;
+  try {
+    const data = await unbindAdminWechat();
+    bound.value = data.bound;
+    subscribed.value = data.subscribed;
+    oauthResult.value = '';
+    oauthReason.value = '';
+    uni.showToast({ title: '已解绑', icon: 'success' });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '解绑失败';
+    uni.showToast({ title: msg, icon: 'none', duration: 2000 });
+  } finally {
+    unbinding.value = false;
+  }
 }
 
 async function onBind() {
@@ -161,5 +205,12 @@ async function onBind() {
 
 .btn::after {
   border: none;
+}
+
+.btn-unbind {
+  margin-top: 24rpx;
+  background: #fff;
+  color: #246bff;
+  border: 2rpx solid #246bff;
 }
 </style>

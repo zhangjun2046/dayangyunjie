@@ -30,6 +30,13 @@
         <el-table-column label="手机号" min-width="130">
           <template #default="{ row }">{{ row.phone || '—' }}</template>
         </el-table-column>
+        <el-table-column label="微信" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.wechatBound ? 'success' : 'info'" size="small">
+              {{ row.wechatBound ? '已绑定' : '未绑定' }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="状态" width="110" align="center">
           <template #default="{ row }">
             <el-switch
@@ -47,11 +54,15 @@
         <el-table-column label="创建时间" min-width="160">
           <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="180" align="center" fixed="right">
+        <el-table-column label="操作" width="260" align="center" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link @click="openEditDialog(row)">编辑</el-button>
             <el-divider direction="vertical" />
             <el-button type="warning" link @click="openResetPwd(row)">重置密码</el-button>
+            <template v-if="row.wechatBound">
+              <el-divider direction="vertical" />
+              <el-button type="warning" link @click="openUnbindWechat(row)">解绑微信</el-button>
+            </template>
             <template v-if="!row.isSuperAdmin && row.id !== userStore.adminId">
               <el-divider direction="vertical" />
               <el-button type="danger" link @click="onDelete(row)">删除</el-button>
@@ -123,6 +134,18 @@
         <el-button type="primary" :loading="resetLoading" @click="onConfirmReset">确认重置</el-button>
       </template>
     </el-dialog>
+
+    <!-- ── 解绑微信确认弹窗 ─────────────────────────────────────────────── -->
+    <el-dialog v-model="unbindVisible" title="解绑微信" width="420px">
+      <div class="reset-pwd-tip">
+        <el-icon color="#e6a23c" size="20"><Warning /></el-icon>
+        解绑后【{{ unbindTarget?.name || unbindTarget?.username }}】将不再收到服务号派单通知，这只微信可再绑给其他运营账号。确认解绑？
+      </div>
+      <template #footer>
+        <el-button @click="unbindVisible = false">取消</el-button>
+        <el-button type="primary" :loading="unbindLoading" @click="onConfirmUnbind">确认解绑</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -136,6 +159,7 @@ import {
   fetchAdmins,
   resetAdminPassword,
   toggleAdminStatus,
+  unbindAdminWechat,
   updateAdmin,
   type AdminListItem,
   type CreateAdminPayload,
@@ -344,6 +368,31 @@ const onConfirmReset = async () => {
     console.error('[SystemUsers] reset password error', err);
   } finally {
     resetLoading.value = false;
+  }
+};
+
+const unbindVisible = ref(false);
+const unbindTarget = ref<AdminListItem | null>(null);
+const unbindLoading = ref(false);
+
+const openUnbindWechat = (row: AdminListItem) => {
+  unbindTarget.value = row;
+  unbindVisible.value = true;
+};
+
+const onConfirmUnbind = async () => {
+  if (!unbindTarget.value) return;
+  unbindLoading.value = true;
+  try {
+    await unbindAdminWechat(unbindTarget.value.id);
+    ElMessage.success('已解绑微信');
+    console.info('[SystemUsers] unbind wechat id=%d', unbindTarget.value.id);
+    unbindVisible.value = false;
+    loadData();
+  } catch (err) {
+    console.error('[SystemUsers] unbind wechat error', err);
+  } finally {
+    unbindLoading.value = false;
   }
 };
 

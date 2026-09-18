@@ -8,6 +8,7 @@ import {
 import { Admin, Prisma } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { WechatOaService } from '../wechat-oa/wechat-oa.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { QueryAdminDto } from './dto/query-admin.dto';
@@ -18,7 +19,10 @@ const DEFAULT_ADMIN_PASSWORD = 'Dyyj123..';
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly wechatOaService: WechatOaService,
+  ) {}
 
   async create(createAdminDto: CreateAdminDto) {
     const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 10);
@@ -57,12 +61,16 @@ export class AdminService {
         skip: (page - 1) * pageSize,
         take: pageSize,
         orderBy: { id: 'desc' },
+        include: { wechatOaFollowers: { select: { id: true } } },
       }),
       this.prismaService.admin.count({ where }),
     ]);
 
     return {
-      items: items.map((item) => this.toPublicAdmin(item)),
+      items: items.map((item) => {
+        const { wechatOaFollowers, ...admin } = item;
+        return this.toPublicAdmin(admin, wechatOaFollowers.length > 0);
+      }),
       total,
       page,
       pageSize,
@@ -70,11 +78,15 @@ export class AdminService {
   }
 
   async findOne(id: number) {
-    const admin = await this.prismaService.admin.findUnique({ where: { id } });
+    const admin = await this.prismaService.admin.findUnique({
+      where: { id },
+      include: { wechatOaFollowers: { select: { id: true } } },
+    });
     if (!admin) {
       throw new NotFoundException(`Admin ${id} not found`);
     }
-    return this.toPublicAdmin(admin);
+    const { wechatOaFollowers, ...rest } = admin;
+    return this.toPublicAdmin(rest, wechatOaFollowers.length > 0);
   }
 
   async update(id: number, updateAdminDto: UpdateAdminDto) {
@@ -120,6 +132,12 @@ export class AdminService {
     return this.toPublicAdmin(updated);
   }
 
+  async unbindWechat(id: number) {
+    await this.getOrThrow(id);
+    await this.wechatOaService.unbindAdminOpenid(id);
+    return this.findOne(id);
+  }
+
   /** 顶栏「修改密码」自服务：仅本人可操作，需校验旧密码 */
   async changePassword(id: number, currentAdminId: number, dto: ChangePasswordDto) {
     if (id !== currentAdminId) {
@@ -157,9 +175,9 @@ export class AdminService {
     }
   }
 
-  private toPublicAdmin(admin: Admin) {
+  private toPublicAdmin(admin: Admin, wechatBound = false) {
     const { passwordHash, ...rest } = admin;
-    return rest;
+    return { ...rest, wechatBound };
   }
 
   private handlePrismaError(error: unknown): never {
