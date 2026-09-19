@@ -12,6 +12,7 @@ import { CurrentUserDecorator } from './decorators/current-user.decorator';
 import { CurrentWorkerDecorator } from './decorators/current-worker.decorator';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { ApiResponseDto, LoginResultDto } from './dto/auth-response.dto';
+import { BindPhoneDto } from './dto/bind-phone.dto';
 import { BindWechatDto } from './dto/bind-wechat.dto';
 import { DecryptPhoneDto } from './dto/decrypt-phone.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -87,6 +88,26 @@ export class AuthController {
     @CurrentUserDecorator() user: CurrentUser,
   ): Promise<ApiResponseDto<{ phone: string }>> {
     const data = await this.authService.decryptPhone(body.code, user);
+    return { code: 0, message: 'ok', data };
+  }
+
+  @Post('bind-phone')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '手工绑定当前居民手机号',
+    description: '将输入的大陆手机号写入 residents.phone。需登录。与 decrypt-phone 同一字段。',
+  })
+  @ApiOkResponse({
+    description: '绑定成功',
+    schema: { example: { code: 0, message: 'ok', data: { phone: '13812345678' } } },
+  })
+  @ApiUnauthorizedResponse({ description: '未携带 token 或 token 无效' })
+  async bindPhone(
+    @Body() body: BindPhoneDto,
+    @CurrentUserDecorator() user: CurrentUser,
+  ): Promise<ApiResponseDto<{ phone: string }>> {
+    const data = await this.authService.bindPhone(body.phone, user);
     return { code: 0, message: 'ok', data };
   }
 

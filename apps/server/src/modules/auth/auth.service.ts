@@ -411,6 +411,19 @@ export class AuthService {
     return { phone };
   }
 
+  /**
+   * 手工填写手机号并写回当前居民（需已登录）。
+   * 与 decryptPhone 同一落库字段；不走微信解密。
+   */
+  async bindPhone(phone: string, user: CurrentUser): Promise<{ phone: string }> {
+    await this.prismaService.resident.update({
+      where: { id: user.residentId },
+      data: { phone },
+    });
+
+    return { phone };
+  }
+
   private async resolveWechatSession(code: string): Promise<{ openid: string; unionid?: string }> {
     if (this.wechatCustomerService.isConfigured) {
       return this.wechatCustomerService.code2Session(code);

@@ -147,3 +147,23 @@ describe('AuthService 居民 unionid', () => {
     expect(prisma.resident.update).not.toHaveBeenCalled();
   });
 });
+
+describe('AuthService.bindPhone', () => {
+  it('按 JWT residentId 更新 residents.phone', async () => {
+    const prisma = makePrisma();
+    prisma.resident.update.mockResolvedValue({ id: 7, phone: '16601124086' });
+    const auth = makeAuth(prisma, { isConfigured: false });
+
+    const result = await auth.bindPhone('16601124086', {
+      residentId: 7,
+      openid: 'o1',
+      role: 'resident',
+    });
+
+    expect(result).toEqual({ phone: '16601124086' });
+    expect(prisma.resident.update).toHaveBeenCalledWith({
+      where: { id: 7 },
+      data: { phone: '16601124086' },
+    });
+  });
+});

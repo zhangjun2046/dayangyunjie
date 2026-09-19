@@ -58,7 +58,7 @@
 
       <view class="modal-footer">
         <button class="btn-reject" @tap="onCancel">暂不填写</button>
-        <button class="btn-allow" :disabled="!canSubmit" @tap="onSubmit">确认</button>
+        <button class="btn-allow" :disabled="!canSubmit || submitting" @tap="onSubmit">确认</button>
       </view>
     </view>
   </view>
@@ -67,7 +67,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue';
 import { useAuthStore } from '@/store/auth';
-import { decryptPhone } from '@/api/auth';
+import { bindPhone, decryptPhone } from '@/api/auth';
 
 const emit = defineEmits<{
   (e: 'completed', payload: { phone: string }): void;
@@ -77,6 +77,7 @@ const emit = defineEmits<{
 const authStore = useAuthStore();
 
 const visible = ref(false);
+const submitting = ref(false);
 const showManual = ref(false);
 /** 仅微信授权拿到的号走「已填写」展示；手工输入不受 form.phone 非空影响 */
 const phoneFromWechat = ref(false);
@@ -179,13 +180,32 @@ async function onGetPhoneNumber(e: any) {
   }
 }
 
-function onSubmit() {
-  if (!canSubmit.value) return;
+async function onSubmit() {
+  if (!canSubmit.value || submitting.value) return;
   const { phone } = form;
-  authStore.setPhone(phone);
-  visible.value = false;
-  emit('completed', { phone });
-  console.info('[ProfileCompleteModal] completed, phone=', phone.slice(0, 3) + '****');
+  submitting.value = true;
+  try {
+    uni.showLoading({ title: '保存中...' });
+    const ready = await ensureAccessToken();
+    if (!ready) {
+      uni.showToast({ title: '请先登录后再保存', icon: 'none' });
+      return;
+    }
+    await bindPhone(phone);
+    authStore.setPhone(phone);
+    visible.value = false;
+    emit('completed', { phone });
+    console.info('[ProfileCompleteModal] completed, phone=', phone.slice(0, 3) + '****');
+  } catch (err) {
+    console.info('[ProfileCompleteModal] bindPhone failed', String(err));
+    uni.showToast({
+      title: err instanceof Error && err.message ? err.message : '保存失败，请重试',
+      icon: 'none',
+    });
+  } finally {
+    submitting.value = false;
+    uni.hideLoading();
+  }
 }
 
 function onCancel() {

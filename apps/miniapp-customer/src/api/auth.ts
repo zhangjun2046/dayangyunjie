@@ -30,6 +30,14 @@ export function decryptPhone(code: string): Promise<{ phone: string }> {
 }
 
 /**
+ * 手工填写手机号并写入当前居民（residents.phone）
+ * 需已登录（自动带 Authorization）
+ */
+export function bindPhone(phone: string): Promise<{ phone: string }> {
+  return request<{ phone: string }>('POST', '/auth/bind-phone', { phone });
+}
+
+/**
  * 微信登录：发送 wx.login code 换取 accessToken + resident
  * 已配置微信凭证时走 code2session（稳定 openid）；未配置时 mock
  */
