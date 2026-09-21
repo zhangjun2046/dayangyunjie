@@ -113,7 +113,7 @@ import {
   normalizeReviewOrderType,
   retainAvailableSelectedTags,
 } from './review-keywords.utils';
-import { parseResidentReviewQuery, savePendingResidentDeepLink } from '@/utils/resident-deeplink';
+import { parseResidentReviewQuery, savePendingResidentDeepLink, leaveAfterResidentReview } from '@/utils/resident-deeplink';
 
 const MAX_IMAGES = 9;
 
@@ -251,7 +251,7 @@ async function onSubmit() {
     });
     uni.showToast({ title: '评价成功', icon: 'success' });
     console.info(`[review] submitted orderId=${orderId.value} rating=${rating.value}`);
-    setTimeout(() => uni.navigateBack(), 1500);
+    setTimeout(() => leaveAfterResidentReview(orderId.value, orderType.value), 1500);
   } catch (e) {
     const msg = e instanceof Error ? e.message : '提交失败';
     uni.showToast({ title: msg, icon: 'none' });

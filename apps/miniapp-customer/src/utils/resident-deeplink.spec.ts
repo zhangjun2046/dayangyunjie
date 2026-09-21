@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   PENDING_RESIDENT_LINK_STORAGE_KEY,
+  leaveAfterResidentReview,
   parseResidentDeepLink,
   parseResidentDeepLinkUrl,
   peekPendingResidentDeepLink,
@@ -11,8 +12,7 @@ import {
 describe('resident-deeplink', () => {
   const memory = new Map<string, string>();
 
-  beforeEach(() => {
-    memory.clear();
+  function stubUni(extra: Record<string, unknown> = {}) {
     vi.stubGlobal('uni', {
       getStorageSync: (key: string) => memory.get(key) ?? '',
       setStorageSync: (key: string, value: string) => {
@@ -21,7 +21,13 @@ describe('resident-deeplink', () => {
       removeStorageSync: (key: string) => {
         memory.delete(key);
       },
+      ...extra,
     });
+  }
+
+  beforeEach(() => {
+    memory.clear();
+    stubUni();
     vi.stubGlobal('getCurrentPages', () => []);
   });
 
@@ -80,5 +86,38 @@ describe('resident-deeplink', () => {
       orderType: 'cleaning',
     });
     expect(memory.get(PENDING_RESIDENT_LINK_STORAGE_KEY)).toContain('8');
+  });
+
+  it('评价成功：有上一页则 navigateBack', () => {
+    const navigateBack = vi.fn();
+    stubUni({ navigateBack });
+    leaveAfterResidentReview(11, 'CLEANING');
+    expect(navigateBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('评价成功：无上一页则 redirectTo 订单详情', () => {
+    const redirectTo = vi.fn();
+    const switchTab = vi.fn();
+    stubUni({
+      navigateBack: (opts?: { fail?: () => void }) => opts?.fail?.(),
+      redirectTo,
+      switchTab,
+    });
+    leaveAfterResidentReview(11, 'CLEANING');
+    expect(redirectTo).toHaveBeenCalledWith(
+      expect.objectContaining({ url: '/pages/order-detail/index?id=11&type=cleaning' }),
+    );
+    expect(switchTab).not.toHaveBeenCalled();
+  });
+
+  it('评价成功：详情打不开则落到订单 tab', () => {
+    const switchTab = vi.fn();
+    stubUni({
+      navigateBack: (opts?: { fail?: () => void }) => opts?.fail?.(),
+      redirectTo: (opts?: { fail?: () => void }) => opts?.fail?.(),
+      switchTab,
+    });
+    leaveAfterResidentReview(9, 'RECYCLING');
+    expect(switchTab).toHaveBeenCalledWith({ url: '/pages/orders/index' });
   });
 });

@@ -113,6 +113,30 @@ export function residentDeepLinkUrl(link: ResidentDeepLink): string {
   return `/${RESIDENT_REVIEW_PATH}?orderId=${link.orderId}&orderType=${link.orderType}`;
 }
 
+const RESIDENT_ORDERS_TAB = '/pages/orders/index';
+
+/**
+ * 评价提交成功后离开评价页：
+ * 从订单详情进来则返回详情；服务号直达（无上一页）则打开该单详情。
+ */
+export function leaveAfterResidentReview(orderId: number, orderType: ResidentReviewOrderType): void {
+  const detailType = normalizeResidentDetailType(orderType);
+  uni.navigateBack({
+    fail: () => {
+      if (!detailType) {
+        uni.switchTab({ url: RESIDENT_ORDERS_TAB });
+        return;
+      }
+      uni.redirectTo({
+        url: residentDeepLinkUrl({ kind: 'detail', orderId, orderType: detailType }),
+        fail: () => {
+          uni.switchTab({ url: RESIDENT_ORDERS_TAB });
+        },
+      });
+    },
+  });
+}
+
 export function savePendingResidentDeepLink(link: ResidentDeepLink): void {
   try {
     uni.setStorageSync(PENDING_RESIDENT_LINK_STORAGE_KEY, JSON.stringify(link));

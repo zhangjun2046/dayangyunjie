@@ -31,3 +31,7 @@ export const RECYCLING_ITEM_TYPE_LABELS: Record<RecyclingItemType, string> = {
   LARGE: '大件类',
   SMALL: '小件类',
 };
+
+/** 员工查看已改派走的任务详情（服务端 message 与员工端失败页共用） */
+export const WORKER_TASK_REASSIGNED_MESSAGE = '该任务已改派给其他员工';
+export const WORKER_TASK_REASSIGNED_HINT = '可返回任务列表查看当前任务';

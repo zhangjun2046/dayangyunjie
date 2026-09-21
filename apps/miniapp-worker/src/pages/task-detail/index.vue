@@ -11,7 +11,8 @@
       />
       <view class="loading-wrap">
         <view v-if="loading" class="loading-spinner" />
-        <text class="loading-text">{{ loading ? '加载中…' : '订单加载失败，请返回重试' }}</text>
+        <text class="loading-text">{{ loading ? '加载中…' : loadError.title }}</text>
+        <text v-if="!loading && loadError.sub" class="loading-sub">{{ loadError.sub }}</text>
       </view>
     </template>
 
@@ -479,6 +480,11 @@ import {
 } from '@dayangyunjie/shared';
 
 import { parseWorkerTaskQuery, savePendingWorkerTask, workerLoginUrl } from '@/utils/worker-deeplink';
+import {
+  shouldToastWorkerTaskLoadError,
+  workerTaskLoadErrorCopy,
+  type WorkerTaskLoadErrorCopy,
+} from '@/utils/worker-task-load-error';
 
 const authStore = useAuthStore();
 
@@ -486,6 +492,7 @@ const orderId = ref<number>(0);
 const orderType = ref<'cleaning' | 'recycling'>('cleaning');
 const order = ref<OrderDetailDto | null>(null);
 const loading = ref(false);
+const loadError = ref<WorkerTaskLoadErrorCopy>(workerTaskLoadErrorCopy());
 const startingService = ref(false);
 const acceptingOrder = ref(false);
 
@@ -550,6 +557,7 @@ async function loadDetail(): Promise<void> {
   if (!orderId.value) return;
   loading.value = true;
   navDark.value = false;
+  loadError.value = workerTaskLoadErrorCopy();
   try {
     order.value = await fetchOrderDetail(orderType.value, orderId.value);
     console.info('[task-detail] loadDetail done, status=', order.value?.status);
@@ -564,7 +572,10 @@ async function loadDetail(): Promise<void> {
     }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : '加载失败';
-    uni.showToast({ title: msg, icon: 'none' });
+    loadError.value = workerTaskLoadErrorCopy(msg);
+    if (shouldToastWorkerTaskLoadError(msg)) {
+      uni.showToast({ title: msg, icon: 'none' });
+    }
     console.info('[task-detail] loadDetail failed, err=', msg);
   } finally {
     loading.value = false;
@@ -1045,7 +1056,8 @@ async function handleStartService(): Promise<void> {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 24rpx;
+  gap: 16rpx;
+  padding: 0 48rpx;
 }
 
 .loading-spinner {
@@ -1064,6 +1076,13 @@ async function handleStartService(): Promise<void> {
 .loading-text {
   font-size: 28rpx;
   color: #999;
+  text-align: center;
+}
+
+.loading-sub {
+  font-size: 24rpx;
+  color: #bbb;
+  text-align: center;
 }
 
 /* ===== 沉浸式头部 ===== */

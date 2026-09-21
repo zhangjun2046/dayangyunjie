@@ -11,7 +11,8 @@
  *  7. 完整状态流程 — ASSIGNED → acceptOrder → ACCEPTED → gpsCheckin → IN_SERVICE
  */
 
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { WORKER_TASK_REASSIGNED_MESSAGE } from '@dayangyunjie/shared';
 import { GeoService } from '../../common/geo/geo.service';
 import { CleaningOrderService } from './cleaning-order.service';
 
@@ -120,6 +121,18 @@ describe('CleaningOrderService — findOne（P4.4 订单详情）', () => {
     const { svc, prisma } = makeService();
     prisma.cleaningOrder.findUnique = jest.fn().mockResolvedValue(null);
     await expect(svc.findOne(1)).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('员工查看不属于自己的单时返回已改派文案', async () => {
+    const { svc } = makeService();
+    await expect(svc.findOne(1, 'WORKER', 99)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(svc.findOne(1, 'WORKER', 99)).rejects.toThrow(WORKER_TASK_REASSIGNED_MESSAGE);
+  });
+
+  it('当前派单员工可查看详情', async () => {
+    const { svc } = makeService();
+    const dto = await svc.findOne(1, 'WORKER', 2);
+    expect(dto.orderNo).toBe('CLN20260621P44');
   });
 });
 

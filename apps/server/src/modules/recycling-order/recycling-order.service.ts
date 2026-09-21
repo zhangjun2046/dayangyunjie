@@ -17,6 +17,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { OrderStateMachineService } from '../../common/order-state-machine/order-state-machine.service';
 import { GeoService } from '../../common/geo/geo.service';
 import { assertWorkerAssignable } from '../../common/worker/assert-worker-assignable';
+import { assertWorkerOwnsOrder } from '../../common/worker/assert-worker-owns-order';
 import {
   OrderProgressService,
   ProgressRole,
@@ -288,8 +289,8 @@ export class RecyclingOrderService {
     if (!row) {
       throw new NotFoundException(`RecyclingOrder ${id} not found`);
     }
-    if (role === 'WORKER' && row.workerId !== viewerId) {
-      throw new NotFoundException(`RecyclingOrder ${id} not found`);
+    if (role === 'WORKER') {
+      assertWorkerOwnsOrder(row.workerId, viewerId);
     }
     return {
       ...this.toDto(row),
