@@ -1,7 +1,7 @@
 # 阿里云 ECS（Alibaba Cloud Linux 4）整体部署
 
 > **文档类型**：新机器**首次整机部署**。代码用本机 `tar` + `scp` 上传，**服务器不使用 git**。  
-> **编制**：2026-09-15；修订：2026-09-17（打包排除项、`getent`、sharp `--ignore-scripts`、第十三节日常发版命令）。  
+> **编制**：2026-09-15；修订：2026-09-21（日常：不打居民/员工端；另三端有改才打包到本机桌面再 scp 到 `~/upload`；现网代码备份到 `/opt/bk`）。  
 > 微信服务号 / 短信后台与联调见 [`WeChat-SMS-Notify-After-Aliyun-Deploy.md`](./WeChat-SMS-Notify-After-Aliyun-Deploy.md)。本文只把站和 `.env` 跑起来。
 
 ---
@@ -31,12 +31,14 @@ PC / 运营 H5 **不要**写 `.env.production`（走当前域名下相对 `/api/
 
 ## 二、打包策略
 
-| 产物 | 在哪构建 | 传到服务器什么 |
-|------|----------|----------------|
-| `apps/admin` | **本机** `vite build` | 只 `scp` `apps/admin/dist/` |
-| `apps/miniapp-admin` | **本机** `npm run build:miniapp-admin` | 只 `scp` `dist/build/h5/` |
-| API（`shared` + `server`） | 本机 `tar` 源码（**不含** `node_modules`）→ `scp` → **ECS 上** `npm ci` 再编译 | 禁止 `scp -r apps/server` |
-| `miniapp-customer` / `miniapp-worker` | **本机** 微信小程序包 | **不上传 ECS** |
+ECS 上只跑 **三端**：API、PC 后台、运营 H5。日常**哪一端有改动才打哪一端**，先把产物放到本机 **`~/Desktop`**，再 `scp` 到服务器 `~/upload/`。不要每次把五端都打一遍。
+
+| 产物 | 何时打包 | 本机先放到 | 再 scp 到服务器 |
+|------|----------|------------|-----------------|
+| API（`shared` + `server` 源码 tar） | 改了 `packages/shared` 或 `apps/server` | `~/Desktop/dayangyunjie-api-src.tgz` | `~/upload/`，ECS 上编译 |
+| `apps/admin` dist tar | 改了 PC 管理后台 | `~/Desktop/dayangyunjie-admin-dist.tgz` | `~/upload/`，解压到静态目录 |
+| `apps/miniapp-admin` H5 tar | 改了运营 H5 | `~/Desktop/dayangyunjie-miniapp-admin-h5.tgz` | `~/upload/`，解压到静态目录 |
+| `miniapp-customer` / `miniapp-worker` | **永远不打进 ECS 包** | 本机 `build:mp-weixin` 后微信后台上传 | **不上 ECS** |
 
 **注意：**
 
@@ -44,7 +46,7 @@ PC / 运营 H5 **不要**写 `.env.production`（走当前域名下相对 `/api/
 - `sharp`、Prisma engine **按操作系统编译**。把 Mac 的 `node_modules` 拷到 ECS，API 启动即崩。ECS 上只编 `shared` + `server`，不要编 uni-app。
 - 不要只上传 `apps/server/dist` 却不在 Linux 上 `prisma generate`。
 - 不要在 ECS 上构建微信小程序包（本机微信开发者工具完成）。
-
+- 根 `workspaces` 是 `apps/*`。日常 API tar **不再包含** `apps/miniapp-customer`、`apps/miniapp-worker`。服务器上须**保留**首次部署留下的这两目录（解压不会删已有文件），否则 `npm ci` 会报缺 workspace。不要从 ECS 删它们。
 ---
 
 ## 三、阿里云控制台准备
@@ -182,24 +184,26 @@ FLUSH PRIVILEGES;
 
 ## 五、把 API 源码打 tar 后 scp 到服务器
 
-服务器目录：`/opt/dayangyunjie-code`。  
+服务器目录：代码跑在 `/opt/dayangyunjie-code`；本机打好的 tar **先放到桌面，再 scp 到服务器 `~/upload/`**（root 登录时即 `/root/upload`）；解压前把现网 `dayangyunjie-code` 打成备份放到 **`/opt/bk/`**。  
 **`<仓库根>`** = 本机含根 `package.json` 的那一层（能看到 `apps/`、`packages/`、`package-lock.json`）。  
-**所有 tar / 本机构建 / 本机 scp 都在 `<仓库根>` 执行**，不要在 `apps/server` 里打包（会缺 lockfile 和 `packages/shared`）。
+**打 tar 在 `<仓库根>` 执行**，不要在 `apps/server` 里打包（会缺 lockfile 和 `packages/shared`）。打好后用桌面上的文件 `scp`。
 
-**注意：** `apps/server/node_modules` 是本机 OS 编的。整目录 `scp -r apps/server` 上去，Linux 上 API 很容易启动即崩。根 `workspaces` 是 `apps/*` 和 `packages/*`，tar 必须有：
+**注意：** `apps/server/node_modules` 是本机 OS 编的。整目录 `scp -r apps/server` 上去，Linux 上 API 很容易启动即崩。根 `workspaces` 是 `apps/*` 和 `packages/*`，API 源码 tar 必须有：
 
-| 必须打进 tar | 原因 |
-|--------------|------|
+| 必须打进 API tar | 原因 |
+|------------------|------|
 | `package.json`、`package-lock.json` | 在仓库根装依赖 |
 | `tsconfig.base.json` | `shared` / `server` 的 `tsconfig` 都 `extends` 它；缺了则 `tsc` / `prisma db seed` 失败 |
 | `packages/shared/` | API 依赖 `@dayangyunjie/shared` |
 | `apps/server/` | Nest 源码、`prisma/` |
-| `apps/admin/`、`apps/miniapp-admin/`、`apps/miniapp-customer/`、`apps/miniapp-worker/` 的**源码** | 满足 workspaces；**不在服务器编译**这些前端。`node_modules`、`dist` 一律排除 |
+| `apps/admin/`、`apps/miniapp-admin/` 的**源码** | 满足 workspaces；**不在服务器编译**这两端。静态站另打 dist tar，见 5.3.3 |
 
-本机 `.env`、`uploads`、`node_modules`、`dist`、`*.tsbuildinfo`、macOS `._*`、以及误进目录的 `D:\npm-cache` **不要**打进包。  
+**不要**打进 API tar：`apps/miniapp-customer/`、`apps/miniapp-worker/`（不上 ECS，本机出微信包即可）。本机 `.env`、`uploads`、`node_modules`、`dist`、`*.tsbuildinfo`、macOS `._*`、以及误进目录的 `D:\npm-cache` 也不要打进包。  
 （只排除 `dist` 却带上本机 `*.tsbuildinfo` 时，ECS 上 `tsc` 会以为已编译过、退出码 0 却不生成 `packages/shared/dist/`。）
 
-### 5.1 本机打包（在 `<仓库根>`）
+### 5.1 本机打包（在 `<仓库根>`，产物放到桌面）
+
+只改了 API / `shared` 才打这一包。不要把 `miniapp-customer`、`miniapp-worker` 打进去。
 
 ```bash
 cd <仓库根>
@@ -211,32 +215,34 @@ tar --exclude='node_modules' \
     --exclude='*.tsbuildinfo' \
     --exclude='._*' \
     --exclude='D:\npm-cache' \
-    -czf /tmp/dayangyunjie-api-src.tgz \
+    -czf ~/Desktop/dayangyunjie-api-src.tgz \
     package.json \
     package-lock.json \
     tsconfig.base.json \
     packages/shared \
     apps/server \
     apps/admin \
-    apps/miniapp-admin \
-    apps/miniapp-customer \
-    apps/miniapp-worker
+    apps/miniapp-admin
 ```
 
-确认包内没有不该有的内容，且含有 `tsconfig.base.json`：
+确认包内没有不该有的内容，且含有 `tsconfig.base.json`、**没有**两个小程序目录：
 
 ```bash
-tar -tzf /tmp/dayangyunjie-api-src.tgz | grep -E 'node_modules|tsbuildinfo|D:\\npm-cache|/\._' || true
+tar -tzf ~/Desktop/dayangyunjie-api-src.tgz | grep -E 'node_modules|tsbuildinfo|D:\\npm-cache|/\._|miniapp-customer|miniapp-worker' || true
 # 应无输出
 
-tar -tzf /tmp/dayangyunjie-api-src.tgz | grep -E '^tsconfig\.base\.json$'
+tar -tzf ~/Desktop/dayangyunjie-api-src.tgz | grep -E '^tsconfig\.base\.json$'
 # 应有一行
+
+ls -lh ~/Desktop/dayangyunjie-api-src.tgz
 ```
 
 ### 5.2 本机 scp
 
+从**桌面**上传，不要用 `/tmp` 里的包：
+
 ```bash
-scp /tmp/dayangyunjie-api-src.tgz root@<ECS公网IP>:/tmp/
+scp ~/Desktop/dayangyunjie-api-src.tgz root@<ECS公网IP>:~/upload/
 ```
 
 ### 5.3 服务器解压
@@ -251,7 +257,7 @@ ssh root@<ECS公网IP>
 
 ```bash
 mkdir -p /opt/dayangyunjie-code
-tar -xzf /tmp/dayangyunjie-api-src.tgz -C /opt/dayangyunjie-code
+tar -xzf ~/upload/dayangyunjie-api-src.tgz -C /opt/dayangyunjie-code
 ls /opt/dayangyunjie-code/package.json \
    /opt/dayangyunjie-code/tsconfig.base.json \
    /opt/dayangyunjie-code/apps/server/package.json
@@ -259,23 +265,32 @@ ls /opt/dayangyunjie-code/package.json \
 
 #### 5.3.2 日常更新 API 源码
 
-以后只更新 API：本机重新 tar → scp。本机打包已 `--exclude='.env'` 和 `--exclude='uploads'`，**正常解压不会覆盖**服务器上已有的 `apps/server/.env` 和 `apps/server/uploads/`（tar 里没有这两样，也不会删服务器上已有文件）。
+以后只更新 API：本机按 5.1 打到桌面 → 5.2 `scp` 到 **`~/upload/`**。本机打包已 `--exclude='.env'` 和 `--exclude='uploads'`，**正常解压不会覆盖**服务器上已有的 `apps/server/.env` 和 `apps/server/uploads/`（tar 里没有这两样，也不会删服务器上已有文件）。`node_modules`、`dist` 已从 tar 排除，解压不会删；`dist` 解压后本来就要重新 `build`。不要把服务器备份打进源码包。日常 tar 不含两个小程序，**不要删**服务器上已有的 `apps/miniapp-customer`、`apps/miniapp-worker`。
 
-仍建议先备份，防止某次打包漏了 `--exclude`。本方案服务器上**还要保住的只有这两处**：`.env`（密钥）和 `uploads/`（本地图片）。`node_modules`、`dist` 已从 tar 排除，解压不会删；`dist` 解压后本来就要重新 `build`。不要备份进源码包。
+解压前固定三步，不要对调：**先把现网 `dayangyunjie-code` 打包装进 `/opt/bk`** → **再单独备份 `.env` / `uploads`** → **最后从 `~/upload` 解压新包**。整目录备份用于整机回滚；`.env` 和 `uploads` 再拷一份，是防止新包万一漏了 `--exclude`。root 上 `cp` 常被别名成 `cp -i`：目标已存在时会问 `overwrite?`，输入 **`y`** 覆盖、**`n`** 跳过。不要加 `2>/dev/null`，否则提问看不见。每步用 `ls` 确认完成后才进行下一步。
 
 ```bash
+# 1）整目录打包备份到 /opt/bk（含 node_modules，体积较大，可能要一两分钟）
+STAMP=$(date +%Y%m%d-%H%M%S)
+tar -czf /opt/bk/dayangyunjie-code.bak-$STAMP.tgz -C /opt dayangyunjie-code
+ls -lh /opt/bk/dayangyunjie-code.bak-$STAMP.tgz
+
+# 2）再备份正在用的密钥和图片
 cd /opt/dayangyunjie-code
-cp apps/server/.env /root/server.env.bak 2>/dev/null || true
+cp apps/server/.env /root/server.env.bak
 rm -rf /root/server-uploads.bak
-cp -a apps/server/uploads /root/server-uploads.bak 2>/dev/null || true
-tar -xzf /tmp/dayangyunjie-api-src.tgz -C /opt/dayangyunjie-code
+cp -a apps/server/uploads /root/server-uploads.bak
+ls -l /root/server.env.bak /root/server-uploads.bak
 
-# 以下可不做，看情况如果出现配置文件问题以及图片问题才会恢复解压之前的备份
-cp /root/server.env.bak apps/server/.env 2>/dev/null || true
-mkdir -p apps/server/uploads
-cp -a /root/server-uploads.bak/. apps/server/uploads/ 2>/dev/null || true
+# 3）从 ~/upload 解压新源码（覆盖 /opt/dayangyunjie-code 里的源码文件，不删已有 .env / uploads / node_modules）
+tar -xzf ~/upload/dayangyunjie-api-src.tgz -C /opt/dayangyunjie-code
 
-# 打包并重启项目
+# 解压后若 .env 或图片不对，再用这两份快照还原（正常解压可跳过；已存在会再问 y/n）
+# cp /root/server.env.bak apps/server/.env
+# mkdir -p apps/server/uploads
+# cp -a /root/server-uploads.bak/. apps/server/uploads/
+
+# 编译并重启
 find packages/shared apps/server -name '*.tsbuildinfo' -delete
 npm run build --workspace=@dayangyunjie/shared
 npm run build --workspace=@dayangyunjie/server
@@ -285,26 +300,42 @@ pm2 restart dayangyunjie-api
 pm2 status
 curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3000/api/docs
 
-# 只改了表结构（加表、加列、改索引）
-cd /opt/dayangyunjie-code/apps/server
-npx prisma generate
-npx prisma db push
-pm2 restart dayangyunjie-api
+# 只改了表结构（加表、加列、改索引）才执行下面几行
+# cd /opt/dayangyunjie-code/apps/server
+# npx prisma generate
+# npx prisma db push
+# pm2 restart dayangyunjie-api
 
-# 新表需要默认数据 
-npx prisma db seed。
+# 空库才 seed；有业务数据不要执行
+# npx prisma db seed
 ```
+
+整目录备份回滚（回到解压前的代码树）：
+
+```bash
+# 先停 API，避免进程占用旧文件
+pm2 stop dayangyunjie-api
+rm -rf /opt/dayangyunjie-code
+tar -xzf /opt/bk/dayangyunjie-code.bak-<STAMP>.tgz -C /opt
+# 若还要用解压前那份密钥/图片（一般整目录包里已有；已存在会问 y/n）：
+# cp /root/server.env.bak /opt/dayangyunjie-code/apps/server/.env
+# cp -a /root/server-uploads.bak/. /opt/dayangyunjie-code/apps/server/uploads/
+pm2 restart dayangyunjie-api
+```
+
+`/opt/bk/dayangyunjie-code.bak-*.tgz` 会占盘，留最近 1～2 份即可，旧的 `rm` 掉。不要备份进即将 scp 上去的源码包，也不要放到 `~/upload`（那是新包入口）。
 
 #### 5.3.3 更新 PC 后台（admin）与运营 H5（miniapp-admin）
 
-静态站在 `/var/www/`，**不要**用 API 那个源码 tar 去覆盖这两处。顺序固定：**先备份现网目录 → 本机上传包 → 服务器解压覆盖**。不要先解压再备份。Nginx 不用改、不要再 `mkdir`。只更新其中一端时，跳过另一端即可。
+静态站在 `/var/www/`，**不要**用 API 那个源码 tar 去覆盖这两处。**只打包有改动的那一端。** 顺序固定：**本机构建 → 打 tar 到桌面 → 服务器先备份现网目录 → 本机 scp 桌面文件到 `~/upload` → 服务器解压覆盖**。不要先解压再备份。Nginx 不用改、不要再 `mkdir`。
 
-本机先按 **第八节** 打出 dist，再打成 tar（包根下必须直接是 `index.html`，不要多套一层目录名）：
+本机先按 **第八节** 打出 dist，再打成 tar 放到桌面（包根下必须直接是 `index.html`，不要多套一层目录名）：
 
 ```bash
-# 本机 <仓库根>
-tar -czf /tmp/dayangyunjie-admin-dist.tgz -C apps/admin/dist .
-tar -czf /tmp/dayangyunjie-miniapp-admin-h5.tgz -C apps/miniapp-admin/dist/build/h5 .
+# 本机 <仓库根>；只打有改动的那一行，打完用 ls 确认桌面上有这个文件
+tar -czf ~/Desktop/dayangyunjie-admin-dist.tgz -C apps/admin/dist .
+tar -czf ~/Desktop/dayangyunjie-miniapp-admin-h5.tgz -C apps/miniapp-admin/dist/build/h5 .
+ls -lh ~/Desktop/dayangyunjie-*.tgz
 ```
 
 桌面上的 zip（如 `dayangyunjie-miniapp-admin-h5.zip`）也可以，见下方解压注意。
@@ -325,15 +356,15 @@ ls -ld /root/dayangyunjie-admin.bak-$STAMP /root/dayangyunjie-miniapp-admin.bak-
 **2）本机：再上传**
 
 ```bash
-# 本机
-scp /tmp/dayangyunjie-admin-dist.tgz root@<ECS公网IP>:/tmp/
-scp /tmp/dayangyunjie-miniapp-admin-h5.tgz root@<ECS公网IP>:/tmp/
+# 本机：从桌面上传有改动的那一端
+scp ~/Desktop/dayangyunjie-admin-dist.tgz root@<ECS公网IP>:~/upload/
+scp ~/Desktop/dayangyunjie-miniapp-admin-h5.tgz root@<ECS公网IP>:~/upload/
 ```
 
 若用桌面 zip：
 
 ```bash
-scp ~/Desktop/dayangyunjie-miniapp-admin-h5.zip root@<ECS公网IP>:/tmp/
+scp ~/Desktop/dayangyunjie-miniapp-admin-h5.zip root@<ECS公网IP>:~/upload/
 # PC 后台同理，有 dayangyunjie-admin.zip 再 scp
 ```
 
@@ -344,11 +375,11 @@ scp ~/Desktop/dayangyunjie-miniapp-admin-h5.zip root@<ECS公网IP>:/tmp/
 ```bash
 # tar 包（根下直接是 index.html）
 rm -rf /var/www/dayangyunjie-admin/*
-tar -xzf /tmp/dayangyunjie-admin-dist.tgz -C /var/www/dayangyunjie-admin
+tar -xzf ~/upload/dayangyunjie-admin-dist.tgz -C /var/www/dayangyunjie-admin
 ls /var/www/dayangyunjie-admin/index.html
 
 rm -rf /var/www/dayangyunjie-miniapp-admin/*
-tar -xzf /tmp/dayangyunjie-miniapp-admin-h5.tgz -C /var/www/dayangyunjie-miniapp-admin
+tar -xzf ~/upload/dayangyunjie-miniapp-admin-h5.tgz -C /var/www/dayangyunjie-miniapp-admin
 ls /var/www/dayangyunjie-miniapp-admin/index.html
 ```
 
@@ -357,7 +388,7 @@ zip 若多了一层目录（`unzip -l` 看到 `dayangyunjie-miniapp-admin-h5/ind
 ```bash
 rm -rf /tmp/h5-unz
 mkdir -p /tmp/h5-unz
-unzip -o /tmp/dayangyunjie-miniapp-admin-h5.zip -d /tmp/h5-unz
+unzip -o ~/upload/dayangyunjie-miniapp-admin-h5.zip -d /tmp/h5-unz
 # 确认 index.html 所在目录后：
 rm -rf /var/www/dayangyunjie-miniapp-admin/*
 cp -a /tmp/h5-unz/dayangyunjie-miniapp-admin-h5/. /var/www/dayangyunjie-miniapp-admin/
@@ -627,7 +658,7 @@ scp -r apps/miniapp-admin/dist/build/h5/* root@<ECS公网IP>:/var/www/dayangyunj
 ```
 
 访问：`https://h5.yunjiezhixiang.cn`  
-日常发版（含备份 → 上传 → 解压）走 **5.3.3**，不要只 scp 覆盖。首次仍按上面建目录后直接 scp。
+日常发版：本机构建后 **tar 到桌面**，再按 **5.3.3** 备份 → scp → 解压，不要只 scp 覆盖 `/var/www`。首次仍按上面建目录后直接 scp。
 
 ---
 
@@ -917,7 +948,7 @@ npm run build:mp-weixin --workspace=@dayangyunjie/miniapp-worker
 | H5 静态 404 / JS 路径错误 | 访问 `https://h5.yunjiezhixiang.cn`；检查 Nginx `root /var/www/dayangyunjie-miniapp-admin` 与 `try_files ... /index.html`，并确认正式构建未设置 `VITE_PUBLIC_BASE=/admin/` |
 | `prisma` 报 engine / openssl | Alibaba Cloud Linux 4 + 系统 Node 20/22 一般可用；仍失败看 `npx prisma --version` 与 Prisma 文档的 OpenSSL 变体 |
 | `scp -r apps/server` 后 API 起不来 | 把本机 `node_modules` 带上去了。删掉服务器 `node_modules`，按第五节重新 tar（排除 `node_modules`）再 `npm ci --ignore-scripts` |
-| `npm ci` 报缺少某个 workspace | tar 漏了 `apps/miniapp-*` 等目录。根 `workspaces` 是 `apps/*`，源码要打全，只是不在 ECS 编译前端 |
+| `npm ci` 报缺少某个 workspace | 根 `workspaces` 是 `apps/*`。日常 tar **不含** `miniapp-customer` / `miniapp-worker`，服务器上这两目录必须还在（首次部署留下的即可）。不要删它们。`admin` / `miniapp-admin` 源码须在 API tar 里 |
 | `npm ci` 在服务器编 uni 失败 | 不要在 ECS 跑根目录 `npm run build`；静态站本机编后 scp `dist` |
 | seed 后登录不上 | 邮箱是 `dayunyunjie` 拼写；或二次 seed 覆盖了你改过的密码 |
 | 空库 `migrate deploy` 失败 | 首次用 `db push`，见第七节 |
@@ -931,38 +962,45 @@ pm2 logs dayangyunjie-api --lines 200
 
 ## 十三、本机 → 服务器文件对照（发版时）
 
-本机 tar/构建/scp 一律 `cd <仓库根>`；解压、`npm ci`、`prisma`、`pm2` 在 ECS。  
-首次部署走第四节～第十二节；**日常发版只看本节**（机器已通、Nginx / 证书不动）。
+本机在 `<仓库根>` 构建/打 tar，**产物先放到 `~/Desktop`**，再 `scp` 到服务器 `~/upload/`。ECS 上解压、`npm ci`、`prisma`、`pm2`。  
+首次部署走第四节～第十二节；**日常发版只看本节**（机器已通、Nginx / 证书不动）。**只打包有改动的端**；居民端 / 员工端小程序不上 ECS。
 
-| 变更 | 本机（`<仓库根>`） | 服务器 |
-|------|---------------------|--------|
-| API 源码 | 第五节 5.1 `tar` → 5.2 `scp /tmp/dayangyunjie-api-src.tgz` | 见下方 **13.1** |
-| PC 后台 | 第八节构建 dist 后打 tar，见 **5.3.3** | 先备份 `/var/www/dayangyunjie-admin`，再解压；不要再 mkdir；Nginx 不用改 |
-| 运营 H5 | 第八节构建 h5 后打 tar/zip，见 **5.3.3** | 先备份 `/var/www/dayangyunjie-miniapp-admin`，再解压；不要再 mkdir |
-| customer / worker | 各自 `.env.production` 写 `VITE_API_BASE=https://api.yunjiezhixiang.cn/api/v1`，本机 `build:mp-weixin` 后微信后台上传 | **不上 ECS**；含静默绑定 / 深链的版本必须重传体验版或正式版 |
+| 变更 | 本机 | 服务器 |
+|------|------|--------|
+| API / `shared` | 5.1 打 `~/Desktop/dayangyunjie-api-src.tgz` → 5.2 `scp` 到 `~/upload/` | **13.1**（备份打到 `/opt/bk`） |
+| 仅 PC 后台 | 第八节构建 dist，5.3.3 打 `~/Desktop/dayangyunjie-admin-dist.tgz` 再 scp | 先备份 `/var/www/dayangyunjie-admin`，再解压；Nginx 不用改 |
+| 仅运营 H5 | 第八节构建 h5，5.3.3 打 `~/Desktop/dayangyunjie-miniapp-admin-h5.tgz` 再 scp | 先备份 `/var/www/dayangyunjie-miniapp-admin`，再解压 |
+| customer / worker | 本机 `build:mp-weixin`，`VITE_API_BASE=https://api.yunjiezhixiang.cn/api/v1`，微信后台上传 | **不上 ECS、不打进 API tar** |
+
+静态覆盖后 Nginx 一般不必重启；若加了缓存头，可 `nginx -s reload`。
 
 静态覆盖后 Nginx 一般不必重启；若加了缓存头，可 `nginx -s reload`。
 
 ### 13.1 API 日常更新（可复制）
 
-**本机**（`<仓库根>`，用第五节 5.1 的完整 `tar`，含 `tsconfig.base.json` 与排除项）：
+**本机**（`<仓库根>` 打 tar 到桌面，再 scp；含 `tsconfig.base.json`，不含两个小程序）：
 
 ```bash
-# 打好 /tmp/dayangyunjie-api-src.tgz 后：
-scp /tmp/dayangyunjie-api-src.tgz root@<ECS公网IP>:/tmp/
+# 5.1 打好 ~/Desktop/dayangyunjie-api-src.tgz 后：
+scp ~/Desktop/dayangyunjie-api-src.tgz root@8.160.117.103:~/upload/
 ```
 
 **ECS**：
 
 ```bash
-cd /opt/dayangyunjie-code
-cp apps/server/.env /root/server.env.bak 2>/dev/null || true
-rm -rf /root/server-uploads.bak; cp -a apps/server/uploads /root/server-uploads.bak 2>/dev/null || true
+# 解压前三步与 5.3.2 相同：/opt/bk 整目录备份 → .env/uploads → 从 ~/upload 解压
+STAMP=$(date +%Y%m%d-%H%M%S)
+tar -czf /opt/bk/dayangyunjie-code.bak-$STAMP.tgz -C /opt dayangyunjie-code
+ls -lh /opt/bk/dayangyunjie-code.bak-$STAMP.tgz
 
-tar -xzf /tmp/dayangyunjie-api-src.tgz -C /opt/dayangyunjie-code
-cp /root/server.env.bak apps/server/.env 2>/dev/null || true
-mkdir -p apps/server/uploads
-cp -a /root/server-uploads.bak/. apps/server/uploads/ 2>/dev/null || true
+cd /opt/dayangyunjie-code
+cp apps/server/.env /root/server.env.bak
+rm -rf /root/server-uploads.bak
+cp -a apps/server/uploads /root/server-uploads.bak
+ls -l /root/server.env.bak /root/server-uploads.bak
+
+tar -xzf ~/upload/dayangyunjie-api-src.tgz -C /opt/dayangyunjie-code
+# 解压后 .env / 图片不对再还原，见 5.3.2
 
 # package-lock / 依赖有变才重装；无变可跳过本行
 npm ci --ignore-scripts
@@ -985,6 +1023,6 @@ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3000/api/docs
 # 期望 200
 ```
 
-**不要：** 把本机 `node_modules` / `.env` 打进包；在 ECS 跑根目录 `npm run build`；有业务数据后再 `db seed`。
+**不要：** 把本机 `node_modules` / `.env` 打进包；把 `miniapp-customer` / `miniapp-worker` 打进 API tar；在 ECS 跑根目录 `npm run build`；有业务数据后再 `db seed`。
 
 通知联调仍见 [`WeChat-SMS-Notify-After-Aliyun-Deploy.md`](./WeChat-SMS-Notify-After-Aliyun-Deploy.md)。
