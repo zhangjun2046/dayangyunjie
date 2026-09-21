@@ -227,14 +227,13 @@ async function ensureLoginThenShowPhoneModal() {
   console.info('[home] showing phone auth modal, residentId=', authStore.resident?.id);
 }
 
-/** 用户同意隐私协议：先静默登录，再进入微信手机号授权 */
+/** 用户同意隐私协议：静默登录后停在首页，手机号等到点击服务卡片再校验 */
 async function onPrivacyAgreed() {
   authStore.setPrivacyAgreed();
-  await ensureLoginThenShowPhoneModal();
-  if (pendingServiceType && authStore.hasPhone) {
-    navigateToServiceDetail(pendingServiceType);
-    pendingServiceType = '';
+  if (!authStore.isLoggedIn) {
+    await doWechatLogin();
   }
+  pendingServiceType = '';
 }
 
 /** 用户拒绝隐私协议 */
