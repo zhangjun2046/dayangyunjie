@@ -73,6 +73,20 @@ export function formatChinaYmd(nowMs: number = Date.now()): string {
   }).format(nowMs);
 }
 
+/** 当天第一个未过近的时段；没有则空串。 */
+export function pickFirstBookableTimeSlot(
+  dateStr: string,
+  slots: readonly string[],
+  leadMinutes: number,
+  nowMs: number = Date.now(),
+): string {
+  if (!dateStr) return '';
+  const found = slots.find(
+    (slot) => !isAppointTooSoon(dateStr, slot, leadMinutes, nowMs),
+  );
+  return found ?? '';
+}
+
 /** 从今天起寻找第一个仍有可约格子的日期；找不到则返回今天。 */
 export function pickFirstBookableDate(
   slots: readonly string[],

@@ -112,7 +112,10 @@
       <!-- 时段选择 -->
       <view class="section-wrap">
         <text class="sub-title">选择时段</text>
-        <view class="time-grid">
+        <view v-if="timeSlots.length === 0" class="empty-tip">
+          <text>暂无可用时段</text>
+        </view>
+        <view v-else class="time-grid">
           <view
             v-for="t in timeSlots"
             :key="t"
@@ -272,10 +275,10 @@
       </view>
       <view
         class="next-btn"
-        :class="{ loading: submitting }"
-        @tap="store.step < 3 ? nextStep() : submitOrder()"
+        :class="{ loading: submitting, disabled: primaryAction.disabled }"
+        @tap="onPrimaryTap"
       >
-        <text class="next-text">{{ store.step === 3 ? '确定预约' : '下一步' }}</text>
+        <text class="next-text">{{ primaryAction.label }}</text>
       </view>
     </view>
 
@@ -292,7 +295,7 @@ import { useAuthStore } from '@/store/auth';
 import { fetchCleaningCatalogs, type ServiceCatalogDto } from '@/api/service-catalog';
 import { fetchAddresses } from '@/api/address';
 import { createCleaningOrder } from '@/api/cleaning-order';
-import { fetchEnabledAppointTimeSlots, fetchAppointTimeLead, resolveLeadMinutes } from '@/api/appoint-time-slot';
+import { fetchEnabledAppointTimeSlots, fetchAppointTimeLead, resolveEnabledTimeSlotLabels, resolveLeadMinutes } from '@/api/appoint-time-slot';
 import {
   formatAppointTooSoonMessage,
   formatChinaYmd,
@@ -300,7 +303,9 @@ import {
   isDateFullyTooSoon,
   isSlotDisabled,
   pickFirstBookableDate,
+  pickFirstBookableTimeSlot,
 } from '@/utils/appoint-time';
+import { getAppointStep2GuardMessage, getBookingPrimaryAction } from '@/utils/booking-primary-action';
 import { getSolarToLunar } from '@/utils/lunar';
 import { openCreatedOrderDetail } from '@/utils/order-navigation';
 import {
@@ -322,11 +327,10 @@ const leadMinutes = ref(60);
 async function loadTimeSlots() {
   try {
     const list = await fetchEnabledAppointTimeSlots('CLEANING');
-    timeSlots.value = list.map((item) => item.label);
+    timeSlots.value = resolveEnabledTimeSlotLabels(list);
   } catch (e) {
-    timeSlots.value = [];
-    console.info('[booking-cleaning] load time slots failed', e);
-    uni.showToast({ title: '时段加载失败', icon: 'none' });
+    timeSlots.value = resolveEnabledTimeSlotLabels([]);
+    console.info('[booking-cleaning] load time slots failed, using defaults', e);
   }
   try {
     const lead = await fetchAppointTimeLead('CLEANING');
@@ -335,7 +339,7 @@ async function loadTimeSlots() {
     leadMinutes.value = resolveLeadMinutes(undefined);
     console.info('[booking-cleaning] load lead minutes failed', e);
   }
-  applyBookableDate();
+  applyBookableDateAndTime();
 }
 
 const SERVICE_NOTICES = [
@@ -434,6 +438,26 @@ function applyBookableDate() {
   clearSelectedTimeIfTooSoon();
 }
 
+function applyFirstBookableTime() {
+  if (
+    store.selectedTime &&
+    !isSlotDisabled(store.selectedDate, store.selectedTime, leadMinutes.value)
+  ) {
+    return;
+  }
+  const first = pickFirstBookableTimeSlot(
+    store.selectedDate,
+    timeSlots.value,
+    leadMinutes.value,
+  );
+  store.selectedTime = first;
+}
+
+function applyBookableDateAndTime() {
+  applyBookableDate();
+  applyFirstBookableTime();
+}
+
 function selectTime(slot: string) {
   if (isSlotDisabled(store.selectedDate, slot, leadMinutes.value)) return;
   store.selectedTime = slot;
@@ -481,6 +505,7 @@ function changeMonth(delta: number) {
 function selectDate(cell: CalCell) {
   store.selectedDate = cell.dateStr;
   clearSelectedTimeIfTooSoon();
+  applyFirstBookableTime();
 }
 
 // ───────────────────── Step 2 地址 ─────────────────────
@@ -521,34 +546,36 @@ const appointAddrDisplay = computed(() => {
 // ───────────────────── 步骤控制 ─────────────────────
 function nextStep() {
   if (store.step === 1) {
+    if (stepChanging.value) return;
     if (!store.selectedCatalog) {
       uni.showToast({ title: '请选择服务类型', icon: 'none' });
       return;
     }
+    stepChanging.value = true;
     store.goStep(2);
+    applyBookableDateAndTime();
     loadDefaultAddress();
-    void loadTimeSlots();
+    void loadTimeSlots().finally(() => {
+      stepChanging.value = false;
+    });
     return;
   }
   if (store.step === 2) {
-    if (!store.selectedDate) {
-      uni.showToast({ title: '请选择预约日期', icon: 'none' });
-      return;
-    }
-    if (!store.selectedTime) {
-      uni.showToast({ title: '请选择预约时段', icon: 'none' });
-      return;
-    }
-    if (isAppointTooSoon(store.selectedDate, store.selectedTime, leadMinutes.value)) {
-      uni.showToast({ title: formatAppointTooSoonMessage(leadMinutes.value), icon: 'none' });
-      return;
-    }
-    if (!store.selectedAddress) {
-      uni.showToast({ title: '请选择服务地址', icon: 'none' });
+    if (step2Block.value) {
+      uni.showToast({ title: step2Block.value, icon: 'none' });
       return;
     }
     store.goStep(3);
   }
+}
+
+function onPrimaryTap() {
+  if (primaryAction.value.disabled) return;
+  if (store.step < 3) {
+    nextStep();
+    return;
+  }
+  void submitOrder();
 }
 
 function prevStep() {
@@ -559,7 +586,26 @@ function prevStep() {
 
 // ───────────────────── 提交订单 ─────────────────────
 const submitting = ref(false);
+const stepChanging = ref(false);
 let navigationTimer: ReturnType<typeof setTimeout> | null = null;
+
+const step2Block = computed(() =>
+  getAppointStep2GuardMessage({
+    selectedDate: store.selectedDate,
+    selectedTime: store.selectedTime,
+    leadMinutes: leadMinutes.value,
+    hasAddress: Boolean(store.selectedAddress),
+  }),
+);
+
+const primaryAction = computed(() =>
+  getBookingPrimaryAction({
+    step: store.step,
+    confirmLabel: '确定预约',
+    submitting: submitting.value,
+    stepChanging: stepChanging.value,
+  }),
+);
 
 async function submitOrder() {
   if (submitting.value) return;
@@ -630,6 +676,7 @@ async function submitOrder() {
 onLoad(() => {
   store.reset();
   loadCatalogs();
+  void loadTimeSlots();
   console.info('[booking-cleaning] page loaded');
 });
 
@@ -652,6 +699,7 @@ watch(
   () => store.selectedDate,
   () => {
     clearSelectedTimeIfTooSoon();
+    applyFirstBookableTime();
   },
 );
 </script>
@@ -1278,7 +1326,8 @@ watch(
   justify-content: center;
 }
 
-.next-btn.loading {
+.next-btn.loading,
+.next-btn.disabled {
   background: #91b8ff;
 }
 

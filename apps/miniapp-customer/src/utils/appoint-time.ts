@@ -4,6 +4,7 @@ import {
   isAppointTooSoon,
   isDateFullyTooSoon,
   pickFirstBookableDate,
+  pickFirstBookableTimeSlot,
 } from '@dayangyunjie/shared';
 
 export {
@@ -12,6 +13,7 @@ export {
   isAppointTooSoon,
   isDateFullyTooSoon,
   pickFirstBookableDate,
+  pickFirstBookableTimeSlot,
 };
 
 export function isSlotDisabled(

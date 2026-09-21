@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { request } from './request';
-import { fetchAppointTimeLead, fetchEnabledAppointTimeSlots } from './appoint-time-slot';
+import { fetchAppointTimeLead, fetchEnabledAppointTimeSlots, resolveEnabledTimeSlotLabels } from './appoint-time-slot';
 
 vi.mock('./request', () => ({
   request: vi.fn(),
@@ -30,6 +30,22 @@ describe('customer appoint-time-slot API', () => {
     expect(mockedRequest).toHaveBeenCalledWith('GET', '/appoint-time-slots/lead', {
       bizType: 'RECYCLING',
     });
+  });
+
+  it('接口空列表时回退默认整点', () => {
+    expect(resolveEnabledTimeSlotLabels([])).toEqual([
+      '08:00',
+      '09:00',
+      '10:00',
+      '11:00',
+      '14:00',
+      '15:00',
+      '16:00',
+      '17:00',
+    ]);
+    expect(resolveEnabledTimeSlotLabels([{ label: '08:30' }, { label: 'bad' }])).toEqual([
+      '08:30',
+    ]);
   });
 
   it('保持请求错误向上抛出', async () => {

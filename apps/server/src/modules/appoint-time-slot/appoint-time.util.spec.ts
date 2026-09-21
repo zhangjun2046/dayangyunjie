@@ -4,6 +4,7 @@ import {
   isDateFullyTooSoon,
   parseAppointTimeSlotStart,
   pickFirstBookableDate,
+  pickFirstBookableTimeSlot,
 } from '@dayangyunjie/shared';
 
 const SLOTS = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30'] as const;
@@ -55,5 +56,11 @@ describe('appoint-time lead formula', () => {
   it('失败文案随缓冲变化', () => {
     expect(formatAppointTooSoonMessage(0)).toBe('预约时间已过，请选择更晚的时段');
     expect(formatAppointTooSoonMessage(90)).toBe('请至少提前 90 分钟预约');
+  });
+
+  it('选出当天第一个未过近时段', () => {
+    const nowMs = at('08:01');
+    expect(pickFirstBookableTimeSlot(DAY, SLOTS, 60, nowMs)).toBe('09:30');
+    expect(pickFirstBookableTimeSlot('', SLOTS, 60, nowMs)).toBe('');
   });
 });
