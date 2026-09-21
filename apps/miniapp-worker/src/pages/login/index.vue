@@ -91,7 +91,7 @@ function hasPersistedSession(): boolean {
 const phone = ref('');
 const password = ref('');
 const showPassword = ref(false);
-const agreed = ref(true);
+const agreed = ref(false);
 const loading = ref(false);
 // 无本地会话时直接展示登录表单，避免模拟器先看到一块空白
 const checkingSession = ref(hasPersistedSession());
@@ -153,7 +153,7 @@ async function onLogin() {
 
   // 协议校验
   if (!agreed.value) {
-    uni.showToast({ title: '请先同意用户协议', icon: 'none', duration: 1500 });
+    uni.showToast({ title: '请先阅读并同意用户协议和隐私政策', icon: 'none', duration: 1500 });
     return;
   }
 
