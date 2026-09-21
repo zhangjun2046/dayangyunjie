@@ -1,7 +1,7 @@
 # 阿里云 ECS（Alibaba Cloud Linux 4）整体部署
 
 > **文档类型**：新机器**首次整机部署**。代码用本机 `tar` + `scp` 上传，**服务器不使用 git**。  
-> **编制**：2026-09-15；修订：2026-09-21（日常：不打居民/员工端；另三端有改才打包到本机桌面再 scp 到 `~/upload`；现网代码备份到 `/opt/bk`）。  
+> **编制**：2026-09-15；修订：2026-09-21（日常发版路径；第十四节查库；第十五节交付前清测试订单）。  
 > 微信服务号 / 短信后台与联调见 [`WeChat-SMS-Notify-After-Aliyun-Deploy.md`](./WeChat-SMS-Notify-After-Aliyun-Deploy.md)。本文只把站和 `.env` 跑起来。
 
 ---
@@ -177,6 +177,8 @@ CREATE USER 'dyyj'@'127.0.0.1' IDENTIFIED BY '请换成业务库强密码';
 GRANT ALL ON dayangyunjie.* TO 'dyyj'@'127.0.0.1';
 FLUSH PRIVILEGES;
 ```
+
+日常在 ECS 上查库（用户 `dyyj`、库 `dayangyunjie`）见 **第十四节**。
 
 密码若含 `@` `#` 等，写入 `DATABASE_URL` 时必须 **URL 编码**。
 
@@ -538,7 +540,7 @@ npx prisma db seed
 `db push` 后 `_prisma_migrations` 可能仍为空。以后不要对残缺 migration 跑 `migrate deploy`（「列已存在」或建不出表）。
 
 ```bash
-mysql -udyyj -p -e "SHOW TABLES;" dayangyunjie
+mysql -udyyj -p -h127.0.0.1 -e "SHOW TABLES;" dayangyunjie
 ```
 
 应能看到 `admins` 等表。含通知的版本 `db push` 后还应有 `wechat_oa_followers`、`wechat_oa_oauth_states`、`notify_send_logs`。
@@ -1026,3 +1028,258 @@ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3000/api/docs
 **不要：** 把本机 `node_modules` / `.env` 打进包；把 `miniapp-customer` / `miniapp-worker` 打进 API tar；在 ECS 跑根目录 `npm run build`；有业务数据后再 `db seed`。
 
 通知联调仍见 [`WeChat-SMS-Notify-After-Aliyun-Deploy.md`](./WeChat-SMS-Notify-After-Aliyun-Deploy.md)。
+
+---
+
+## 十四、MySQL 常用查询（用户 `dyyj`，库 `dayangyunjie`）
+
+只在 **ECS SSH** 上查，库不对公网开放 3306。  
+**用户名是 `dyyj`，库名是 `dayangyunjie`**（不要写成库名叫 dyyj）。用户绑在 `127.0.0.1`，登录必须带 **`-h127.0.0.1`**，否则可能走 socket 变成 `dyyj@localhost` 被拒绝。
+
+密码与第四节建库、第六节 `DATABASE_URL` 相同。`-p` 后面不要直接贴密码（会进命令历史）；回车后再输入。不要把 `oa_openid` / `unionid` 发到群里。
+
+### 14.1 登录与退出
+
+```bash
+mysql -udyyj -p -h127.0.0.1 dayangyunjie
+```
+
+进去后：
+
+```sql
+SELECT DATABASE();
+SHOW TABLES;
+```
+
+应看到 `workers`、`residents`、`admins`、`wechat_oa_followers` 等。退出：`EXIT;` 或 `\q`。
+
+一行命令（查完即退）：
+
+```bash
+mysql -udyyj -p -h127.0.0.1 dayangyunjie -e "SHOW TABLES;"
+```
+
+### 14.2 员工 `workers`
+
+```sql
+-- 列表（不含密码哈希）
+SELECT id, employee_no, name, phone, skill_type, employment_status, status, unionid, mp_openid
+FROM workers
+ORDER BY id DESC
+LIMIT 50;
+
+-- 按手机号
+SELECT id, employee_no, name, phone, employment_status, unionid
+FROM workers
+WHERE phone = '13800000000';
+
+-- 在职
+SELECT id, employee_no, name, phone, skill_type
+FROM workers
+WHERE employment_status = 'ACTIVE';
+```
+
+`employment_status`：`ACTIVE` 在职 / `RESIGNED` 离职。`status`：`IDLE` 空闲 / `BUSY` 服务中（与在职无关）。`skill_type`：`CLEANING` / `RECYCLING`。查询不要带 `password_hash`。
+
+### 14.3 居民 `residents`
+
+```sql
+SELECT id, name, phone, nickname, openid, unionid, created_at
+FROM residents
+ORDER BY id DESC
+LIMIT 50;
+
+SELECT id, name, phone, unionid
+FROM residents
+WHERE phone = '13800000000';
+```
+
+### 14.4 运营 `admins`
+
+```sql
+SELECT id, username, email, name, phone, status, is_super_admin
+FROM admins
+ORDER BY id;
+
+-- 功能授权（超管不写这张表）
+SELECT a.id, a.email, a.name, p.menu_key
+FROM admins a
+LEFT JOIN admin_permissions p ON p.admin_id = a.id
+ORDER BY a.id, p.menu_key;
+```
+
+`status`：`ENABLED` / `DISABLED`。
+
+### 14.5 服务号粉丝 `wechat_oa_followers`
+
+发模板用的是这里的 **`oa_openid`**，且 `subscribed = 1`，并已挂上对应 `worker_id` / `resident_id` / `admin_id`。
+
+```sql
+SELECT id, subscribed, admin_id, worker_id, resident_id, unionid, oa_openid, updated_at
+FROM wechat_oa_followers
+ORDER BY id DESC
+LIMIT 50;
+
+-- 已关注且已绑员工
+SELECT f.id, f.subscribed, w.id AS worker_id, w.name, w.phone
+FROM wechat_oa_followers f
+JOIN workers w ON w.id = f.worker_id
+WHERE f.subscribed = 1;
+
+-- 已关注且已绑居民
+SELECT f.id, f.subscribed, r.id AS resident_id, r.name, r.phone
+FROM wechat_oa_followers f
+JOIN residents r ON r.id = f.resident_id
+WHERE f.subscribed = 1;
+
+-- 已关注且已绑运营
+SELECT f.id, f.subscribed, a.id AS admin_id, a.email, a.name
+FROM wechat_oa_followers f
+JOIN admins a ON a.id = f.admin_id
+WHERE f.subscribed = 1;
+
+-- 有绑定但已取关（微信发不出，reason=unsubscribed）
+SELECT id, admin_id, worker_id, resident_id, subscribed
+FROM wechat_oa_followers
+WHERE subscribed = 0
+  AND (admin_id IS NOT NULL OR worker_id IS NOT NULL OR resident_id IS NOT NULL);
+
+-- 某员工有没有挂上粉丝
+SELECT w.id, w.name, w.phone, w.unionid,
+       f.id AS follower_id, f.subscribed, f.oa_openid
+FROM workers w
+LEFT JOIN wechat_oa_followers f ON f.worker_id = w.id
+WHERE w.phone = '13800000000';
+```
+
+### 14.6 订单（联调对照）
+
+```sql
+SELECT id, order_no, gps_lat, gps_lng, status, resident_id, worker_id, appoint_date, appoint_time_slot
+FROM cleaning_orders
+ORDER BY id DESC
+LIMIT 20;
+
+SELECT id, order_no, gps_lat, gps_lng, status, resident_id, worker_id, appoint_date, appoint_time_slot
+FROM recycling_orders
+ORDER BY id DESC
+LIMIT 20;
+
+-- 某单当前派给谁
+SELECT o.id, o.order_no, o.status, o.worker_id, w.name, w.phone
+FROM cleaning_orders o
+LEFT JOIN workers w ON w.id = o.worker_id
+WHERE o.id = 10;
+```
+
+`status` 常见：`PENDING_ASSIGN` / `ASSIGNED` / `ACCEPTED` / `IN_SERVICE` / `PENDING_REVIEW` / `REVIEWED` / `CANCELLED`。
+
+### 14.7 通知发送日志 `notify_send_logs`
+
+```sql
+SELECT id, event, order_type, order_id, channel, recipient_key, created_at
+FROM notify_send_logs
+ORDER BY id DESC
+LIMIT 30;
+```
+
+没收到微信时：先看粉丝表是否 `subscribed=1` 且挂了对应 id，再对 `pm2 logs dayangyunjie-api` 搜 `reason=`。口径见 [`WeChat-SMS-Notify-After-Aliyun-Deploy.md`](./WeChat-SMS-Notify-After-Aliyun-Deploy.md)。
+
+---
+
+## 十五、交付前清测试订单（保留配置，清空员工与订单）
+
+全流程测完、正式交付时：**删订单流水和测试员工，不删配置、不删运营/居民、不整目录清空 `uploads/`。**  
+服务品类 icon、大件价格海报、轮播图都在同一个 `apps/server/uploads/`，`rm -rf uploads` 会把配置图一起干掉，前台品类图标 404。
+
+**不要**再跑 `npx prisma db seed`（会把超管密码写回 `admin123`）。先 `mysqldump` 再动手。
+
+### 15.1 留哪些表
+
+| 留 | 表 |
+|----|-----|
+| 配置 | `service_catalogs`、`recycling_items`、`review_keywords`、`appoint_time_slot_configs`、`appoint_time_lead_configs`、`complaint_reason_configs`、`banners`、`operators` |
+| 账号 | `admins`、`admin_permissions`、`residents`、`addresses` |
+| 微信绑定 | `wechat_oa_followers` 里**运营/居民**的绑定保留；员工绑定随员工一起清 |
+
+`operators.phone` 若仍是 seed 的 `13800138000`，改成真客服号，不要整表删。交付后在 PC 后台重新录入正式员工，员工需重新用员工端登录并完成服务号绑定。
+
+### 15.2 删哪些表（订单、员工及相关）
+
+子表先于主表。在 ECS：`mysql -udyyj -p -h127.0.0.1 dayangyunjie`
+
+```sql
+SET FOREIGN_KEY_CHECKS = 0;
+
+DELETE FROM complaint_follow_ups;   -- 投诉跟进记录
+DELETE FROM complaints;             -- 投诉单
+DELETE FROM reviews;                -- 居民评价
+DELETE FROM work_photos;            -- 员工作业前后照片（库内 URL，文件另按 15.3 删）
+DELETE FROM order_status_logs;      -- 订单状态流转（派单/接单/开始服务等）
+DELETE FROM consult_follow_ups;     -- 家政咨询跟进记录
+DELETE FROM consult_orders;         -- 家政咨询单（单号 CNS）
+DELETE FROM cleaning_orders;        -- 保洁订单（单号 CLN）
+DELETE FROM recycling_orders;       -- 废品回收订单（单号 RCY）
+DELETE FROM notify_send_logs;       -- 超时/提醒通知的幂等占位（不是配置）
+DELETE FROM wechat_oa_oauth_states; -- 运营网页授权一次性 state，可清
+DELETE FROM wechat_oa_followers WHERE worker_id IS NOT NULL; -- 测试员工的服务号绑定
+DELETE FROM workers;                -- 员工账号（测试工号/手机号一并清掉）
+
+SET FOREIGN_KEY_CHECKS = 1;
+```
+
+需要订单/员工自增 id 从 1 起，再对已清空的表执行 `ALTER TABLE 表名 AUTO_INCREMENT = 1;`（`cleaning_orders` / `recycling_orders` / `consult_orders` / `work_photos` / `reviews` / `complaints` / `workers` 等）。单号按当天日期重新编，与旧 id 无关。
+
+### 15.3 `uploads/` 哪些能删、哪些必须留
+
+全部图片都在 `/opt/dayangyunjie-code/apps/server/uploads/`，靠**文件名前缀**区分，不要按扩展名一锅端。
+
+| 文件名 | 来源 | 交付时 |
+|--------|------|--------|
+| `ICON_*.webp` | `POST /upload/icon`：服务品类 / 回收品项图标 | **留** |
+| `POSTER_*.webp` | `POST /upload/poster`：大件价格表长图 | **留** |
+| `CLN*.jpg` / `RCY*.jpg` / `CNS*.jpg` | 作业前后照片、带订单号的评价/投诉图 | **可删**（对应订单已删） |
+| `IMG_*.jpg` | `/upload/image` 且没带订单号：轮播、员工头像/健康证/技能证、废品下单前物品图 | **不要按前缀全删** |
+
+员工删掉后，其头像/证件会变成无人引用的 `IMG_` 文件，占空间很小。**不要为清这些去 `rm IMG_*`**，会误删轮播图。
+
+**只删 `CLN*` / `RCY*` / `CNS*` 开头的 jpg，对现网配置没有影响。** 品类 icon 是 `ICON_*.webp`，价格海报是 `POSTER_*.webp`，轮播是 `IMG_*.jpg`，都不会被这两条 `rm` 碰到。咨询单几乎没有作业图，`CNS*` 多半本来就没有文件，多写一条无害。
+
+先备份再删文件：
+
+```bash
+cd /opt/dayangyunjie-code/apps/server
+STAMP=$(date +%Y%m%d-%H%M%S)
+tar -czf /opt/bk/uploads.bak-$STAMP.tgz uploads
+ls -lh /opt/bk/uploads.bak-$STAMP.tgz
+
+# 只删订单作业图；不动 ICON_ / POSTER_ / IMG_
+cd uploads
+rm -f CLN*.jpg RCY*.jpg CNS*.jpg
+```
+
+删之前可预览将删哪些：
+
+```bash
+cd /opt/dayangyunjie-code/apps/server/uploads
+ls -1 CLN*.jpg RCY*.jpg CNS*.jpg 2>/dev/null | head
+```
+
+若仍不放心，按库里**仍引用的 URL** 核对配置图还在：
+
+```sql
+SELECT icon, price_image_url FROM service_catalogs
+WHERE icon IS NOT NULL OR price_image_url IS NOT NULL;
+SELECT icon FROM recycling_items WHERE icon IS NOT NULL;
+SELECT image_url FROM banners;
+```
+
+打开对应 URL（`https://api.yunjiezhixiang.cn/uploads/文件名`）应仍是 200。
+
+### 15.4 清完后
+
+```bash
+pm2 restart dayangyunjie-api
+```
+
+PC 后台：品类图标、时段、轮播仍在；订单列表、员工列表为空。运营/居民微信绑定还在；正式员工需重新建档并绑定服务号。
