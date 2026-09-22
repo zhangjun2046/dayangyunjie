@@ -59,12 +59,19 @@
     <view class="book-bar">
       <view class="book-btn" :class="bookBtnClass" @tap="onBook">立即预约</view>
     </view>
+
+    <ProfileCompleteModal
+      ref="profileModalRef"
+      @completed="onProfileCompleted"
+    />
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
+import { useAuthStore } from '@/store/auth';
+import ProfileCompleteModal from '@/components/ProfileCompleteModal.vue';
 import { useBookingCleaningStore } from '@/store/booking-cleaning';
 import { useBookingRecyclingStore } from '@/store/booking-recycling';
 import { useBookingConsultStore } from '@/store/booking-consult';
@@ -216,11 +223,38 @@ onLoad((options?: Record<string, string>) => {
   console.info('[service-detail] loaded, type=', serviceType.value);
 });
 
+const authStore = useAuthStore();
 const bookingStore = useBookingCleaningStore();
 const recyclingStore = useBookingRecyclingStore();
 const consultStore = useBookingConsultStore();
+const profileModalRef = ref<InstanceType<typeof ProfileCompleteModal> | null>(null);
 
-function onBook() {
+function getLoginCode(): Promise<string> {
+  // #ifdef MP-WEIXIN
+  return new Promise((resolve, reject) => {
+    wx.login({
+      success: (res: { code: string }) => resolve(res.code),
+      fail: (err: { errMsg: string }) => reject(new Error(String(err.errMsg))),
+    });
+  });
+  // #endif
+  // #ifndef MP-WEIXIN
+  return Promise.resolve(`mock_h5_${Date.now()}`);
+  // #endif
+}
+
+async function doWechatLogin() {
+  try {
+    const code = await getLoginCode();
+    await authStore.wechatLogin(code);
+    console.info('[service-detail] wechatLogin success, residentId=', authStore.resident?.id);
+  } catch (err) {
+    console.info('[service-detail] wechatLogin failed:', String(err));
+    uni.showToast({ title: '登录失败，请重试', icon: 'none' });
+  }
+}
+
+function navigateToBooking() {
   if (serviceType.value === 'cleaning') {
     bookingStore.reset();
     uni.navigateTo({ url: '/pages/booking-cleaning/index' });
@@ -234,8 +268,43 @@ function onBook() {
   if (serviceType.value === 'consult') {
     consultStore.reset();
     uni.navigateTo({ url: '/pages/booking-consult/index' });
+  }
+}
+
+/** decrypt-phone 需要 JWT，必须先 wx.login 换 token */
+async function ensureLoginThenShowPhoneModal() {
+  if (!authStore.isLoggedIn) {
+    await doWechatLogin();
+  }
+  if (!authStore.isLoggedIn) {
+    console.info('[service-detail] skip phone modal: still not logged in');
     return;
   }
+  if (authStore.hasPhone && authStore.resident?.phone) {
+    console.info('[service-detail] phone already bound, continue booking');
+    navigateToBooking();
+    return;
+  }
+  profileModalRef.value?.show();
+  console.info('[service-detail] showing phone auth modal, residentId=', authStore.resident?.id);
+}
+
+/** 立即预约：未填手机号先补全，再进入预约流程 */
+async function onBook() {
+  if (!authStore.hasPhone) {
+    await ensureLoginThenShowPhoneModal();
+    return;
+  }
+  navigateToBooking();
+}
+
+async function onProfileCompleted(payload: { phone: string }) {
+  console.info('[service-detail] profile completed, phone=', payload.phone.slice(0, 3) + '****');
+  if (!authStore.isLoggedIn) {
+    await doWechatLogin();
+    authStore.setPhone(payload.phone);
+  }
+  navigateToBooking();
 }
 </script>
 

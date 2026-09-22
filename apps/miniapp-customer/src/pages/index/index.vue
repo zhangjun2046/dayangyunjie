@@ -118,12 +118,6 @@
       <view class="cs-btn" @tap="onCallService">电话预约</view>
     </view>
 
-    <!-- 身份补全弹窗 -->
-    <ProfileCompleteModal
-      ref="profileModalRef"
-      @completed="onProfileCompleted"
-    />
-
     <!-- 隐私协议弹窗（首次进入由首页负责触发） -->
     <PrivacyModal
       ref="privacyModalRef"
@@ -140,7 +134,6 @@ import { ref } from 'vue';
 import { onShareAppMessage, onShareTimeline, onShow } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/store/auth';
 import RemoteImage from '@/components/RemoteImage.vue';
-import ProfileCompleteModal from '@/components/ProfileCompleteModal.vue';
 import PrivacyModal from '@/components/PrivacyModal.vue';
 import ContactOperatorPicker from '@/components/ContactOperatorPicker.vue';
 import { fetchActiveBanners, type BannerDto } from '@/api/banner';
@@ -148,14 +141,13 @@ import { callContactOperator } from '@/utils/call-contact-operator';
 import { resumeResidentDeepLinkAfterLogin } from '@/utils/resident-deeplink';
 
 const authStore = useAuthStore();
-const profileModalRef = ref<InstanceType<typeof ProfileCompleteModal> | null>(null);
 const privacyModalRef = ref<InstanceType<typeof PrivacyModal> | null>(null);
 const contactPickerRef = ref<InstanceType<typeof ContactOperatorPicker> | null>(null);
 
 /** 动态 Banner 列表（API 返回；为空则展示品牌默认卡） */
 const banners = ref<BannerDto[]>([]);
 
-/** 待跳转的服务类型（补全手机号后继续） */
+/** 待跳转的服务类型（同意协议后继续进详情页） */
 let pendingServiceType = '';
 
 // ── 页面数据加载 ─────────────────────────────────────────────────
@@ -202,38 +194,23 @@ async function doWechatLogin() {
   }
 }
 
-/**
- * 确保已登录后再弹出手机号授权
- * decrypt-phone 需要 JWT，必须先 wx.login 换 token
- */
-async function ensureLoginThenShowPhoneModal() {
-  if (!authStore.isLoggedIn) {
-    await doWechatLogin();
-  }
-  if (!authStore.isLoggedIn) {
-    console.info('[home] skip phone modal: still not logged in');
-    return;
-  }
-  if (resumeResidentDeepLinkAfterLogin()) {
-    console.info('[home] resumed notify deep link after login');
-    return;
-  }
-  // 登录后若服务端已有手机号，无需再授权
-  if (authStore.hasPhone && authStore.resident?.phone) {
-    console.info('[home] phone already bound on server, skip phone modal');
-    return;
-  }
-  profileModalRef.value?.show();
-  console.info('[home] showing phone auth modal, residentId=', authStore.resident?.id);
-}
-
-/** 用户同意隐私协议：静默登录后停在首页，手机号等到点击服务卡片再校验 */
+/** 用户同意隐私协议：静默登录后停在首页；若刚点过服务卡片则继续进详情，手机号等到「立即预约」再校验 */
 async function onPrivacyAgreed() {
   authStore.setPrivacyAgreed();
   if (!authStore.isLoggedIn) {
     await doWechatLogin();
   }
-  pendingServiceType = '';
+  if (resumeResidentDeepLinkAfterLogin()) {
+    pendingServiceType = '';
+    console.info('[home] resumed notify deep link after privacy agree');
+    return;
+  }
+  if (pendingServiceType) {
+    const type = pendingServiceType;
+    pendingServiceType = '';
+    navigateToServiceDetail(type);
+    return;
+  }
 }
 
 /** 用户拒绝隐私协议 */
@@ -243,7 +220,7 @@ function onPrivacyDeclined() {
 
 /**
  * 每次页面显示时刷新 Banner；未同意协议则弹 PrivacyModal。
- * 不在 onShow 自动 wx.login，登录仅在用户同意协议或点击服务时触发。
+ * 不在 onShow 自动 wx.login，登录仅在用户同意协议时触发。
  */
 onShow(() => {
   loadPageData();
@@ -282,22 +259,12 @@ function onBannerTap(banner: BannerDto) {
 
 // ── 服务卡片导航 ──────────────────────────────────────────────
 
-/** 点击服务卡片：先确认协议、登录与手机号，再跳转服务详情页 */
-async function onServiceTap(type: string) {
+/** 点击服务卡片：先确认协议，再进服务详情；不在此处校验手机号 */
+function onServiceTap(type: string) {
   if (!authStore.hasAgreedPrivacy) {
     pendingServiceType = type;
     privacyModalRef.value?.show();
     console.info('[home] privacy required before service, type=', type);
-    return;
-  }
-  if (!authStore.hasPhone) {
-    pendingServiceType = type;
-    await ensureLoginThenShowPhoneModal();
-    if (authStore.hasPhone && pendingServiceType) {
-      navigateToServiceDetail(pendingServiceType);
-      pendingServiceType = '';
-    }
-    console.info('[home] profile complete required before viewing service, type=', type);
     return;
   }
   navigateToServiceDetail(type);
@@ -306,22 +273,6 @@ async function onServiceTap(type: string) {
 /** 跳转服务详情页 */
 function navigateToServiceDetail(type: string) {
   uni.navigateTo({ url: `/pages/service-detail/index?type=${type}` });
-}
-
-async function onProfileCompleted(payload: { phone: string }) {
-  console.info('[home] profile completed, phone=', payload.phone.slice(0, 3) + '****', 'pendingServiceType=', pendingServiceType);
-
-  // 兜底：极端情况下授权前未登录成功，补一次登录并写回本地 phone
-  if (!authStore.isLoggedIn) {
-    await doWechatLogin();
-    authStore.setPhone(payload.phone);
-    console.info('[home] late login after phone auth, isLoggedIn=', authStore.isLoggedIn);
-  }
-
-  if (pendingServiceType) {
-    navigateToServiceDetail(pendingServiceType);
-    pendingServiceType = '';
-  }
 }
 
 // ── 客服电话 ─────────────────────────────────────────────────
